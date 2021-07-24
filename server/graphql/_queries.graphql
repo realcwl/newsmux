@@ -1,0 +1,9 @@
+# Queries
+# key should match resolver function name
+
+type Query {
+  # users: [User!]!
+  # posts: [Post!]!
+  # feeds: [Feed!]!
+}
+
