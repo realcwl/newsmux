@@ -1,0 +1,9 @@
+# This file will be loaded at compile time as the graphql schema
+# Top level schema, do not change
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
