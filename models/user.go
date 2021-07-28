@@ -8,8 +8,8 @@ import "gorm.io/gorm"
 // Name: user's name to display
 type User struct {
 	gorm.Model
-	AuthenticationId string `json:"authentication_id"`
-	Name             string
-	Email            string
-	SubscribedFeeds  []*Feed `gorm:"many2many:user_feed_subscription;"`
+	AuthenticationId string  `json:"authentication_id"`
+	Name             string  `json:"name"`
+	Email            string  `json:"email"`
+	SubscribedFeeds  []*Feed `json:"subscribed_feeds" gorm:"many2many:user_feed_subscription;"`
 }

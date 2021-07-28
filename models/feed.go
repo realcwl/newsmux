@@ -11,8 +11,8 @@ import (
 // Name is user's name to display
 type Feed struct {
 	gorm.Model
-	Title       string `json:"title"`
-	CreatorID   uint
-	Creator     User
-	Subscribers []*User `gorm:"many2many:user_feed_subscription;"`
+	Title       string  `json:"title"`
+	CreatorID   uint    `json:"creator_id"`
+	Creator     User    `json:"creator"`
+	Subscribers []*User `json:"subscribers" gorm:"many2many:user_feed_subscription;"`
 }
