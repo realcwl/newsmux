@@ -47,6 +47,9 @@ func setCognitoClient(client *cognitoidentityprovider.Client) {
 	cognitoClient = client
 }
 
+// JWT middleware fetch user jwt in the http header, looking for field "token".
+// It then parse the JWT and add a new field "sub" stores user's id. It returns
+// error on token not provided or token is invalid (wrong token or expired).
 func JWT() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		jwt := c.GetHeader("token")
