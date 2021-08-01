@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Luismorlan/newsmux/models"
 	"github.com/Luismorlan/newsmux/server"
 	"github.com/Luismorlan/newsmux/server/middlewares"
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func init() {
@@ -17,18 +14,10 @@ func init() {
 }
 
 func main() {
-	dsn := "host=newsfeed-db-dev.c3bzqjvxdcd7.us-west-1.rds.amazonaws.com user=root password=b5OKda1Twb1r dbname=test_db port=5432 sslmode=disable"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-
-	if err != nil {
-		panic("failed to connect database")
-	}
-	db.AutoMigrate(&models.User{}, &models.Feed{})
-
 	// Default With the Logger and Recovery middleware already attached
 	router := gin.Default()
 
-	router.Use(middlewares.JWT())
+	// router.Use(middlewares.JWT())
 
 	router.POST("/graphql", server.GraphqlHandler())
 

@@ -1,0 +1,8 @@
+type User @goModel(model: "model.User") {
+  id: ID!
+  createdAt: Time
+  deletedAt: Time
+  name: String!
+  age: Int!
+  subscribedFeeds: [Feed!]
+}

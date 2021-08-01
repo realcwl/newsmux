@@ -1,0 +1,29 @@
+# GraphQL schema
+
+type Query {
+  feeds: [Feed!]!
+  users: [User!]!
+}
+
+input NewFeedInput {
+  title: String!
+  creatorId: String
+}
+
+input NewUserInput {
+  name: String!
+  age: Int!
+}
+
+input SubscribeInput {
+  userId: String!
+  feedId: String!
+}
+
+type Mutation {
+  createFeed(input: NewFeedInput!): Feed!
+  createUser(input: NewUserInput!): User
+  subscribe(input: SubscribeInput!): User
+}
+
+scalar Time

@@ -1,8 +1,0 @@
-# Mutations
-# key should match resolver function name
-
-type Mutation {
-  # addPost(title: String!): Post!
-  # addFeed(title: String!): Feed!
-}
-
