@@ -17,6 +17,7 @@ func main() {
 	// Default With the Logger and Recovery middleware already attached
 	router := gin.Default()
 
+	// TODO: remove once we fiture out how to test with jwt turned on
 	// router.Use(middlewares.JWT())
 
 	router.POST("/graphql", server.GraphqlHandler())

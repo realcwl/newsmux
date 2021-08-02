@@ -1,3 +1,4 @@
+# TODO(jamie): implement actual User model
 type User @goModel(model: "model.User") {
   id: ID!
   createdAt: Time

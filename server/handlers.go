@@ -16,6 +16,7 @@ func GraphqlHandler() gin.HandlerFunc {
 	dsn := "host=newsfeed-db-dev.c3bzqjvxdcd7.us-west-1.rds.amazonaws.com user=root password=b5OKda1Twb1r dbname=test_db port=5432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
+		// TODO(Jamie): move to datadog
 		panic("failed to connect database")
 	}
 	db.Debug().AutoMigrate(&model.Feed{}, &model.User{})

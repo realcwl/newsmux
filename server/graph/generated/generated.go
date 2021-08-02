@@ -310,16 +310,19 @@ directive @goModel(model: String, models: [String!]) on OBJECT
 directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION
     | FIELD_DEFINITION
 `, BuiltIn: false},
-	{Name: "graph/feed.graphqls", Input: `type Feed @goModel(model: "model.Feed") {
+	{Name: "graph/feed.graphqls", Input: `# TODO(jamie): implement actual Feed model
+type Feed @goModel(model: "model.Feed") {
   id: ID!
   createdAt: Time
   deletedAt: Time
   title: String!
   creator: User
   subscribers: [User!]
-}`, BuiltIn: false},
+}
+`, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `# GraphQL schema
 
+# TODO(jamie): more documentations on all APIs
 type Query {
   feeds: [Feed!]!
   users: [User!]!
@@ -346,15 +349,18 @@ type Mutation {
   subscribe(input: SubscribeInput!): User
 }
 
-scalar Time`, BuiltIn: false},
-	{Name: "graph/user.graphqls", Input: `type User @goModel(model: "model.User") {
+scalar Time
+`, BuiltIn: false},
+	{Name: "graph/user.graphqls", Input: `# TODO(jamie): implement actual User model
+type User @goModel(model: "model.User") {
   id: ID!
   createdAt: Time
   deletedAt: Time
   name: String!
   age: Int!
   subscribedFeeds: [Feed!]
-}`, BuiltIn: false},
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 

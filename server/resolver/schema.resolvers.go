@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
@@ -17,9 +16,10 @@ import (
 )
 
 func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedInput) (*model.Feed, error) {
-	uuidWithHyphen := uuid.New()
-	uuid := strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+	// TODO(Jamie): temporarily use uuid as id
+	uuid := uuid.New().String()
 
+	// TODO(Jamie): move to finalized schema and API interface
 	t := model.Feed{
 		Id:          "f_" + uuid,
 		Title:       input.Title,
@@ -40,9 +40,10 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 }
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error) {
-	uuidWithHyphen := uuid.New()
-	uuid := strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+	// TODO(Jamie): temporarily use uuid as id
+	uuid := uuid.New().String()
 
+	// TODO(Jamie): move to finalized schema and API interface
 	t := model.User{
 		Id:              "u_" + uuid,
 		Name:            input.Name,

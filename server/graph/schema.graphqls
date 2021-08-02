@@ -1,5 +1,6 @@
 # GraphQL schema
 
+# TODO(jamie): more documentations on all APIs
 type Query {
   feeds: [Feed!]!
   users: [User!]!
