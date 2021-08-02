@@ -1,0 +1,9 @@
+# TODO(jamie): implement actual Feed model
+type Feed @goModel(model: "model.Feed") {
+  id: ID!
+  createdAt: Time
+  deletedAt: Time
+  title: String!
+  creator: User
+  subscribers: [User!]
+}

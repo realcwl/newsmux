@@ -1,6 +1,0 @@
-# Subscriptions
-# key should match resolver function name
-
-type Subscription {
-}
-
