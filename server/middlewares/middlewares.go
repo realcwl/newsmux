@@ -8,6 +8,7 @@ import (
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -82,4 +83,14 @@ func JWT() gin.HandlerFunc {
 		// before request
 		c.Next()
 	}
+}
+
+// CorsWhitelist will allow CORS call from the input list of origins. This is
+// needed during debuging to whitelist call from localhost.
+func CorsWhitelist(srcs []string) gin.HandlerFunc {
+	return cors.New(cors.Config{
+		AllowOriginFunc: func(origin string) bool {
+			return utils.ContainsString(srcs, origin)
+		},
+	})
 }
