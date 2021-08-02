@@ -90,12 +90,7 @@ func JWT() gin.HandlerFunc {
 func CorsWhitelist(srcs []string) gin.HandlerFunc {
 	return cors.New(cors.Config{
 		AllowOriginFunc: func(origin string) bool {
-			for _, src := range srcs {
-				if src == origin {
-					return true
-				}
-			}
-			return false
+			return utils.ContainsString(srcs, origin)
 		},
 	})
 }
