@@ -1,3 +1,14 @@
+/*
+flag Package set up cli flags shared across services
+
+Usage:
+
+	Flags listed in this package are shared across boundaries and service-agnostic
+	For service dependent flags please define in their respective package
+
+TODO(jamie): move to more powerful cli lib https://github.com/spf13/cobra
+*/
+
 package flag
 
 import (
@@ -9,8 +20,10 @@ const (
 	FeedPublisher = "feed_publisher"
 )
 
-var IsDevelopment bool
-var ServiceName string
+var (
+	IsDevelopment bool
+	ServiceName   string
+)
 
 func init() {
 	// TODO(jamie): add more flags, able to overwrite envriment variables
