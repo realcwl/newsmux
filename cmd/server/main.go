@@ -10,20 +10,25 @@ import (
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 )
 
 func init() {
 	// Middlewares
 	middlewares.Setup()
 
-	utils.Logger.WithFields(logrus.Fields{"service": "api_server", "is_development": utils.IsDevelopment}).Info("api server initialized")
+	utils.Logger.WithFields(
+		logrus.Fields{"service": utils.ServiceName, "is_development": utils.IsDevelopment},
+	).Info("api server initialized")
 }
 
 func cleanup() {
 	utils.CloseProfiler()
 	utils.CloseTracer()
 
-	utils.Logger.WithFields(logrus.Fields{"service": "api_server", "is_development": utils.IsDevelopment}).Info("api server shutdown")
+	utils.Logger.WithFields(
+		logrus.Fields{"service": utils.ServiceName, "is_development": utils.IsDevelopment},
+	).Info("api server shutdown")
 }
 
 func main() {
@@ -31,6 +36,8 @@ func main() {
 
 	// Default With the Logger and Recovery middleware already attached
 	router := gin.Default()
+
+	router.Use(gintrace.Middleware(utils.ServiceName))
 
 	// TODO: remove once we fiture out how to test with jwt turned on
 	// router.Use(middlewares.JWT())
@@ -50,6 +57,9 @@ func main() {
 		})
 	})
 
-	utils.Logger.WithFields(logrus.Fields{"service": "api_server", "is_development": utils.IsDevelopment}).Info("api server starts up")
+	utils.Logger.WithFields(
+		logrus.Fields{"service": utils.ServiceName, "is_development": utils.IsDevelopment},
+	).Info("api server starts up")
+
 	router.Run(":8080")
 }

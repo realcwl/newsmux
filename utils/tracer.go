@@ -7,12 +7,20 @@ import (
 
 func init() {
 	// Datadog tracer
+
+	env := "development"
+	if !IsDevelopment {
+		env = "production"
+	}
+
 	tracer.Start(
-		tracer.WithService("apiserver"),
-		tracer.WithEnv("development"),
+		tracer.WithService(ServiceName),
+		tracer.WithEnv(env),
 	)
 
-	Logger.WithFields(logrus.Fields{"service": "api_server", "is_development": IsDevelopment}).Info("tracer initialized")
+	Logger.WithFields(
+		logrus.Fields{"service": ServiceName, "is_development": IsDevelopment},
+	).Info("tracer initialized")
 }
 
 // Stop tracer, OK to be closed multiple times

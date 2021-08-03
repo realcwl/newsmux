@@ -7,9 +7,15 @@ import (
 
 func init() {
 	// Datadog profiler
+
+	env := "development"
+	if IsDevelopment {
+		env = "production"
+	}
+
 	if err := profiler.Start(
-		profiler.WithService("apiserver"),
-		profiler.WithEnv("development"),
+		profiler.WithService(ServiceName),
+		profiler.WithEnv(env),
 		profiler.WithProfileTypes(
 			profiler.CPUProfile,
 			profiler.HeapProfile,
@@ -24,7 +30,9 @@ func init() {
 		Logger.Fatal(err)
 	}
 
-	Logger.WithFields(logrus.Fields{"service": "api_server", "is_development": IsDevelopment}).Info("profiler initialized")
+	Logger.WithFields(
+		logrus.Fields{"service": ServiceName, "is_development": IsDevelopment},
+	).Info("profiler initialized")
 }
 
 // Stop profiler, OK to be closed multiple times
