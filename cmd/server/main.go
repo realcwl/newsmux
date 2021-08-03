@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Luismorlan/newsmux/server"
 	"github.com/Luismorlan/newsmux/server/middlewares"
 	"github.com/gin-gonic/gin"
@@ -22,6 +23,11 @@ func main() {
 	router.Use(middlewares.CorsWhitelist([]string{"http://localhost:3000"}))
 
 	router.POST("/graphql", server.GraphqlHandler())
+
+	// Setup graphql playground for debugging
+	router.GET("/", func(c *gin.Context) {
+		playground.Handler("GraphQL", "/graphql").ServeHTTP(c.Writer, c.Request)
+	})
 
 	// TODO(chenweilunster): Keep this for now for fast debug. Remove this debug
 	// route once the application is fully implemented.
