@@ -1,7 +1,8 @@
 package utils
 
 import (
-	"github.com/sirupsen/logrus"
+	. "github.com/Luismorlan/newsmux/utils/flag"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -18,9 +19,7 @@ func init() {
 		tracer.WithEnv(env),
 	)
 
-	Logger.WithFields(
-		logrus.Fields{"service": ServiceName, "is_development": IsDevelopment},
-	).Info("tracer initialized")
+	Log.Info("tracer initialized")
 }
 
 // Stop tracer, OK to be closed multiple times

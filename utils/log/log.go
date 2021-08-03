@@ -1,9 +1,10 @@
-package utils
+package log
 
 import (
 	"os"
 	"time"
 
+	"github.com/Luismorlan/newsmux/utils/flag"
 	ddhook "github.com/bin3377/logrus-datadog-hook"
 	"github.com/sirupsen/logrus"
 )
@@ -16,10 +17,14 @@ const (
 )
 
 // global accessible logger
-var Logger = logrus.New()
+var logger = logrus.New()
+var Log *logrus.Entry = nil
 
 func init() {
 	initLogger()
+	Log = logger.WithFields(
+		logrus.Fields{"service": flag.ServiceName, "is_development": flag.IsDevelopment},
+	)
 }
 
 func initLogger() {
@@ -32,10 +37,10 @@ func initLogger() {
 		&logrus.JSONFormatter{},
 		ddhook.Options{},
 	)
-	Logger.Hooks.Add(hook)
+	logger.Hooks.Add(hook)
 
 	// Also send log to stderr, without json formatter for better readability
-	Logger.SetOutput(os.Stderr)
+	logger.SetOutput(os.Stderr)
 
 	// PARKING LOT:
 	// Write logs both to stderr and rotational file log (which will be picked up by DataDog)

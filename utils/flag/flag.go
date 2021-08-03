@@ -1,9 +1,7 @@
-package utils
+package flag
 
 import (
 	"flag"
-
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -19,8 +17,4 @@ func init() {
 	flag.BoolVar(&IsDevelopment, "dev", true, "set to true if the current run is for development. default value is true")
 	flag.StringVar(&ServiceName, "service", APIServer, "'api_server' or 'feed_publisher'")
 	flag.Parse()
-
-	Logger.WithFields(
-		logrus.Fields{"service": ServiceName, "is_development": IsDevelopment},
-	).Info("flags initialized")
 }

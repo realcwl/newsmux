@@ -1,7 +1,8 @@
 package utils
 
 import (
-	"github.com/sirupsen/logrus"
+	. "github.com/Luismorlan/newsmux/utils/flag"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 )
 
@@ -27,12 +28,11 @@ func init() {
 			// profiler.GoroutineProfile,
 		),
 	); err != nil {
-		Logger.Fatal(err)
+		Log.Fatal(err)
 	}
 
-	Logger.WithFields(
-		logrus.Fields{"service": ServiceName, "is_development": IsDevelopment},
-	).Info("profiler initialized")
+	Log.Info("profiler initialized")
+
 }
 
 // Stop profiler, OK to be closed multiple times
