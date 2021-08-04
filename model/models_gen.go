@@ -2,14 +2,48 @@
 
 package model
 
+type CurosrInput struct {
+	FeedID string `json:"feedId"`
+	Start  int    `json:"start"`
+	End    int    `json:"end"`
+}
+
+type FeedsForUserInput struct {
+	UserID  string         `json:"userId"`
+	Limit   *int           `json:"limit"`
+	Cursors []*CurosrInput `json:"cursors"`
+}
+
 type NewFeedInput struct {
-	Title     string  `json:"title"`
-	CreatorID *string `json:"creatorId"`
+	UserID        string  `json:"userId"`
+	Name          string  `json:"name"`
+	FilterSetting *string `json:"filterSetting"`
+}
+
+type NewPostInput struct {
+	Title            string   `json:"title"`
+	Content          string   `json:"content"`
+	SourceID         string   `json:"sourceId"`
+	SubSourceID      *string  `json:"subSourceId"`
+	FeedsIDPublishTo []string `json:"feedsIdPublishTo"`
+	UserID           *string  `json:"userId"`
+}
+
+type NewSourceInput struct {
+	UserID string `json:"userId"`
+	Name   string `json:"name"`
+	Domain string `json:"domain"`
+}
+
+type NewSubSourceInput struct {
+	UserID             string `json:"userId"`
+	Name               string `json:"name"`
+	ExternalIdentifier string `json:"externalIdentifier"`
+	SourceID           string `json:"sourceId"`
 }
 
 type NewUserInput struct {
 	Name string `json:"name"`
-	Age  int    `json:"age"`
 }
 
 type SubscribeInput struct {

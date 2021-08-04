@@ -19,7 +19,38 @@ func GraphqlHandler() gin.HandlerFunc {
 		// TODO(Jamie): move to datadog
 		panic("failed to connect database")
 	}
-	db.Debug().AutoMigrate(&model.Feed{}, &model.User{})
+
+	err = db.SetupJoinTable(&model.User{}, "SubscribedFeeds", &model.UserFeedSubscription{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	err = db.SetupJoinTable(&model.Feed{}, "Subscribers", &model.UserFeedSubscription{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	err = db.SetupJoinTable(&model.Post{}, "SavedByUser", &model.UserPostSave{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	err = db.SetupJoinTable(&model.User{}, "SavedPosts", &model.UserPostSave{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	err = db.SetupJoinTable(&model.Post{}, "PublishedFeeds", &model.PostFeedPublish{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	err = db.SetupJoinTable(&model.Feed{}, "Posts", &model.PostFeedPublish{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	db.Debug().AutoMigrate(&model.Feed{}, &model.User{}, &model.Post{}, &model.Source{}, &model.SubSource{})
 
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
 		DB: db,

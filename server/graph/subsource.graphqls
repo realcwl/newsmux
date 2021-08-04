@@ -1,0 +1,9 @@
+type SubSource @goModel(model: "model.SubSource") {
+  id: String!
+  createdAt: Time!
+  deletedAt: Time
+  creator: User
+  name: String
+  externalIdentifier: String
+  source: Source!
+}
