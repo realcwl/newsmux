@@ -223,12 +223,12 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInpu
 	return feeds, result.Error
 }
 
-func (r *subscriptionResolver) SyncDown(ctx context.Context, id string) (<-chan *model.SeedState, error) {
+func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {
 	// TODO(chenweilunster): Implement once Jamie's PR for type definition is merged.
-	ch := r.SSC.AddNewConnection(ctx, id)
-	r.SSC.PushSeedStateToUser(&model.SeedState{
+	ch := r.SeedStateChans.AddNewConnection(ctx, userID)
+	r.SeedStateChans.PushSeedStateToUser(&model.SeedState{
 		Username: "dummy_name",
-	}, id)
+	}, userID)
 	return ch, nil
 }
 

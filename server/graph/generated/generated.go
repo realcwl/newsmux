@@ -121,7 +121,7 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		SyncDown func(childComplexity int, id string) int
+		SyncDown func(childComplexity int, userID string) int
 	}
 
 	User struct {
@@ -166,7 +166,7 @@ type SubSourceResolver interface {
 	Source(ctx context.Context, obj *model.SubSource) (*model.Source, error)
 }
 type SubscriptionResolver interface {
-	SyncDown(ctx context.Context, id string) (<-chan *model.SeedState, error)
+	SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error)
 }
 type UserResolver interface {
 	DeletedAt(ctx context.Context, obj *model.User) (*time.Time, error)
@@ -573,7 +573,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Subscription.SyncDown(childComplexity, args["id"].(string)), true
+		return e.complexity.Subscription.SyncDown(childComplexity, args["user_id"].(string)), true
 
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
@@ -817,7 +817,7 @@ type Mutation {
 }
 
 type Subscription {
-  syncDown(id: String!): SeedState!
+  syncDown(user_id: String!): SeedState!
 }
 
 scalar Time
@@ -1004,14 +1004,14 @@ func (ec *executionContext) field_Subscription_syncDown_args(ctx context.Context
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["user_id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user_id"))
 		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["id"] = arg0
+	args["user_id"] = arg0
 	return args, nil
 }
 
@@ -2801,7 +2801,7 @@ func (ec *executionContext) _Subscription_syncDown(ctx context.Context, field gr
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().SyncDown(rctx, args["id"].(string))
+		return ec.resolvers.Subscription().SyncDown(rctx, args["user_id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

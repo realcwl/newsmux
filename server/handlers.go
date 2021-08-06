@@ -55,7 +55,7 @@ func GraphqlHandler() gin.HandlerFunc {
 
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
 		DB:  db,
-		SSC: resolver.NewSeedStateChannels(),
+		SeedStateChans: resolver.NewSeedStateChannels(),
 	}}))
 
 	return func(c *gin.Context) {
