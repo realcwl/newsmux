@@ -1,0 +1,12 @@
+type Post @goModel(model: "model.Post") {
+  id: String!
+  createdAt: Time!
+  deletedAt: Time
+  title: String!
+  content: String!
+  source: Source!
+  subSource: SubSource
+  sharedFromPost: Post
+  savedByUser: [User!]
+  publishedFeeds: [Feed!]
+}

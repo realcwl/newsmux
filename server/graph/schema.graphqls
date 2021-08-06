@@ -2,18 +2,32 @@
 
 # TODO(jamie): more documentations on all APIs
 type Query {
-  feeds: [Feed!]!
-  users: [User!]!
-}
-
-input NewFeedInput {
-  title: String!
-  creatorId: String
+  allFeeds: [Feed!]
+  sources: [Source!]
+  subSources: [SubSource!]
+  posts: [Post!]
+  users: [User!]
+  feeds(input: FeedsForUserInput): [Feed!]
 }
 
 input NewUserInput {
   name: String!
-  age: Int!
+}
+
+input NewFeedInput {
+  userId: String!
+  name: String!
+  filterSetting: String
+}
+
+# TODO: for testing purpose, real post is created by crawler and publisher
+input NewPostInput {
+  title: String!
+  content: String!
+  sourceId: String!
+  subSourceId: String
+  feedsIdPublishTo: [String!]
+  sharedFromPostID: String
 }
 
 input SubscribeInput {
@@ -21,10 +35,41 @@ input SubscribeInput {
   feedId: String!
 }
 
+input NewSourceInput {
+  userId: String!
+  name: String!
+  domain: String!
+}
+
+input NewSubSourceInput {
+  userId: String!
+  name: String!
+  externalIdentifier: String!
+  sourceId: String!
+}
+
+input CurosrInput {
+  feedId: String!
+  start: Int!
+  end: Int!
+}
+
+input FeedsForUserInput {
+  userId: String!
+  limit: Int
+  cursors: [CurosrInput!]
+}
+
 type Mutation {
+  createUser(input: NewUserInput!): User!
   createFeed(input: NewFeedInput!): Feed!
-  createUser(input: NewUserInput!): User
-  subscribe(input: SubscribeInput!): User
+  # TODO: for testing purpose, real post is created by crawler and publisher
+  createPost(input: NewPostInput!): Post!
+  # TODO: what should be a better output
+  subscribe(input: SubscribeInput!): User!
+
+  createSource(input: NewSourceInput!): Source!
+  createSubSource(input: NewSubSourceInput!): SubSource!
 }
 
 scalar Time
