@@ -52,14 +52,15 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error) {
 	uuid := uuid.New().String()
 
+	// TODO: clean up this logic
 	var source model.Source
 	r.DB.Where("id = ?", input.SourceID).First(&source)
 
 	var subSource model.SubSource
 	r.DB.Where("id = ?", input.SubSourceID).First(&subSource)
 
-	var user model.User
-	r.DB.Where("id = ?", input.UserID).First(&user)
+	var sourcePost model.Post
+	r.DB.Where("id = ?", input.SharedFromPostID).First(&sourcePost)
 
 	post := model.Post{
 		Id:             uuid,
@@ -67,12 +68,14 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 		Content:        input.Content,
 		CreatedAt:      time.Now(),
 		Source:         source,
-		SubSource:      subSource,
+		SubSource:      &subSource,
+		SharedFromPost: &sourcePost,
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 	}
 	r.DB.Create(&post)
 
+	//TODO: test Publish post to feed
 	for _, feedId := range input.FeedsIDPublishTo {
 		err := r.DB.Transaction(func(tx *gorm.DB) error {
 			var feed model.Feed

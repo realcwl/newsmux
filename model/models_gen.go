@@ -26,7 +26,7 @@ type NewPostInput struct {
 	SourceID         string   `json:"sourceId"`
 	SubSourceID      *string  `json:"subSourceId"`
 	FeedsIDPublishTo []string `json:"feedsIdPublishTo"`
-	UserID           *string  `json:"userId"`
+	SharedFromPostID *string  `json:"sharedFromPostID"`
 }
 
 type NewSourceInput struct {

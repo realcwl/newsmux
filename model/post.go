@@ -21,8 +21,18 @@ Source: source website for example "twitter", "weibo", "Caixin",  "belongs-to" r
 SubSourceID:
 SubSource: for example a twitter user, weibo user, sub channel in Caixin etc., "belongs-to" relation
 
-SharedFromUserID:
-SharedFromUser: If the post is generated from user sharing, this field is not null and set with the user
+SharedFromPostID:
+SharedFromPost:
+		if the post is a user shared(like re-twitt) post, set this as the Post originally shared. Support multi-level sharing.
+		also if the post is shared:
+			Source is a FAKE one representing "shared".
+				Name is "分享"
+			SubSource representing "user".
+				CreatorID is user_id
+				Creator is User
+				Name is user's name
+				ExternalIdentifier is empty
+
 
 SavedByUser: mark when user save the post, "many-to-many" relation
 PublishedFeeds: feeds that this post published to, "many-to-many" relation
@@ -35,12 +45,12 @@ type Post struct {
 	DeletedAt        gorm.DeletedAt
 	Title            string
 	Content          string
-	SourceID         string    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Source           Source    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SubSourceID      string    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SubSource        SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SharedFromUserID *string   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SharedFromUser   *User     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SavedByUser      []*User   `json:"saved_by_user" gorm:"many2many;"`
-	PublishedFeeds   []*Feed   `json:"published_feeds" gorm:"many2many;"`
+	SourceID         string     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Source           Source     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	SubSourceID      string     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	SubSource        *SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	SharedFromPostID string
+	SharedFromPost   *Post
+	SavedByUser      []*User `json:"saved_by_user" gorm:"many2many;"`
+	PublishedFeeds   []*Feed `json:"published_feeds" gorm:"many2many;"`
 }

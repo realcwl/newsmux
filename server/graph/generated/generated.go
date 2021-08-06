@@ -75,7 +75,7 @@ type ComplexityRoot struct {
 		Id             func(childComplexity int) int
 		PublishedFeeds func(childComplexity int) int
 		SavedByUser    func(childComplexity int) int
-		SharedFromUser func(childComplexity int) int
+		SharedFromPost func(childComplexity int) int
 		Source         func(childComplexity int) int
 		SubSource      func(childComplexity int) int
 		Title          func(childComplexity int) int
@@ -332,12 +332,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.SavedByUser(childComplexity), true
 
-	case "Post.sharedFromUser":
-		if e.complexity.Post.SharedFromUser == nil {
+	case "Post.sharedFromPost":
+		if e.complexity.Post.SharedFromPost == nil {
 			break
 		}
 
-		return e.complexity.Post.SharedFromUser(childComplexity), true
+		return e.complexity.Post.SharedFromPost(childComplexity), true
 
 	case "Post.source":
 		if e.complexity.Post.Source == nil {
@@ -642,7 +642,7 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
   content: String!
   source: Source!
   subSource: SubSource
-  sharedFromUser: User
+  sharedFromPost: Post
   savedByUser: [User!]
   publishedFeeds: [Feed!]
 }
@@ -676,7 +676,7 @@ input NewPostInput {
   sourceId: String!
   subSourceId: String
   feedsIdPublishTo: [String!]
-  userId: String # set if this post is shared from user
+  sharedFromPostID: String
 }
 
 input SubscribeInput {
@@ -1633,12 +1633,12 @@ func (ec *executionContext) _Post_subSource(ctx context.Context, field graphql.C
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(model.SubSource)
+	res := resTmp.(*model.SubSource)
 	fc.Result = res
-	return ec.marshalOSubSource2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
+	return ec.marshalOSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_sharedFromUser(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+func (ec *executionContext) _Post_sharedFromPost(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1656,7 +1656,7 @@ func (ec *executionContext) _Post_sharedFromUser(ctx context.Context, field grap
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.SharedFromUser, nil
+		return obj.SharedFromPost, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1665,9 +1665,9 @@ func (ec *executionContext) _Post_sharedFromUser(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_savedByUser(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -3909,11 +3909,11 @@ func (ec *executionContext) unmarshalInputNewPostInput(ctx context.Context, obj 
 			if err != nil {
 				return it, err
 			}
-		case "userId":
+		case "sharedFromPostID":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sharedFromPostID"))
+			it.SharedFromPostID, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4215,8 +4215,8 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "subSource":
 			out.Values[i] = ec._Post_subSource(ctx, field, obj)
-		case "sharedFromUser":
-			out.Values[i] = ec._Post_sharedFromUser(ctx, field, obj)
+		case "sharedFromPost":
+			out.Values[i] = ec._Post_sharedFromPost(ctx, field, obj)
 		case "savedByUser":
 			out.Values[i] = ec._Post_savedByUser(ctx, field, obj)
 		case "publishedFeeds":
@@ -5284,6 +5284,13 @@ func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 	return ret
 }
 
+func (ec *executionContext) marshalOPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v *model.Post) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Post(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Source) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -5384,10 +5391,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return graphql.MarshalString(*v)
 }
 
-func (ec *executionContext) marshalOSubSource2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx context.Context, sel ast.SelectionSet, v model.SubSource) graphql.Marshaler {
-	return ec._SubSource(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalOSubSource2ᚕgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []model.SubSource) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -5468,6 +5471,13 @@ func (ec *executionContext) marshalOSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋ
 	return ret
 }
 
+func (ec *executionContext) marshalOSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx context.Context, sel ast.SelectionSet, v *model.SubSource) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SubSource(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
 	if v == nil {
 		return nil, nil
@@ -5525,13 +5535,6 @@ func (ec *executionContext) marshalOUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 	}
 	wg.Wait()
 	return ret
-}
-
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

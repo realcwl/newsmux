@@ -27,7 +27,7 @@ input NewPostInput {
   sourceId: String!
   subSourceId: String
   feedsIdPublishTo: [String!]
-  userId: String # set if this post is shared from user
+  sharedFromPostID: String
 }
 
 input SubscribeInput {
