@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -42,6 +43,7 @@ type ResolverRoot interface {
 	Query() QueryResolver
 	Source() SourceResolver
 	SubSource() SubSourceResolver
+	Subscription() SubscriptionResolver
 	User() UserResolver
 }
 
@@ -66,6 +68,7 @@ type ComplexityRoot struct {
 		CreateSubSource func(childComplexity int, input model.NewSubSourceInput) int
 		CreateUser      func(childComplexity int, input model.NewUserInput) int
 		Subscribe       func(childComplexity int, input model.SubscribeInput) int
+		SyncUp          func(childComplexity int, input *model.SeedStateInput) int
 	}
 
 	Post struct {
@@ -90,6 +93,13 @@ type ComplexityRoot struct {
 		Users      func(childComplexity int) int
 	}
 
+	SeedState struct {
+		AvartarURL func(childComplexity int) int
+		FeedIds    func(childComplexity int) int
+		Sources    func(childComplexity int) int
+		Username   func(childComplexity int) int
+	}
+
 	Source struct {
 		CreatedAt  func(childComplexity int) int
 		Creator    func(childComplexity int) int
@@ -108,6 +118,10 @@ type ComplexityRoot struct {
 		Id                 func(childComplexity int) int
 		Name               func(childComplexity int) int
 		Source             func(childComplexity int) int
+	}
+
+	Subscription struct {
+		SyncDown func(childComplexity int, id string) int
 	}
 
 	User struct {
@@ -130,6 +144,7 @@ type MutationResolver interface {
 	Subscribe(ctx context.Context, input model.SubscribeInput) (*model.User, error)
 	CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error)
 	CreateSubSource(ctx context.Context, input model.NewSubSourceInput) (*model.SubSource, error)
+	SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error)
 }
 type PostResolver interface {
 	DeletedAt(ctx context.Context, obj *model.Post) (*time.Time, error)
@@ -149,6 +164,9 @@ type SubSourceResolver interface {
 	DeletedAt(ctx context.Context, obj *model.SubSource) (*time.Time, error)
 
 	Source(ctx context.Context, obj *model.SubSource) (*model.Source, error)
+}
+type SubscriptionResolver interface {
+	SyncDown(ctx context.Context, id string) (<-chan *model.SeedState, error)
 }
 type UserResolver interface {
 	DeletedAt(ctx context.Context, obj *model.User) (*time.Time, error)
@@ -290,6 +308,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Subscribe(childComplexity, args["input"].(model.SubscribeInput)), true
 
+	case "Mutation.syncUp":
+		if e.complexity.Mutation.SyncUp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_syncUp_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SyncUp(childComplexity, args["input"].(*model.SeedStateInput)), true
+
 	case "Post.content":
 		if e.complexity.Post.Content == nil {
 			break
@@ -407,6 +437,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Users(childComplexity), true
 
+	case "SeedState.avartarUrl":
+		if e.complexity.SeedState.AvartarURL == nil {
+			break
+		}
+
+		return e.complexity.SeedState.AvartarURL(childComplexity), true
+
+	case "SeedState.feedIds":
+		if e.complexity.SeedState.FeedIds == nil {
+			break
+		}
+
+		return e.complexity.SeedState.FeedIds(childComplexity), true
+
+	case "SeedState.sources":
+		if e.complexity.SeedState.Sources == nil {
+			break
+		}
+
+		return e.complexity.SeedState.Sources(childComplexity), true
+
+	case "SeedState.username":
+		if e.complexity.SeedState.Username == nil {
+			break
+		}
+
+		return e.complexity.SeedState.Username(childComplexity), true
+
 	case "Source.createdAt":
 		if e.complexity.Source.CreatedAt == nil {
 			break
@@ -505,6 +563,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SubSource.Source(childComplexity), true
 
+	case "Subscription.syncDown":
+		if e.complexity.Subscription.SyncDown == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_syncDown_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.SyncDown(childComplexity, args["id"].(string)), true
+
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
 			break
@@ -579,6 +649,23 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			first = false
 			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
+	case ast.Subscription:
+		next := ec._Subscription(ctx, rc.Operation.SelectionSet)
+
+		var buf bytes.Buffer
+		return func(ctx context.Context) *graphql.Response {
+			buf.Reset()
+			data := next()
+
+			if data == nil {
+				return nil
+			}
 			data.MarshalGQL(&buf)
 
 			return &graphql.Response{
@@ -709,6 +796,13 @@ input FeedsForUserInput {
   cursors: [CurosrInput!]
 }
 
+input SeedStateInput {
+  username: String!
+  avartarUrl: String!
+  feedIds: [String!]
+  sources: [String!]
+}
+
 type Mutation {
   createUser(input: NewUserInput!): User!
   createFeed(input: NewFeedInput!): Feed!
@@ -719,9 +813,21 @@ type Mutation {
 
   createSource(input: NewSourceInput!): Source!
   createSubSource(input: NewSubSourceInput!): SubSource!
+  syncUp(input: SeedStateInput): SeedState
+}
+
+type Subscription {
+  syncDown(id: String!): SeedState!
 }
 
 scalar Time
+`, BuiltIn: false},
+	{Name: "graph/seedState.graphqls", Input: `type SeedState {
+  username: String!
+  avartarUrl: String!
+  feedIds: [String!]
+  sources: [String!]
+}
 `, BuiltIn: false},
 	{Name: "graph/source.graphqls", Input: `type Source @goModel(model: "model.Source") {
   id: String!
@@ -849,6 +955,21 @@ func (ec *executionContext) field_Mutation_subscribe_args(ctx context.Context, r
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_syncUp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.SeedStateInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalOSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedStateInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -876,6 +997,21 @@ func (ec *executionContext) field_Query_feeds_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_syncDown_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -1397,6 +1533,45 @@ func (ec *executionContext) _Mutation_createSubSource(ctx context.Context, field
 	res := resTmp.(*model.SubSource)
 	fc.Result = res
 	return ec.marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_syncUp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_syncUp_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SyncUp(rctx, args["input"].(*model.SeedStateInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.SeedState)
+	fc.Result = res
+	return ec.marshalOSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_id(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -2004,6 +2179,140 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _SeedState_username(ctx context.Context, field graphql.CollectedField, obj *model.SeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Username, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SeedState_avartarUrl(ctx context.Context, field graphql.CollectedField, obj *model.SeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AvartarURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SeedState_feedIds(ctx context.Context, field graphql.CollectedField, obj *model.SeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FeedIds, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SeedState_sources(ctx context.Context, field graphql.CollectedField, obj *model.SeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sources, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Source_id(ctx context.Context, field graphql.CollectedField, obj *model.Source) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2465,6 +2774,58 @@ func (ec *executionContext) _SubSource_source(ctx context.Context, field graphql
 	res := resTmp.(*model.Source)
 	fc.Result = res
 	return ec.marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Subscription_syncDown(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_syncDown_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().SyncDown(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.SeedState)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalNSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -4023,6 +4384,50 @@ func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSeedStateInput(ctx context.Context, obj interface{}) (model.SeedStateInput, error) {
+	var it model.SeedStateInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "username":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+			it.Username, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "avartarUrl":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avartarUrl"))
+			it.AvartarURL, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "feedIds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedIds"))
+			it.FeedIds, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "sources":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sources"))
+			it.Sources, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSubscribeInput(ctx context.Context, obj interface{}) (model.SubscribeInput, error) {
 	var it model.SubscribeInput
 	var asMap = obj.(map[string]interface{})
@@ -4155,6 +4560,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "syncUp":
+			out.Values[i] = ec._Mutation_syncUp(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4328,6 +4735,42 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
+var seedStateImplementors = []string{"SeedState"}
+
+func (ec *executionContext) _SeedState(ctx context.Context, sel ast.SelectionSet, obj *model.SeedState) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, seedStateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SeedState")
+		case "username":
+			out.Values[i] = ec._SeedState_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "avartarUrl":
+			out.Values[i] = ec._SeedState_avartarUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "feedIds":
+			out.Values[i] = ec._SeedState_feedIds(ctx, field, obj)
+		case "sources":
+			out.Values[i] = ec._SeedState_sources(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var sourceImplementors = []string{"Source"}
 
 func (ec *executionContext) _Source(ctx context.Context, sel ast.SelectionSet, obj *model.Source) graphql.Marshaler {
@@ -4440,6 +4883,26 @@ func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet
 		return graphql.Null
 	}
 	return out
+}
+
+var subscriptionImplementors = []string{"Subscription"}
+
+func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet) func() graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Subscription",
+	})
+	if len(fields) != 1 {
+		ec.Errorf(ctx, "must subscribe to exactly one stream")
+		return nil
+	}
+
+	switch fields[0].Name {
+	case "syncDown":
+		return ec._Subscription_syncDown(ctx, fields[0])
+	default:
+		panic("unknown field " + strconv.Quote(fields[0].Name))
+	}
 }
 
 var userImplementors = []string{"User"}
@@ -4825,6 +5288,20 @@ func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._Post(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSeedState2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx context.Context, sel ast.SelectionSet, v model.SeedState) graphql.Marshaler {
+	return ec._SeedState(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx context.Context, sel ast.SelectionSet, v *model.SeedState) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._SeedState(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNSource2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx context.Context, sel ast.SelectionSet, v model.Source) graphql.Marshaler {
@@ -5289,6 +5766,21 @@ func (ec *executionContext) marshalOPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._Post(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx context.Context, sel ast.SelectionSet, v *model.SeedState) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SeedState(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedStateInput(ctx context.Context, v interface{}) (*model.SeedStateInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputSeedStateInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Source) graphql.Marshaler {

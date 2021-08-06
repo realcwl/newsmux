@@ -46,6 +46,20 @@ type NewUserInput struct {
 	Name string `json:"name"`
 }
 
+type SeedState struct {
+	Username   string   `json:"username"`
+	AvartarURL string   `json:"avartarUrl"`
+	FeedIds    []string `json:"feedIds"`
+	Sources    []string `json:"sources"`
+}
+
+type SeedStateInput struct {
+	Username   string   `json:"username"`
+	AvartarURL string   `json:"avartarUrl"`
+	FeedIds    []string `json:"feedIds"`
+	Sources    []string `json:"sources"`
+}
+
 type SubscribeInput struct {
 	UserID string `json:"userId"`
 	FeedID string `json:"feedId"`
