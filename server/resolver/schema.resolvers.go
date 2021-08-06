@@ -108,7 +108,7 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 
 	result := r.DB.First(&user, "id = ?", userId)
 	if result.RowsAffected != 1 {
-		return nil, errors.New("No valid user found")
+		return nil, errors.New("no valid user found")
 	}
 	if result.Error != nil {
 		return nil, result.Error
@@ -116,7 +116,7 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 
 	result = r.DB.First(&feed, "id = ?", feedId)
 	if result.RowsAffected != 1 {
-		return nil, errors.New("No valid feed found")
+		return nil, errors.New("no valid feed found")
 	}
 	if result.Error != nil {
 		return nil, result.Error
@@ -179,6 +179,13 @@ func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewS
 	return &t, nil
 }
 
+func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {
+	// TODO(chenweilunster): implement the sync up function.
+	return &model.SeedState{
+		Username: input.Username,
+	}, nil
+}
+
 func (r *queryResolver) AllFeeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
 	result := r.DB.Preload(clause.Associations).Find(&feeds)
@@ -216,11 +223,24 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInpu
 	return feeds, result.Error
 }
 
+func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {
+	// TODO(chenweilunster): Implement once Jamie's PR for type definition is merged.
+	ch := r.SeedStateChans.AddNewConnection(ctx, userID)
+	r.SeedStateChans.PushSeedStateToUser(&model.SeedState{
+		Username: "dummy_name",
+	}, userID)
+	return ch, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// Subscription returns generated.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }

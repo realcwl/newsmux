@@ -54,7 +54,8 @@ func GraphqlHandler() gin.HandlerFunc {
 	db.Debug().AutoMigrate(&model.Feed{}, &model.User{}, &model.Post{}, &model.Source{}, &model.SubSource{})
 
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
-		DB: db,
+		DB:  db,
+		SeedStateChans: resolver.NewSeedStateChannels(),
 	}}))
 
 	return func(c *gin.Context) {

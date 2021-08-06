@@ -60,6 +60,13 @@ input FeedsForUserInput {
   cursors: [CurosrInput!]
 }
 
+input SeedStateInput {
+  username: String!
+  avartarUrl: String!
+  feedIds: [String!]
+  sources: [String!]
+}
+
 type Mutation {
   createUser(input: NewUserInput!): User!
   createFeed(input: NewFeedInput!): Feed!
@@ -70,6 +77,11 @@ type Mutation {
 
   createSource(input: NewSourceInput!): Source!
   createSubSource(input: NewSubSourceInput!): SubSource!
+  syncUp(input: SeedStateInput): SeedState
+}
+
+type Subscription {
+  syncDown(user_id: String!): SeedState!
 }
 
 scalar Time

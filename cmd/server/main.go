@@ -39,11 +39,18 @@ func main() {
 	// router.Use(middlewares.JWT())
 	router.Use(middlewares.CorsWhitelist([]string{"http://localhost:3000"}))
 
-	router.POST("/graphql", server.GraphqlHandler())
+	handler := server.GraphqlHandler()
+	router.POST("/graphql", handler)
+	router.GET("/subscription", handler)
+
 	// Setup graphql playground for debugging
 	router.GET("/", func(c *gin.Context) {
 		playground.Handler("GraphQL", "/graphql").ServeHTTP(c.Writer, c.Request)
 	})
+	router.GET("/sub", func(c *gin.Context) {
+		playground.Handler("Subscription", "/subscription").ServeHTTP(c.Writer, c.Request)
+	})
+
 	// TODO(chenweilunster): Keep this for now for fast debug. Remove this debug
 	// route once the application is fully implemented.
 	router.GET("/ping", func(c *gin.Context) {
