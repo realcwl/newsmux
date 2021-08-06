@@ -10,34 +10,34 @@ import (
 )
 
 func TestSeedStateChannelCreation(t *testing.T) {
-	scs := NewSeedStateChannels()
+	ssc := NewSeedStateChannels()
 	ctx, cancel := context.WithCancel(context.Background())
 
-	scs.AddNewConnection(ctx, "user_1")
-	assert.Equal(t, 1, scs.GetActiveConnectionsCount())
+	ssc.AddNewConnection(ctx, "user_1")
+	assert.Equal(t, 1, ssc.GetActiveConnectionsCount())
 
 	cancel()
 
 	// Force trigger an long IO operation to context swiching to clean up.
 	time.Sleep(1 * time.Second)
 
-	assert.Equal(t, 0, scs.GetActiveConnectionsCount())
+	assert.Equal(t, 0, ssc.GetActiveConnectionsCount())
 }
 
 func TestSeedStateChannelMultipleCreation(t *testing.T) {
-	scs := NewSeedStateChannels()
+	ssc := NewSeedStateChannels()
 	ctx_1, cancel_1 := context.WithCancel(context.Background())
 	ctx_2, cancel_2 := context.WithCancel(context.Background())
 	ctx_3, cancel_3 := context.WithCancel(context.Background())
 
 	// User 1 signed in 2 devices.
-	scs.AddNewConnection(ctx_1, "user_1")
-	scs.AddNewConnection(ctx_2, "user_1")
+	ssc.AddNewConnection(ctx_1, "user_1")
+	ssc.AddNewConnection(ctx_2, "user_1")
 
 	// User 2 signed in only 1 device.
-	scs.AddNewConnection(ctx_3, "user_2")
+	ssc.AddNewConnection(ctx_3, "user_2")
 
-	assert.Equal(t, 3, scs.GetActiveConnectionsCount())
+	assert.Equal(t, 3, ssc.GetActiveConnectionsCount())
 
 	cancel_1()
 	cancel_2()
@@ -45,13 +45,13 @@ func TestSeedStateChannelMultipleCreation(t *testing.T) {
 
 	// Force trigger an long IO operation to context swiching to clean up.
 	time.Sleep(1 * time.Second)
-	assert.Equal(t, 0, scs.GetActiveConnectionsCount())
+	assert.Equal(t, 0, ssc.GetActiveConnectionsCount())
 }
 
 func TestPushSeedStateToUser(t *testing.T) {
-	scs := NewSeedStateChannels()
+	ssc := NewSeedStateChannels()
 	ctx, cancel := context.WithCancel(context.Background())
-	ch := scs.AddNewConnection(ctx, "user_id")
+	ch := ssc.AddNewConnection(ctx, "user_id")
 
 	done := make(chan interface{})
 	go func() {
@@ -62,7 +62,7 @@ func TestPushSeedStateToUser(t *testing.T) {
 		done <- 0
 	}()
 
-	scs.PushSeedStateToUser(&model.SeedState{
+	ssc.PushSeedStateToUser(&model.SeedState{
 		Username: "test",
 	}, "user_id")
 	<-done
@@ -70,7 +70,7 @@ func TestPushSeedStateToUser(t *testing.T) {
 	cancel()
 	// Force trigger an long IO operation to context swiching to clean up.
 	time.Sleep(1 * time.Second)
-	assert.Error(t, scs.PushSeedStateToUser(&model.SeedState{
+	assert.Error(t, ssc.PushSeedStateToUser(&model.SeedState{
 		Username: "test",
 	}, "user_id"))
 }
