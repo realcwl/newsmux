@@ -34,3 +34,5 @@ type Source struct {
 	Domain     string
 	SubSources []SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
+
+func (Source) IsSourceSeedStateInterface() {}

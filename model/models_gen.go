@@ -2,10 +2,40 @@
 
 package model
 
+type FeedSeedStateInterface interface {
+	IsFeedSeedStateInterface()
+}
+
+type SourceSeedStateInterface interface {
+	IsSourceSeedStateInterface()
+}
+
+type SubSourceSeedStateInterface interface {
+	IsSubSourceSeedStateInterface()
+}
+
+type UserSeedStateInterface interface {
+	IsUserSeedStateInterface()
+}
+
 type CurosrInput struct {
 	FeedID string `json:"feedId"`
 	Start  int    `json:"start"`
 	End    int    `json:"end"`
+}
+
+type FeedSeedState struct {
+	ID      string             `json:"id"`
+	Name    string             `json:"name"`
+	Sources []*SourceSeedState `json:"sources"`
+}
+
+func (FeedSeedState) IsFeedSeedStateInterface() {}
+
+type FeedSeedStateInput struct {
+	ID      string                  `json:"id"`
+	Name    string                  `json:"name"`
+	Sources []*SourceSeedStateInput `json:"sources"`
 }
 
 type FeedsForUserInput struct {
@@ -47,20 +77,54 @@ type NewUserInput struct {
 }
 
 type SeedState struct {
-	Username   string   `json:"username"`
-	AvartarURL string   `json:"avartarUrl"`
-	FeedIds    []string `json:"feedIds"`
-	Sources    []string `json:"sources"`
+	UserSeedState *UserSeedState `json:"userSeedState"`
 }
 
 type SeedStateInput struct {
-	Username   string   `json:"username"`
-	AvartarURL string   `json:"avartarUrl"`
-	FeedIds    []string `json:"feedIds"`
-	Sources    []string `json:"sources"`
+	UserSeedState *UserSeedStateInput `json:"userSeedState"`
+}
+
+type SourceSeedState struct {
+	ID         string                `json:"id"`
+	Name       string                `json:"name"`
+	Subsources []*SubSourceSeedState `json:"subsources"`
+}
+
+func (SourceSeedState) IsSourceSeedStateInterface() {}
+
+type SourceSeedStateInput struct {
+	ID         string                     `json:"id"`
+	Name       string                     `json:"name"`
+	Subsources []*SubSourceSeedStateInput `json:"subsources"`
+}
+
+type SubSourceSeedState struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (SubSourceSeedState) IsSubSourceSeedStateInterface() {}
+
+type SubSourceSeedStateInput struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type SubscribeInput struct {
 	UserID string `json:"userId"`
 	FeedID string `json:"feedId"`
+}
+
+type UserSeedState struct {
+	Name            string           `json:"name"`
+	AvartarURL      string           `json:"avartarUrl"`
+	SubscribedFeeds []*FeedSeedState `json:"subscribedFeeds"`
+}
+
+func (UserSeedState) IsUserSeedStateInterface() {}
+
+type UserSeedStateInput struct {
+	Name            string                `json:"name"`
+	AvatarURL       string                `json:"avatarUrl"`
+	SubscribedFeeds []*FeedSeedStateInput `json:"subscribedFeeds"`
 }

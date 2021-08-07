@@ -7,6 +7,6 @@ type Post @goModel(model: "model.Post") {
   source: Source!
   subSource: SubSource
   sharedFromPost: Post
-  savedByUser: [User!]
-  publishedFeeds: [Feed!]
+  savedByUser: [User!]!
+  publishedFeeds: [Feed!]!
 }

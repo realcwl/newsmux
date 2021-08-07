@@ -1,9 +1,25 @@
-type SubSource @goModel(model: "model.SubSource") {
+type SubSource implements SubSourceSeedStateInterface
+  @goModel(model: "model.SubSource") {
   id: String!
   createdAt: Time!
   deletedAt: Time
   creator: User
-  name: String
+  name: String!
   externalIdentifier: String
   source: Source!
+}
+
+type SubSourceSeedState implements SubSourceSeedStateInterface {
+  id: String!
+  name: String!
+}
+
+input SubSourceSeedStateInput {
+  id: String!
+  name: String!
+}
+
+interface SubSourceSeedStateInterface {
+  id: String!
+  name: String!
 }

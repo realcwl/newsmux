@@ -57,13 +57,17 @@ func TestPushSeedStateToUser(t *testing.T) {
 	go func() {
 		state := <-ch
 		assert.Equal(t, state, &model.SeedState{
-			Username: "test",
+			UserSeedState: &model.UserSeedState{
+				Name: "test",
+			},
 		})
 		done <- 0
 	}()
 
 	ssc.PushSeedStateToUser(&model.SeedState{
-		Username: "test",
+		UserSeedState: &model.UserSeedState{
+			Name: "test",
+		},
 	}, "user_id")
 	<-done
 
@@ -71,6 +75,8 @@ func TestPushSeedStateToUser(t *testing.T) {
 	// Force trigger an long IO operation to context swiching to clean up.
 	time.Sleep(1 * time.Second)
 	assert.Error(t, ssc.PushSeedStateToUser(&model.SeedState{
-		Username: "test",
+		UserSeedState: &model.UserSeedState{
+			Name: "test",
+		},
 	}, "user_id"))
 }
