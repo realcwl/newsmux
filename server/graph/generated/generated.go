@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"sync"
@@ -58,7 +59,14 @@ type ComplexityRoot struct {
 		Id          func(childComplexity int) int
 		Name        func(childComplexity int) int
 		Posts       func(childComplexity int) int
+		Sources     func(childComplexity int) int
 		Subscribers func(childComplexity int) int
+	}
+
+	FeedSeedState struct {
+		ID      func(childComplexity int) int
+		Name    func(childComplexity int) int
+		Sources func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -94,10 +102,7 @@ type ComplexityRoot struct {
 	}
 
 	SeedState struct {
-		AvartarURL func(childComplexity int) int
-		FeedIds    func(childComplexity int) int
-		Sources    func(childComplexity int) int
-		Username   func(childComplexity int) int
+		UserSeedState func(childComplexity int) int
 	}
 
 	Source struct {
@@ -110,6 +115,12 @@ type ComplexityRoot struct {
 		SubSources func(childComplexity int) int
 	}
 
+	SourceSeedState struct {
+		ID         func(childComplexity int) int
+		Name       func(childComplexity int) int
+		Subsources func(childComplexity int) int
+	}
+
 	SubSource struct {
 		CreatedAt          func(childComplexity int) int
 		Creator            func(childComplexity int) int
@@ -120,16 +131,28 @@ type ComplexityRoot struct {
 		Source             func(childComplexity int) int
 	}
 
+	SubSourceSeedState struct {
+		ID   func(childComplexity int) int
+		Name func(childComplexity int) int
+	}
+
 	Subscription struct {
 		SyncDown func(childComplexity int, userID string) int
 	}
 
 	User struct {
+		AvartarUrl      func(childComplexity int) int
 		CreatedAt       func(childComplexity int) int
 		DeletedAt       func(childComplexity int) int
 		Id              func(childComplexity int) int
 		Name            func(childComplexity int) int
 		SavedPosts      func(childComplexity int) int
+		SubscribedFeeds func(childComplexity int) int
+	}
+
+	UserSeedState struct {
+		AvartarURL      func(childComplexity int) int
+		Name            func(childComplexity int) int
 		SubscribedFeeds func(childComplexity int) int
 	}
 }
@@ -229,12 +252,40 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Feed.Posts(childComplexity), true
 
+	case "Feed.sources":
+		if e.complexity.Feed.Sources == nil {
+			break
+		}
+
+		return e.complexity.Feed.Sources(childComplexity), true
+
 	case "Feed.subscribers":
 		if e.complexity.Feed.Subscribers == nil {
 			break
 		}
 
 		return e.complexity.Feed.Subscribers(childComplexity), true
+
+	case "FeedSeedState.id":
+		if e.complexity.FeedSeedState.ID == nil {
+			break
+		}
+
+		return e.complexity.FeedSeedState.ID(childComplexity), true
+
+	case "FeedSeedState.name":
+		if e.complexity.FeedSeedState.Name == nil {
+			break
+		}
+
+		return e.complexity.FeedSeedState.Name(childComplexity), true
+
+	case "FeedSeedState.sources":
+		if e.complexity.FeedSeedState.Sources == nil {
+			break
+		}
+
+		return e.complexity.FeedSeedState.Sources(childComplexity), true
 
 	case "Mutation.createFeed":
 		if e.complexity.Mutation.CreateFeed == nil {
@@ -437,33 +488,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Users(childComplexity), true
 
-	case "SeedState.avartarUrl":
-		if e.complexity.SeedState.AvartarURL == nil {
+	case "SeedState.userSeedState":
+		if e.complexity.SeedState.UserSeedState == nil {
 			break
 		}
 
-		return e.complexity.SeedState.AvartarURL(childComplexity), true
-
-	case "SeedState.feedIds":
-		if e.complexity.SeedState.FeedIds == nil {
-			break
-		}
-
-		return e.complexity.SeedState.FeedIds(childComplexity), true
-
-	case "SeedState.sources":
-		if e.complexity.SeedState.Sources == nil {
-			break
-		}
-
-		return e.complexity.SeedState.Sources(childComplexity), true
-
-	case "SeedState.username":
-		if e.complexity.SeedState.Username == nil {
-			break
-		}
-
-		return e.complexity.SeedState.Username(childComplexity), true
+		return e.complexity.SeedState.UserSeedState(childComplexity), true
 
 	case "Source.createdAt":
 		if e.complexity.Source.CreatedAt == nil {
@@ -514,6 +544,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Source.SubSources(childComplexity), true
 
+	case "SourceSeedState.id":
+		if e.complexity.SourceSeedState.ID == nil {
+			break
+		}
+
+		return e.complexity.SourceSeedState.ID(childComplexity), true
+
+	case "SourceSeedState.name":
+		if e.complexity.SourceSeedState.Name == nil {
+			break
+		}
+
+		return e.complexity.SourceSeedState.Name(childComplexity), true
+
+	case "SourceSeedState.subsources":
+		if e.complexity.SourceSeedState.Subsources == nil {
+			break
+		}
+
+		return e.complexity.SourceSeedState.Subsources(childComplexity), true
+
 	case "SubSource.createdAt":
 		if e.complexity.SubSource.CreatedAt == nil {
 			break
@@ -563,6 +614,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SubSource.Source(childComplexity), true
 
+	case "SubSourceSeedState.id":
+		if e.complexity.SubSourceSeedState.ID == nil {
+			break
+		}
+
+		return e.complexity.SubSourceSeedState.ID(childComplexity), true
+
+	case "SubSourceSeedState.name":
+		if e.complexity.SubSourceSeedState.Name == nil {
+			break
+		}
+
+		return e.complexity.SubSourceSeedState.Name(childComplexity), true
+
 	case "Subscription.syncDown":
 		if e.complexity.Subscription.SyncDown == nil {
 			break
@@ -573,7 +638,14 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Subscription.SyncDown(childComplexity, args["user_id"].(string)), true
+		return e.complexity.Subscription.SyncDown(childComplexity, args["userId"].(string)), true
+
+	case "User.avartarUrl":
+		if e.complexity.User.AvartarUrl == nil {
+			break
+		}
+
+		return e.complexity.User.AvartarUrl(childComplexity), true
 
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
@@ -616,6 +688,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.SubscribedFeeds(childComplexity), true
+
+	case "UserSeedState.avartarUrl":
+		if e.complexity.UserSeedState.AvartarURL == nil {
+			break
+		}
+
+		return e.complexity.UserSeedState.AvartarURL(childComplexity), true
+
+	case "UserSeedState.name":
+		if e.complexity.UserSeedState.Name == nil {
+			break
+		}
+
+		return e.complexity.UserSeedState.Name(childComplexity), true
+
+	case "UserSeedState.subscribedFeeds":
+		if e.complexity.UserSeedState.SubscribedFeeds == nil {
+			break
+		}
+
+		return e.complexity.UserSeedState.SubscribedFeeds(childComplexity), true
 
 	}
 	return 0, false
@@ -711,14 +804,33 @@ directive @goModel(model: String, models: [String!]) on OBJECT
 directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION
     | FIELD_DEFINITION
 `, BuiltIn: false},
-	{Name: "graph/feed.graphqls", Input: `type Feed @goModel(model: "model.Feed") {
+	{Name: "graph/feed.graphqls", Input: `type Feed implements FeedSeedStateInterface @goModel(model: "model.Feed") {
   id: String!
   createdAt: Time!
   deletedAt: Time
   creator: User
-  name: String
-  subscribers: [User!]
-  posts: [Post!]
+  name: String!
+  subscribers: [User!]!
+  posts: [Post!]!
+  sources: [Source!]!
+}
+
+type FeedSeedState implements FeedSeedStateInterface {
+  id: String!
+  name: String!
+  sources: [SourceSeedState!]
+}
+
+input FeedSeedStateInput {
+  id: String!
+  name: String!
+  sources: [SourceSeedStateInput!]
+}
+
+interface FeedSeedStateInterface {
+  id: String!
+  name: String!
+  sources: [SourceSeedStateInterface!]
 }
 `, BuiltIn: false},
 	{Name: "graph/post.graphqls", Input: `type Post @goModel(model: "model.Post") {
@@ -730,8 +842,8 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
   source: Source!
   subSource: SubSource
   sharedFromPost: Post
-  savedByUser: [User!]
-  publishedFeeds: [Feed!]
+  savedByUser: [User!]!
+  publishedFeeds: [Feed!]!
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `# GraphQL schema
@@ -796,13 +908,6 @@ input FeedsForUserInput {
   cursors: [CurosrInput!]
 }
 
-input SeedStateInput {
-  username: String!
-  avartarUrl: String!
-  feedIds: [String!]
-  sources: [String!]
-}
-
 type Mutation {
   createUser(input: NewUserInput!): User!
   createFeed(input: NewFeedInput!): Feed!
@@ -817,45 +922,100 @@ type Mutation {
 }
 
 type Subscription {
-  syncDown(user_id: String!): SeedState!
+  syncDown(userId: String!): SeedState!
 }
 
 scalar Time
 `, BuiltIn: false},
 	{Name: "graph/seedState.graphqls", Input: `type SeedState {
-  username: String!
-  avartarUrl: String!
-  feedIds: [String!]
-  sources: [String!]
+  userSeedState: UserSeedState!
+}
+
+input SeedStateInput {
+  userSeedState: UserSeedStateInput!
 }
 `, BuiltIn: false},
-	{Name: "graph/source.graphqls", Input: `type Source @goModel(model: "model.Source") {
+	{Name: "graph/source.graphqls", Input: `type Source implements SourceSeedStateInterface
+  @goModel(model: "model.Source") {
   id: String!
   createdAt: Time!
   deletedAt: Time
   creator: User
-  name: String
+  name: String!
   domain: String
-  subsources: [SubSource!]
+  subsources: [SubSource!]!
+}
+
+type SourceSeedState implements SourceSeedStateInterface {
+  id: String!
+  name: String!
+  subsources: [SubSourceSeedState!]!
+}
+
+input SourceSeedStateInput {
+  id: String!
+  name: String!
+  subsources: [SubSourceSeedStateInput!]!
+}
+
+interface SourceSeedStateInterface {
+  id: String!
+  name: String!
+  subsources: [SubSourceSeedStateInterface!]!
 }
 `, BuiltIn: false},
-	{Name: "graph/subsource.graphqls", Input: `type SubSource @goModel(model: "model.SubSource") {
+	{Name: "graph/subsource.graphqls", Input: `type SubSource implements SubSourceSeedStateInterface
+  @goModel(model: "model.SubSource") {
   id: String!
   createdAt: Time!
   deletedAt: Time
   creator: User
-  name: String
+  name: String!
   externalIdentifier: String
   source: Source!
 }
+
+type SubSourceSeedState implements SubSourceSeedStateInterface {
+  id: String!
+  name: String!
+}
+
+input SubSourceSeedStateInput {
+  id: String!
+  name: String!
+}
+
+interface SubSourceSeedStateInterface {
+  id: String!
+  name: String!
+}
 `, BuiltIn: false},
-	{Name: "graph/user.graphqls", Input: `type User @goModel(model: "model.User") {
+	{Name: "graph/user.graphqls", Input: `type User implements UserSeedStateInterface @goModel(model: "model.User") {
   id: String!
   createdAt: Time!
   deletedAt: Time
   name: String!
-  subscribedFeeds: [Feed!]
+  avartarUrl: String!
+  subscribedFeeds: [Feed!]!
   savedPosts: [Post!]
+}
+
+type UserSeedState implements UserSeedStateInterface {
+  name: String!
+  avartarUrl: String!
+  subscribedFeeds: [FeedSeedState!]!
+}
+
+input UserSeedStateInput {
+  name: String!
+  avatarUrl: String!
+  subscribedFeeds: [FeedSeedStateInput!]!
+}
+
+interface UserSeedStateInterface {
+  name: String!
+  avartarUrl: String!
+  subscribedFeeds: [FeedSeedStateInterface!]!
 }
 `, BuiltIn: false},
 }
@@ -1004,14 +1164,14 @@ func (ec *executionContext) field_Subscription_syncDown_args(ctx context.Context
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["user_id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user_id"))
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["user_id"] = arg0
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -1212,11 +1372,14 @@ func (ec *executionContext) _Feed_name(ctx context.Context, field graphql.Collec
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Feed_subscribers(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
@@ -1244,11 +1407,14 @@ func (ec *executionContext) _Feed_subscribers(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Feed_posts(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
@@ -1276,11 +1442,151 @@ func (ec *executionContext) _Feed_posts(ctx context.Context, field graphql.Colle
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Post)
 	fc.Result = res
-	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+	return ec.marshalNPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Feed_sources(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Feed",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sources, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Source)
+	fc.Result = res
+	return ec.marshalNSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _FeedSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "FeedSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _FeedSeedState_name(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "FeedSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _FeedSeedState_sources(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "FeedSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sources, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.SourceSeedState)
+	fc.Result = res
+	return ec.marshalOSourceSeedState2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceSeedStateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1870,11 +2176,14 @@ func (ec *executionContext) _Post_savedByUser(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_publishedFeeds(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -1902,11 +2211,14 @@ func (ec *executionContext) _Post_publishedFeeds(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Feed)
 	fc.Result = res
-	return ec.marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
+	return ec.marshalNFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_allFeeds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2179,7 +2491,7 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _SeedState_username(ctx context.Context, field graphql.CollectedField, obj *model.SeedState) (ret graphql.Marshaler) {
+func (ec *executionContext) _SeedState_userSeedState(ctx context.Context, field graphql.CollectedField, obj *model.SeedState) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2197,7 +2509,7 @@ func (ec *executionContext) _SeedState_username(ctx context.Context, field graph
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Username, nil
+		return obj.UserSeedState, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2209,108 +2521,9 @@ func (ec *executionContext) _SeedState_username(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*model.UserSeedState)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _SeedState_avartarUrl(ctx context.Context, field graphql.CollectedField, obj *model.SeedState) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "SeedState",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AvartarURL, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _SeedState_feedIds(ctx context.Context, field graphql.CollectedField, obj *model.SeedState) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "SeedState",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.FeedIds, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _SeedState_sources(ctx context.Context, field graphql.CollectedField, obj *model.SeedState) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "SeedState",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Sources, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+	return ec.marshalNUserSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserSeedState(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Source_id(ctx context.Context, field graphql.CollectedField, obj *model.Source) (ret graphql.Marshaler) {
@@ -2472,11 +2685,14 @@ func (ec *executionContext) _Source_name(ctx context.Context, field graphql.Coll
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Source_domain(ctx context.Context, field graphql.CollectedField, obj *model.Source) (ret graphql.Marshaler) {
@@ -2536,11 +2752,119 @@ func (ec *executionContext) _Source_subsources(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.([]model.SubSource)
 	fc.Result = res
-	return ec.marshalOSubSource2ᚕgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx, field.Selections, res)
+	return ec.marshalNSubSource2ᚕgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SourceSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.SourceSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SourceSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SourceSeedState_name(ctx context.Context, field graphql.CollectedField, obj *model.SourceSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SourceSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SourceSeedState_subsources(ctx context.Context, field graphql.CollectedField, obj *model.SourceSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SourceSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subsources, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.SubSourceSeedState)
+	fc.Result = res
+	return ec.marshalNSubSourceSeedState2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceSeedStateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SubSource_id(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
@@ -2702,11 +3026,14 @@ func (ec *executionContext) _SubSource_name(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SubSource_externalIdentifier(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
@@ -2776,6 +3103,76 @@ func (ec *executionContext) _SubSource_source(ctx context.Context, field graphql
 	return ec.marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _SubSourceSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.SubSourceSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubSourceSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SubSourceSeedState_name(ctx context.Context, field graphql.CollectedField, obj *model.SubSourceSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubSourceSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Subscription_syncDown(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2801,7 +3198,7 @@ func (ec *executionContext) _Subscription_syncDown(ctx context.Context, field gr
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().SyncDown(rctx, args["user_id"].(string))
+		return ec.resolvers.Subscription().SyncDown(rctx, args["userId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2965,6 +3362,41 @@ func (ec *executionContext) _User_name(ctx context.Context, field graphql.Collec
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _User_avartarUrl(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AvartarUrl, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _User_subscribedFeeds(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2990,11 +3422,14 @@ func (ec *executionContext) _User_subscribedFeeds(ctx context.Context, field gra
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Feed)
 	fc.Result = res
-	return ec.marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
+	return ec.marshalNFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_savedPosts(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -3027,6 +3462,111 @@ func (ec *executionContext) _User_savedPosts(ctx context.Context, field graphql.
 	res := resTmp.([]*model.Post)
 	fc.Result = res
 	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserSeedState_name(ctx context.Context, field graphql.CollectedField, obj *model.UserSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserSeedState_avartarUrl(ctx context.Context, field graphql.CollectedField, obj *model.UserSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AvartarURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserSeedState_subscribedFeeds(ctx context.Context, field graphql.CollectedField, obj *model.UserSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SubscribedFeeds, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.FeedSeedState)
+	fc.Result = res
+	return ec.marshalNFeedSeedState2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedStateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -4152,6 +4692,42 @@ func (ec *executionContext) unmarshalInputCurosrInput(ctx context.Context, obj i
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputFeedSeedStateInput(ctx context.Context, obj interface{}) (model.FeedSeedStateInput, error) {
+	var it model.FeedSeedStateInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "sources":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sources"))
+			it.Sources, err = ec.unmarshalOSourceSeedStateInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceSeedStateInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputFeedsForUserInput(ctx context.Context, obj interface{}) (model.FeedsForUserInput, error) {
 	var it model.FeedsForUserInput
 	var asMap = obj.(map[string]interface{})
@@ -4390,35 +4966,75 @@ func (ec *executionContext) unmarshalInputSeedStateInput(ctx context.Context, ob
 
 	for k, v := range asMap {
 		switch k {
-		case "username":
+		case "userSeedState":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
-			it.Username, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userSeedState"))
+			it.UserSeedState, err = ec.unmarshalNUserSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserSeedStateInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "avartarUrl":
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSourceSeedStateInput(ctx context.Context, obj interface{}) (model.SourceSeedStateInput, error) {
+	var it model.SourceSeedStateInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avartarUrl"))
-			it.AvartarURL, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "feedIds":
+		case "name":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedIds"))
-			it.FeedIds, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "sources":
+		case "subsources":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sources"))
-			it.Sources, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subsources"))
+			it.Subsources, err = ec.unmarshalNSubSourceSeedStateInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceSeedStateInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSubSourceSeedStateInput(ctx context.Context, obj interface{}) (model.SubSourceSeedStateInput, error) {
+	var it model.SubSourceSeedStateInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4456,15 +5072,143 @@ func (ec *executionContext) unmarshalInputSubscribeInput(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUserSeedStateInput(ctx context.Context, obj interface{}) (model.UserSeedStateInput, error) {
+	var it model.UserSeedStateInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "avatarUrl":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatarUrl"))
+			it.AvatarURL, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "subscribedFeeds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subscribedFeeds"))
+			it.SubscribedFeeds, err = ec.unmarshalNFeedSeedStateInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedStateInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
+
+func (ec *executionContext) _FeedSeedStateInterface(ctx context.Context, sel ast.SelectionSet, obj model.FeedSeedStateInterface) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.Feed:
+		return ec._Feed(ctx, sel, &obj)
+	case *model.Feed:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Feed(ctx, sel, obj)
+	case model.FeedSeedState:
+		return ec._FeedSeedState(ctx, sel, &obj)
+	case *model.FeedSeedState:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._FeedSeedState(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _SourceSeedStateInterface(ctx context.Context, sel ast.SelectionSet, obj model.SourceSeedStateInterface) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.Source:
+		return ec._Source(ctx, sel, &obj)
+	case *model.Source:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Source(ctx, sel, obj)
+	case model.SourceSeedState:
+		return ec._SourceSeedState(ctx, sel, &obj)
+	case *model.SourceSeedState:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._SourceSeedState(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _SubSourceSeedStateInterface(ctx context.Context, sel ast.SelectionSet, obj model.SubSourceSeedStateInterface) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.SubSource:
+		return ec._SubSource(ctx, sel, &obj)
+	case *model.SubSource:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._SubSource(ctx, sel, obj)
+	case model.SubSourceSeedState:
+		return ec._SubSourceSeedState(ctx, sel, &obj)
+	case *model.SubSourceSeedState:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._SubSourceSeedState(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _UserSeedStateInterface(ctx context.Context, sel ast.SelectionSet, obj model.UserSeedStateInterface) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.User:
+		return ec._User(ctx, sel, &obj)
+	case *model.User:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._User(ctx, sel, obj)
+	case model.UserSeedState:
+		return ec._UserSeedState(ctx, sel, &obj)
+	case *model.UserSeedState:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._UserSeedState(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
 
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
 
-var feedImplementors = []string{"Feed"}
+var feedImplementors = []string{"Feed", "FeedSeedStateInterface"}
 
 func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj *model.Feed) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, feedImplementors)
@@ -4500,10 +5244,58 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Feed_creator(ctx, field, obj)
 		case "name":
 			out.Values[i] = ec._Feed_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "subscribers":
 			out.Values[i] = ec._Feed_subscribers(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "posts":
 			out.Values[i] = ec._Feed_posts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "sources":
+			out.Values[i] = ec._Feed_sources(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var feedSeedStateImplementors = []string{"FeedSeedState", "FeedSeedStateInterface"}
+
+func (ec *executionContext) _FeedSeedState(ctx context.Context, sel ast.SelectionSet, obj *model.FeedSeedState) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, feedSeedStateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FeedSeedState")
+		case "id":
+			out.Values[i] = ec._FeedSeedState_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._FeedSeedState_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "sources":
+			out.Values[i] = ec._FeedSeedState_sources(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4626,8 +5418,14 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Post_sharedFromPost(ctx, field, obj)
 		case "savedByUser":
 			out.Values[i] = ec._Post_savedByUser(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "publishedFeeds":
 			out.Values[i] = ec._Post_publishedFeeds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4746,20 +5544,11 @@ func (ec *executionContext) _SeedState(ctx context.Context, sel ast.SelectionSet
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SeedState")
-		case "username":
-			out.Values[i] = ec._SeedState_username(ctx, field, obj)
+		case "userSeedState":
+			out.Values[i] = ec._SeedState_userSeedState(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "avartarUrl":
-			out.Values[i] = ec._SeedState_avartarUrl(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "feedIds":
-			out.Values[i] = ec._SeedState_feedIds(ctx, field, obj)
-		case "sources":
-			out.Values[i] = ec._SeedState_sources(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4771,7 +5560,7 @@ func (ec *executionContext) _SeedState(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
-var sourceImplementors = []string{"Source"}
+var sourceImplementors = []string{"Source", "SourceSeedStateInterface"}
 
 func (ec *executionContext) _Source(ctx context.Context, sel ast.SelectionSet, obj *model.Source) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, sourceImplementors)
@@ -4807,10 +5596,16 @@ func (ec *executionContext) _Source(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec._Source_creator(ctx, field, obj)
 		case "name":
 			out.Values[i] = ec._Source_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "domain":
 			out.Values[i] = ec._Source_domain(ctx, field, obj)
 		case "subsources":
 			out.Values[i] = ec._Source_subsources(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4822,7 +5617,44 @@ func (ec *executionContext) _Source(ctx context.Context, sel ast.SelectionSet, o
 	return out
 }
 
-var subSourceImplementors = []string{"SubSource"}
+var sourceSeedStateImplementors = []string{"SourceSeedState", "SourceSeedStateInterface"}
+
+func (ec *executionContext) _SourceSeedState(ctx context.Context, sel ast.SelectionSet, obj *model.SourceSeedState) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, sourceSeedStateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SourceSeedState")
+		case "id":
+			out.Values[i] = ec._SourceSeedState_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._SourceSeedState_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subsources":
+			out.Values[i] = ec._SourceSeedState_subsources(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var subSourceImplementors = []string{"SubSource", "SubSourceSeedStateInterface"}
 
 func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet, obj *model.SubSource) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, subSourceImplementors)
@@ -4858,6 +5690,9 @@ func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet
 			out.Values[i] = ec._SubSource_creator(ctx, field, obj)
 		case "name":
 			out.Values[i] = ec._SubSource_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "externalIdentifier":
 			out.Values[i] = ec._SubSource_externalIdentifier(ctx, field, obj)
 		case "source":
@@ -4874,6 +5709,38 @@ func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet
 				}
 				return res
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var subSourceSeedStateImplementors = []string{"SubSourceSeedState", "SubSourceSeedStateInterface"}
+
+func (ec *executionContext) _SubSourceSeedState(ctx context.Context, sel ast.SelectionSet, obj *model.SubSourceSeedState) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, subSourceSeedStateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SubSourceSeedState")
+		case "id":
+			out.Values[i] = ec._SubSourceSeedState_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._SubSourceSeedState_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4905,7 +5772,7 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 }
 
-var userImplementors = []string{"User"}
+var userImplementors = []string{"User", "UserSeedStateInterface"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
@@ -4942,10 +5809,55 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "avartarUrl":
+			out.Values[i] = ec._User_avartarUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "subscribedFeeds":
 			out.Values[i] = ec._User_subscribedFeeds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "savedPosts":
 			out.Values[i] = ec._User_savedPosts(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var userSeedStateImplementors = []string{"UserSeedState", "UserSeedStateInterface"}
+
+func (ec *executionContext) _UserSeedState(ctx context.Context, sel ast.SelectionSet, obj *model.UserSeedState) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userSeedStateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserSeedState")
+		case "name":
+			out.Values[i] = ec._UserSeedState_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "avartarUrl":
+			out.Values[i] = ec._UserSeedState_avartarUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subscribedFeeds":
+			out.Values[i] = ec._UserSeedState_subscribedFeeds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5226,6 +6138,43 @@ func (ec *executionContext) marshalNFeed2githubᚗcomᚋLuismorlanᚋnewsmuxᚋm
 	return ec._Feed(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalNFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Feed) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFeed2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeed(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNFeed2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeed(ctx context.Context, sel ast.SelectionSet, v *model.Feed) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -5234,6 +6183,79 @@ func (ec *executionContext) marshalNFeed2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._Feed(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFeedSeedState2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedStateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FeedSeedState) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFeedSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedState(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNFeedSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedState(ctx context.Context, sel ast.SelectionSet, v *model.FeedSeedState) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._FeedSeedState(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFeedSeedStateInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedStateInputᚄ(ctx context.Context, v interface{}) ([]*model.FeedSeedStateInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.FeedSeedStateInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNFeedSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedStateInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNFeedSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedStateInput(ctx context.Context, v interface{}) (*model.FeedSeedStateInput, error) {
+	res, err := ec.unmarshalInputFeedSeedStateInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -5280,6 +6302,43 @@ func (ec *executionContext) marshalNPost2githubᚗcomᚋLuismorlanᚋnewsmuxᚋm
 	return ec._Post(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalNPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Post) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPost(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v *model.Post) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -5308,6 +6367,43 @@ func (ec *executionContext) marshalNSource2githubᚗcomᚋLuismorlanᚋnewsmux�
 	return ec._Source(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalNSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Source) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx context.Context, sel ast.SelectionSet, v *model.Source) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -5316,6 +6412,21 @@ func (ec *executionContext) marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmu
 		return graphql.Null
 	}
 	return ec._Source(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSourceSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceSeedState(ctx context.Context, sel ast.SelectionSet, v *model.SourceSeedState) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._SourceSeedState(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSourceSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceSeedStateInput(ctx context.Context, v interface{}) (*model.SourceSeedStateInput, error) {
+	res, err := ec.unmarshalInputSourceSeedStateInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -5337,6 +6448,43 @@ func (ec *executionContext) marshalNSubSource2githubᚗcomᚋLuismorlanᚋnewsmu
 	return ec._SubSource(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalNSubSource2ᚕgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []model.SubSource) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSubSource2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx context.Context, sel ast.SelectionSet, v *model.SubSource) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -5345,6 +6493,79 @@ func (ec *executionContext) marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnew
 		return graphql.Null
 	}
 	return ec._SubSource(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSubSourceSeedState2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceSeedStateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SubSourceSeedState) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSubSourceSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceSeedState(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNSubSourceSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceSeedState(ctx context.Context, sel ast.SelectionSet, v *model.SubSourceSeedState) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._SubSourceSeedState(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSubSourceSeedStateInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceSeedStateInputᚄ(ctx context.Context, v interface{}) ([]*model.SubSourceSeedStateInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.SubSourceSeedStateInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNSubSourceSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceSeedStateInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNSubSourceSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceSeedStateInput(ctx context.Context, v interface{}) (*model.SubSourceSeedStateInput, error) {
+	res, err := ec.unmarshalInputSubSourceSeedStateInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNSubscribeInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubscribeInput(ctx context.Context, v interface{}) (model.SubscribeInput, error) {
@@ -5371,6 +6592,43 @@ func (ec *executionContext) marshalNUser2githubᚗcomᚋLuismorlanᚋnewsmuxᚋm
 	return ec._User(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUser(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -5379,6 +6637,21 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUserSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserSeedState(ctx context.Context, sel ast.SelectionSet, v *model.UserSeedState) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._UserSeedState(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUserSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserSeedStateInput(ctx context.Context, v interface{}) (*model.UserSeedStateInput, error) {
+	res, err := ec.unmarshalInputUserSeedStateInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -5823,6 +7096,70 @@ func (ec *executionContext) marshalOSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnew
 	return ret
 }
 
+func (ec *executionContext) marshalOSourceSeedState2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceSeedStateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SourceSeedState) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSourceSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceSeedState(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) unmarshalOSourceSeedStateInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceSeedStateInputᚄ(ctx context.Context, v interface{}) ([]*model.SourceSeedStateInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.SourceSeedStateInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNSourceSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceSeedStateInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5881,46 +7218,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
-}
-
-func (ec *executionContext) marshalOSubSource2ᚕgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []model.SubSource) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNSubSource2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
 }
 
 func (ec *executionContext) marshalOSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SubSource) graphql.Marshaler {

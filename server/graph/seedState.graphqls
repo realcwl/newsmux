@@ -1,6 +1,7 @@
 type SeedState {
-  username: String!
-  avartarUrl: String!
-  feedIds: [String!]
-  sources: [String!]
+  userSeedState: UserSeedState!
+}
+
+input SeedStateInput {
+  userSeedState: UserSeedStateInput!
 }

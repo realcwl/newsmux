@@ -1,9 +1,28 @@
-type Feed @goModel(model: "model.Feed") {
+type Feed implements FeedSeedStateInterface @goModel(model: "model.Feed") {
   id: String!
   createdAt: Time!
   deletedAt: Time
   creator: User
-  name: String
-  subscribers: [User!]
-  posts: [Post!]
+  name: String!
+  subscribers: [User!]!
+  posts: [Post!]!
+  sources: [Source!]!
+}
+
+type FeedSeedState implements FeedSeedStateInterface {
+  id: String!
+  name: String!
+  sources: [SourceSeedState!]
+}
+
+input FeedSeedStateInput {
+  id: String!
+  name: String!
+  sources: [SourceSeedStateInput!]
+}
+
+interface FeedSeedStateInterface {
+  id: String!
+  name: String!
+  sources: [SourceSeedStateInterface!]
 }
