@@ -50,17 +50,41 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 }
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error) {
-	uuid := uuid.New().String()
 
 	// TODO: clean up this logic
-	var source model.Source
-	r.DB.Where("id = ?", input.SourceID).First(&source)
+	var (
+		source         model.Source
+		uuid           string           = uuid.New().String()
+		subSource      *model.SubSource = nil
+		sharedFromPost *model.Post      = nil
+	)
 
-	var subSource model.SubSource
-	r.DB.Where("id = ?", input.SubSourceID).First(&subSource)
+	if len(input.SourceID) > 0 {
+		result := r.DB.Where("id = ?", input.SourceID).First(&source)
+		if result.RowsAffected != 1 {
+			return nil, errors.New("Source not found")
+		}
+	} else {
+		return nil, errors.New("Invalid source id")
+	}
 
-	var sourcePost model.Post
-	r.DB.Where("id = ?", input.SharedFromPostID).First(&sourcePost)
+	if input.SubSourceID != nil {
+		var res model.SubSource
+		result := r.DB.Where("id = ?", *input.SubSourceID).First(&res)
+		if result.RowsAffected != 1 {
+			return nil, errors.New("SubSource not found")
+		}
+		subSource = &res
+	}
+
+	if input.SharedFromPostID != nil {
+		var res model.Post
+		result := r.DB.Where("id = ?", input.SharedFromPostID).First(&res)
+		if result.RowsAffected != 1 {
+			return nil, errors.New("SharedFromPost not found")
+		}
+		sharedFromPost = &res
+	}
 
 	post := model.Post{
 		Id:             uuid,
@@ -68,8 +92,9 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 		Content:        input.Content,
 		CreatedAt:      time.Now(),
 		Source:         source,
-		SubSource:      &subSource,
-		SharedFromPost: &sourcePost,
+		SourceID:       input.SourceID,
+		SubSource:      subSource,
+		SharedFromPost: sharedFromPost,
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 	}
@@ -79,12 +104,12 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 	for _, feedId := range input.FeedsIDPublishTo {
 		err := r.DB.Transaction(func(tx *gorm.DB) error {
 			var feed model.Feed
-			r.DB.Where("id = ?", feedId).First(&feed)
+			result := r.DB.Where("id = ?", feedId).First(&feed)
+			if result.RowsAffected != 1 {
+				return errors.New("SharedFromPost not found")
+			}
 
 			if e := r.DB.Model(&post).Association("PublishedFeeds").Append(&feed); e != nil {
-				return e
-			}
-			if e := tx.Model(&feed).Association("Subscribers").Append(&post); e != nil {
 				return e
 			}
 			// return nil will commit the whole transaction
@@ -94,8 +119,6 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 			return nil, err
 		}
 	}
-
-	r.DB.Save(&post)
 	return &post, nil
 }
 
