@@ -6,14 +6,6 @@ type FeedSeedStateInterface interface {
 	IsFeedSeedStateInterface()
 }
 
-type SourceSeedStateInterface interface {
-	IsSourceSeedStateInterface()
-}
-
-type SubSourceSeedStateInterface interface {
-	IsSubSourceSeedStateInterface()
-}
-
 type UserSeedStateInterface interface {
 	IsUserSeedStateInterface()
 }
@@ -25,17 +17,15 @@ type CurosrInput struct {
 }
 
 type FeedSeedState struct {
-	ID      string             `json:"id"`
-	Name    string             `json:"name"`
-	Sources []*SourceSeedState `json:"sources"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func (FeedSeedState) IsFeedSeedStateInterface() {}
 
 type FeedSeedStateInput struct {
-	ID      string                  `json:"id"`
-	Name    string                  `json:"name"`
-	Sources []*SourceSeedStateInput `json:"sources"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type FeedsForUserInput struct {
@@ -77,37 +67,13 @@ type NewUserInput struct {
 }
 
 type SeedState struct {
-	UserSeedState *UserSeedState `json:"userSeedState"`
+	UserSeedState *UserSeedState   `json:"userSeedState"`
+	FeedSeedState []*FeedSeedState `json:"feedSeedState"`
 }
 
 type SeedStateInput struct {
-	UserSeedState *UserSeedStateInput `json:"userSeedState"`
-}
-
-type SourceSeedState struct {
-	ID         string                `json:"id"`
-	Name       string                `json:"name"`
-	Subsources []*SubSourceSeedState `json:"subsources"`
-}
-
-func (SourceSeedState) IsSourceSeedStateInterface() {}
-
-type SourceSeedStateInput struct {
-	ID         string                     `json:"id"`
-	Name       string                     `json:"name"`
-	Subsources []*SubSourceSeedStateInput `json:"subsources"`
-}
-
-type SubSourceSeedState struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-func (SubSourceSeedState) IsSubSourceSeedStateInterface() {}
-
-type SubSourceSeedStateInput struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	UserSeedState *UserSeedStateInput   `json:"userSeedState"`
+	FeedSeedState []*FeedSeedStateInput `json:"feedSeedState"`
 }
 
 type SubscribeInput struct {
@@ -116,15 +82,13 @@ type SubscribeInput struct {
 }
 
 type UserSeedState struct {
-	Name            string           `json:"name"`
-	AvartarURL      string           `json:"avartarUrl"`
-	SubscribedFeeds []*FeedSeedState `json:"subscribedFeeds"`
+	Name       string `json:"name"`
+	AvartarURL string `json:"avartarUrl"`
 }
 
 func (UserSeedState) IsUserSeedStateInterface() {}
 
 type UserSeedStateInput struct {
-	Name            string                `json:"name"`
-	AvatarURL       string                `json:"avatarUrl"`
-	SubscribedFeeds []*FeedSeedStateInput `json:"subscribedFeeds"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatarUrl"`
 }

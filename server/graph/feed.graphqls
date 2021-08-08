@@ -12,17 +12,14 @@ type Feed implements FeedSeedStateInterface @goModel(model: "model.Feed") {
 type FeedSeedState implements FeedSeedStateInterface {
   id: String!
   name: String!
-  sources: [SourceSeedState!]
 }
 
 input FeedSeedStateInput {
   id: String!
   name: String!
-  sources: [SourceSeedStateInput!]
 }
 
 interface FeedSeedStateInterface {
   id: String!
   name: String!
-  sources: [SourceSeedStateInterface!]
 }

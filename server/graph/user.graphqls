@@ -11,17 +11,14 @@ type User implements UserSeedStateInterface @goModel(model: "model.User") {
 type UserSeedState implements UserSeedStateInterface {
   name: String!
   avartarUrl: String!
-  subscribedFeeds: [FeedSeedState!]!
 }
 
 input UserSeedStateInput {
   name: String!
   avatarUrl: String!
-  subscribedFeeds: [FeedSeedStateInput!]!
 }
 
 interface UserSeedStateInterface {
   name: String!
   avartarUrl: String!
-  subscribedFeeds: [FeedSeedStateInterface!]!
 }

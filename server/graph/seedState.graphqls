@@ -1,7 +1,9 @@
 type SeedState {
   userSeedState: UserSeedState!
+  feedSeedState: [FeedSeedState!]!
 }
 
 input SeedStateInput {
   userSeedState: UserSeedStateInput!
+  feedSeedState: [FeedSeedStateInput!]!
 }

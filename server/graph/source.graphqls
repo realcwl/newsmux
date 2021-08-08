@@ -1,5 +1,4 @@
-type Source implements SourceSeedStateInterface
-  @goModel(model: "model.Source") {
+type Source @goModel(model: "model.Source") {
   id: String!
   createdAt: Time!
   deletedAt: Time
@@ -7,22 +6,4 @@ type Source implements SourceSeedStateInterface
   name: String!
   domain: String
   subsources: [SubSource!]!
-}
-
-type SourceSeedState implements SourceSeedStateInterface {
-  id: String!
-  name: String!
-  subsources: [SubSourceSeedState!]!
-}
-
-input SourceSeedStateInput {
-  id: String!
-  name: String!
-  subsources: [SubSourceSeedStateInput!]!
-}
-
-interface SourceSeedStateInterface {
-  id: String!
-  name: String!
-  subsources: [SubSourceSeedStateInterface!]!
 }
