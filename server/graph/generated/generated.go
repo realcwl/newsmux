@@ -61,11 +61,13 @@ type ComplexityRoot struct {
 		Posts       func(childComplexity int) int
 		Sources     func(childComplexity int) int
 		Subscribers func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
 	}
 
 	FeedSeedState struct {
-		ID   func(childComplexity int) int
-		Name func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Name      func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -146,6 +148,7 @@ type ComplexityRoot struct {
 }
 
 type FeedResolver interface {
+	UpdatedAt(ctx context.Context, obj *model.Feed) (*time.Time, error)
 	DeletedAt(ctx context.Context, obj *model.Feed) (*time.Time, error)
 }
 type MutationResolver interface {
@@ -254,6 +257,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Feed.Subscribers(childComplexity), true
 
+	case "Feed.updatedAt":
+		if e.complexity.Feed.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Feed.UpdatedAt(childComplexity), true
+
 	case "FeedSeedState.id":
 		if e.complexity.FeedSeedState.ID == nil {
 			break
@@ -267,6 +277,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FeedSeedState.Name(childComplexity), true
+
+	case "FeedSeedState.updatedAt":
+		if e.complexity.FeedSeedState.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.FeedSeedState.UpdatedAt(childComplexity), true
 
 	case "Mutation.createFeed":
 		if e.complexity.Mutation.CreateFeed == nil {
@@ -753,6 +770,7 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
 	{Name: "graph/feed.graphqls", Input: `type Feed implements FeedSeedStateInterface @goModel(model: "model.Feed") {
   id: String!
   createdAt: Time!
+  updatedAt: Time!
   deletedAt: Time
   creator: User
   name: String!
@@ -764,16 +782,19 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
 type FeedSeedState implements FeedSeedStateInterface {
   id: String!
   name: String!
+  updatedAt: Time!
 }
 
 input FeedSeedStateInput {
   id: String!
   name: String!
+  updatedAt: Time!
 }
 
 interface FeedSeedStateInterface {
   id: String!
   name: String!
+  updatedAt: Time!
 }
 `, BuiltIn: false},
 	{Name: "graph/post.graphqls", Input: `type Post @goModel(model: "model.Post") {
@@ -1190,6 +1211,41 @@ func (ec *executionContext) _Feed_createdAt(ctx context.Context, field graphql.C
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Feed_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Feed",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Feed().UpdatedAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalNTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Feed_deletedAt(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1462,6 +1518,41 @@ func (ec *executionContext) _FeedSeedState_name(ctx context.Context, field graph
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _FeedSeedState_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "FeedSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4414,6 +4505,14 @@ func (ec *executionContext) unmarshalInputFeedSeedStateInput(ctx context.Context
 			if err != nil {
 				return it, err
 			}
+		case "updatedAt":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("updatedAt"))
+			it.UpdatedAt, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -4811,6 +4910,20 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "updatedAt":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Feed_updatedAt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "deletedAt":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -4873,6 +4986,11 @@ func (ec *executionContext) _FeedSeedState(ctx context.Context, sel ast.Selectio
 			}
 		case "name":
 			out.Values[i] = ec._FeedSeedState_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._FeedSeedState_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6003,6 +6121,27 @@ func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v in
 
 func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
 	res := graphql.MarshalTime(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := graphql.MarshalTime(*v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")

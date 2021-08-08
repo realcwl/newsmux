@@ -2,6 +2,10 @@
 
 package model
 
+import (
+	"time"
+)
+
 type FeedSeedStateInterface interface {
 	IsFeedSeedStateInterface()
 }
@@ -17,15 +21,17 @@ type CurosrInput struct {
 }
 
 type FeedSeedState struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func (FeedSeedState) IsFeedSeedStateInterface() {}
 
 type FeedSeedStateInput struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type FeedsForUserInput struct {
