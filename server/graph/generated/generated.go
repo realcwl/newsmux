@@ -149,6 +149,7 @@ type ComplexityRoot struct {
 
 	UserSeedState struct {
 		AvartarURL func(childComplexity int) int
+		ID         func(childComplexity int) int
 		Name       func(childComplexity int) int
 	}
 }
@@ -692,6 +693,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserSeedState.AvartarURL(childComplexity), true
 
+	case "UserSeedState.id":
+		if e.complexity.UserSeedState.ID == nil {
+			break
+		}
+
+		return e.complexity.UserSeedState.ID(childComplexity), true
+
 	case "UserSeedState.name":
 		if e.complexity.UserSeedState.Name == nil {
 			break
@@ -970,16 +978,19 @@ input SeedStateInput {
 }
 
 type UserSeedState implements UserSeedStateInterface {
+  id: String!
   name: String!
   avartarUrl: String!
 }
 
 input UserSeedStateInput {
+  id: String!
   name: String!
   avatarUrl: String!
 }
 
 interface UserSeedStateInterface {
+  id: String!
   name: String!
   avartarUrl: String!
 }
@@ -3436,6 +3447,41 @@ func (ec *executionContext) _User_savedPosts(ctx context.Context, field graphql.
 	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.UserSeedState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserSeedState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _UserSeedState_name(ctx context.Context, field graphql.CollectedField, obj *model.UserSeedState) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4967,6 +5013,14 @@ func (ec *executionContext) unmarshalInputUserSeedStateInput(ctx context.Context
 
 	for k, v := range asMap {
 		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "name":
 			var err error
 
@@ -5662,6 +5716,11 @@ func (ec *executionContext) _UserSeedState(ctx context.Context, sel ast.Selectio
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("UserSeedState")
+		case "id":
+			out.Values[i] = ec._UserSeedState_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "name":
 			out.Values[i] = ec._UserSeedState_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

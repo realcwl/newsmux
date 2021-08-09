@@ -81,11 +81,6 @@ type PostInFeedOutput struct {
 	Cursor int   `json:"cursor"`
 }
 
-type SeedState struct {
-	UserSeedState *UserSeedState   `json:"userSeedState"`
-	FeedSeedState []*FeedSeedState `json:"feedSeedState"`
-}
-
 type SeedStateInput struct {
 	UserSeedState *UserSeedStateInput   `json:"userSeedState"`
 	FeedSeedState []*FeedSeedStateInput `json:"feedSeedState"`
@@ -97,6 +92,7 @@ type SubscribeInput struct {
 }
 
 type UserSeedState struct {
+	ID         string `json:"id"`
 	Name       string `json:"name"`
 	AvartarURL string `json:"avartarUrl"`
 }
@@ -104,6 +100,7 @@ type UserSeedState struct {
 func (UserSeedState) IsUserSeedStateInterface() {}
 
 type UserSeedStateInput struct {
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	AvatarURL string `json:"avatarUrl"`
 }
