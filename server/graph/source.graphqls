@@ -3,7 +3,7 @@ type Source @goModel(model: "model.Source") {
   createdAt: Time!
   deletedAt: Time
   creator: User
-  name: String
+  name: String!
   domain: String
-  subsources: [SubSource!]
+  subsources: [SubSource!]!
 }

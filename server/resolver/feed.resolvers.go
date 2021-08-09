@@ -12,6 +12,10 @@ import (
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 )
 
+func (r *feedResolver) UpdatedAt(ctx context.Context, obj *model.Feed) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *feedResolver) DeletedAt(ctx context.Context, obj *model.Feed) (*time.Time, error) {
 	panic(fmt.Errorf("not implemented"))
 }

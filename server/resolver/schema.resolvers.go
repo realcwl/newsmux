@@ -181,9 +181,7 @@ func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewS
 
 func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {
 	// TODO(chenweilunster): implement the sync up function.
-	return &model.SeedState{
-		Username: input.Username,
-	}, nil
+	return nil, nil
 }
 
 func (r *queryResolver) AllFeeds(ctx context.Context) ([]*model.Feed, error) {
@@ -227,7 +225,9 @@ func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-c
 	// TODO(chenweilunster): Implement once Jamie's PR for type definition is merged.
 	ch := r.SeedStateChans.AddNewConnection(ctx, userID)
 	r.SeedStateChans.PushSeedStateToUser(&model.SeedState{
-		Username: "dummy_name",
+		UserSeedState: &model.UserSeedState{
+			Name: "Dummy name",
+		},
 	}, userID)
 	return ch, nil
 }

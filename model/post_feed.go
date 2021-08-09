@@ -15,8 +15,6 @@ FeedID: feed id
 CreatedAt: time when relation is created
 DeletedAt: time when relation is deleted
 
-OrderInPanel: what is the order of this feed in user's panel, from left to right marked as 1,2,3...
-
 */
 
 type PostFeedPublish struct {

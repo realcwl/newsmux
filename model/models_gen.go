@@ -2,10 +2,36 @@
 
 package model
 
+import (
+	"time"
+)
+
+type FeedSeedStateInterface interface {
+	IsFeedSeedStateInterface()
+}
+
+type UserSeedStateInterface interface {
+	IsUserSeedStateInterface()
+}
+
 type CurosrInput struct {
 	FeedID string `json:"feedId"`
 	Start  int    `json:"start"`
 	End    int    `json:"end"`
+}
+
+type FeedSeedState struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+func (FeedSeedState) IsFeedSeedStateInterface() {}
+
+type FeedSeedStateInput struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type FeedsForUserInput struct {
@@ -47,20 +73,28 @@ type NewUserInput struct {
 }
 
 type SeedState struct {
-	Username   string   `json:"username"`
-	AvartarURL string   `json:"avartarUrl"`
-	FeedIds    []string `json:"feedIds"`
-	Sources    []string `json:"sources"`
+	UserSeedState *UserSeedState   `json:"userSeedState"`
+	FeedSeedState []*FeedSeedState `json:"feedSeedState"`
 }
 
 type SeedStateInput struct {
-	Username   string   `json:"username"`
-	AvartarURL string   `json:"avartarUrl"`
-	FeedIds    []string `json:"feedIds"`
-	Sources    []string `json:"sources"`
+	UserSeedState *UserSeedStateInput   `json:"userSeedState"`
+	FeedSeedState []*FeedSeedStateInput `json:"feedSeedState"`
 }
 
 type SubscribeInput struct {
 	UserID string `json:"userId"`
 	FeedID string `json:"feedId"`
+}
+
+type UserSeedState struct {
+	Name       string `json:"name"`
+	AvartarURL string `json:"avartarUrl"`
+}
+
+func (UserSeedState) IsUserSeedStateInterface() {}
+
+type UserSeedStateInput struct {
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatarUrl"`
 }

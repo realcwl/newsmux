@@ -3,7 +3,7 @@ type SubSource @goModel(model: "model.SubSource") {
   createdAt: Time!
   deletedAt: Time
   creator: User
-  name: String
+  name: String!
   externalIdentifier: String
   source: Source!
 }
