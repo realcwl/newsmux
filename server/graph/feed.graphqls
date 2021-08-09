@@ -7,3 +7,13 @@ type Feed @goModel(model: "model.Feed") {
   subscribers: [User!]
   posts: [Post!]
 }
+
+type PostInFeedOutput {
+  post: Post!
+  cursor: Int!
+}
+
+type FeedOutput {
+  feedId: String!
+  posts: [PostInFeedOutput!]!
+}

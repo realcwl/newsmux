@@ -3,6 +3,6 @@ type User @goModel(model: "model.User") {
   createdAt: Time!
   deletedAt: Time
   name: String!
-  subscribedFeeds: [Feed!]
-  savedPosts: [Post!]
+  subscribedFeeds: [Feed!]!
+  savedPosts: [Post!]!
 }

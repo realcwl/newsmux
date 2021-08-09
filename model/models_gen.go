@@ -2,16 +2,27 @@
 
 package model
 
-type CurosrInput struct {
-	FeedID string `json:"feedId"`
-	Start  int    `json:"start"`
-	End    int    `json:"end"`
+import (
+	"fmt"
+	"io"
+	"strconv"
+)
+
+type FeedOutput struct {
+	FeedID string              `json:"feedId"`
+	Posts  []*PostInFeedOutput `json:"posts"`
+}
+
+type FeedRefreshInput struct {
+	FeedID    string               `json:"feedId"`
+	Limit     int                  `json:"limit"`
+	Cursor    int                  `json:"cursor"`
+	Direction FeedRefreshDirection `json:"direction"`
 }
 
 type FeedsForUserInput struct {
-	UserID  string         `json:"userId"`
-	Limit   *int           `json:"limit"`
-	Cursors []*CurosrInput `json:"cursors"`
+	UserID            string              `json:"userId"`
+	FeedsRefreshInput []*FeedRefreshInput `json:"feedsRefreshInput"`
 }
 
 type NewFeedInput struct {
@@ -26,7 +37,7 @@ type NewPostInput struct {
 	SourceID         string   `json:"sourceId"`
 	SubSourceID      *string  `json:"subSourceId"`
 	FeedsIDPublishTo []string `json:"feedsIdPublishTo"`
-	SharedFromPostID *string  `json:"sharedFromPostID"`
+	SharedFromPostID *string  `json:"sharedFromPostId"`
 }
 
 type NewSourceInput struct {
@@ -46,6 +57,11 @@ type NewUserInput struct {
 	Name string `json:"name"`
 }
 
+type PostInFeedOutput struct {
+	Post   *Post `json:"post"`
+	Cursor int   `json:"cursor"`
+}
+
 type SeedState struct {
 	Username   string   `json:"username"`
 	AvartarURL string   `json:"avartarUrl"`
@@ -63,4 +79,45 @@ type SeedStateInput struct {
 type SubscribeInput struct {
 	UserID string `json:"userId"`
 	FeedID string `json:"feedId"`
+}
+
+type FeedRefreshDirection string
+
+const (
+	FeedRefreshDirectionTop    FeedRefreshDirection = "TOP"
+	FeedRefreshDirectionBottom FeedRefreshDirection = "BOTTOM"
+)
+
+var AllFeedRefreshDirection = []FeedRefreshDirection{
+	FeedRefreshDirectionTop,
+	FeedRefreshDirectionBottom,
+}
+
+func (e FeedRefreshDirection) IsValid() bool {
+	switch e {
+	case FeedRefreshDirectionTop, FeedRefreshDirectionBottom:
+		return true
+	}
+	return false
+}
+
+func (e FeedRefreshDirection) String() string {
+	return string(e)
+}
+
+func (e *FeedRefreshDirection) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FeedRefreshDirection(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FeedRefreshDirection", str)
+	}
+	return nil
+}
+
+func (e FeedRefreshDirection) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
