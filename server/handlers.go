@@ -75,6 +75,7 @@ func GraphqlHandler() gin.HandlerFunc {
 		},
 	})
 	h.AddTransport(transport.GET{})
+	h.AddTransport(transport.POST{})
 
 	return func(c *gin.Context) {
 		h.ServeHTTP(c.Writer, c.Request)
