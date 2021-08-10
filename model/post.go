@@ -37,7 +37,7 @@ SharedFromPost:
 SavedByUser: mark when user save the post, "many-to-many" relation
 PublishedFeeds: feeds that this post published to, "many-to-many" relation
 
-Cursor: The auto-inc indexing to keep the relative order of posts
+Cursor: The auto-inc global-unique index to keep the relative order of posts
 */
 
 type Post struct {

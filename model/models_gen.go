@@ -17,16 +17,12 @@ type UserSeedStateInterface interface {
 	IsUserSeedStateInterface()
 }
 
-type FeedOutput struct {
-	FeedID string              `json:"feedId"`
-	Posts  []*PostInFeedOutput `json:"posts"`
-}
-
 type FeedRefreshInput struct {
-	FeedID    string               `json:"feedId"`
-	Limit     int                  `json:"limit"`
-	Cursor    int                  `json:"cursor"`
-	Direction FeedRefreshDirection `json:"direction"`
+	FeedID          string               `json:"feedId"`
+	Limit           int                  `json:"limit"`
+	Cursor          int                  `json:"cursor"`
+	Direction       FeedRefreshDirection `json:"direction"`
+	FeedUpdatedTime *time.Time           `json:"feedUpdatedTime"`
 }
 
 type FeedSeedState struct {
@@ -45,7 +41,7 @@ type FeedSeedStateInput struct {
 
 type FeedsForUserInput struct {
 	UserID            string              `json:"userId"`
-	FeedsRefreshInput []*FeedRefreshInput `json:"feedsRefreshInput"`
+	FeedRefreshInputs []*FeedRefreshInput `json:"feedRefreshInputs"`
 }
 
 type NewFeedInput struct {
@@ -115,18 +111,18 @@ type UserSeedStateInput struct {
 type FeedRefreshDirection string
 
 const (
-	FeedRefreshDirectionTop    FeedRefreshDirection = "TOP"
-	FeedRefreshDirectionBottom FeedRefreshDirection = "BOTTOM"
+	FeedRefreshDirectionNew FeedRefreshDirection = "NEW"
+	FeedRefreshDirectionOld FeedRefreshDirection = "OLD"
 )
 
 var AllFeedRefreshDirection = []FeedRefreshDirection{
-	FeedRefreshDirectionTop,
-	FeedRefreshDirectionBottom,
+	FeedRefreshDirectionNew,
+	FeedRefreshDirectionOld,
 }
 
 func (e FeedRefreshDirection) IsValid() bool {
 	switch e {
-	case FeedRefreshDirectionTop, FeedRefreshDirectionBottom:
+	case FeedRefreshDirectionNew, FeedRefreshDirectionOld:
 		return true
 	}
 	return false

@@ -37,7 +37,7 @@ func main() {
 
 	// TODO: remove once we fiture out how to test with jwt turned on
 	// router.Use(middlewares.JWT())
-	router.Use(middlewares.CorsWhitelist([]string{"http://localhost:8080"}))
+	router.Use(middlewares.CorsWhitelist([]string{"http://localhost:3000"}))
 
 	handler := server.GraphqlHandler()
 	router.POST("/graphql", handler)

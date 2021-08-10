@@ -93,15 +93,14 @@ func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int) {
 	client := prepareTestForGraphQLAPIs()
 	var resp struct {
 		Feeds []struct {
-			FeedId string `json:"feedId"`
-			Posts  []struct {
-				Cursor int `json:"cursor"`
-				Post   struct {
-					Id      string `json:"id"`
-					Title   string `json:"title"`
-					Content string `json:"content"`
-				} `json:"post"`
-			}
+			Id        string `json:"id"`
+			UpdatedAt string `json:"updatedAt"`
+			Posts     []struct {
+				Id      string `json:"id"`
+				Title   string `json:"title"`
+				Content string `json:"content"`
+				Cursor  int    `json:"cursor"`
+			} `json:"posts"`
 		} `json:"feeds"`
 	}
 
@@ -109,45 +108,43 @@ func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int) {
 	query{
 		feeds (input : {
 		  userId : "%s"
-		  feedsRefreshInput : [
+		  feedRefreshInputs : [
 			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
 		  ]
 		}) {
-		  feedId
+		  id
+		  updatedAt
 		  posts {
+			id
+			title 
+			content
 			cursor
-			post{
-			  id
-			  title 
-			  content
-			}
 		  }
 		}
 	  }
-	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionTop), &resp)
+	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionNew), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	require.Equal(t, 1, len(resp.Feeds))
-	require.Equal(t, feedId, resp.Feeds[0].FeedId)
+	require.Equal(t, feedId, resp.Feeds[0].Id)
 	require.Equal(t, 2, len(resp.Feeds[0].Posts))
-	require.Equal(t, "test_title_6", resp.Feeds[0].Posts[0].Post.Title)
-	require.Equal(t, "test_title_5", resp.Feeds[0].Posts[1].Post.Title)
+	require.Equal(t, "test_title_6", resp.Feeds[0].Posts[0].Title)
+	require.Equal(t, "test_title_5", resp.Feeds[0].Posts[1].Title)
 }
 
 func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int) {
 	client := prepareTestForGraphQLAPIs()
 	var resp struct {
 		Feeds []struct {
-			FeedId string `json:"feedId"`
-			Posts  []struct {
-				Cursor int `json:"cursor"`
-				Post   struct {
-					Id      string `json:"id"`
-					Title   string `json:"title"`
-					Content string `json:"content"`
-				} `json:"post"`
-			}
+			Id        string `json:"id"`
+			UpdatedAt string `json:"updatedAt"`
+			Posts     []struct {
+				Id      string `json:"id"`
+				Title   string `json:"title"`
+				Content string `json:"content"`
+				Cursor  int    `json:"cursor"`
+			} `json:"posts"`
 		} `json:"feeds"`
 	}
 
@@ -155,45 +152,43 @@ func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int
 	query{
 		feeds (input : {
 		  userId : "%s"
-		  feedsRefreshInput : [
+		  feedRefreshInputs : [
 			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
 		  ]
 		}) {
-		  feedId
+		  id
+		  updatedAt
 		  posts {
+			id
+			title 
+			content
 			cursor
-			post{
-			  id
-			  title 
-			  content
-			}
 		  }
 		}
 	  }
-	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionBottom), &resp)
+	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionOld), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	require.Equal(t, 1, len(resp.Feeds))
-	require.Equal(t, feedId, resp.Feeds[0].FeedId)
+	require.Equal(t, feedId, resp.Feeds[0].Id)
 	require.Equal(t, 2, len(resp.Feeds[0].Posts))
-	require.Equal(t, "test_title_2", resp.Feeds[0].Posts[0].Post.Title)
-	require.Equal(t, "test_title_1", resp.Feeds[0].Posts[1].Post.Title)
+	require.Equal(t, "test_title_2", resp.Feeds[0].Posts[0].Title)
+	require.Equal(t, "test_title_1", resp.Feeds[0].Posts[1].Title)
 }
 
 func checkFeedTopPostsMultipleFeeds(t *testing.T, userId string, feedIdOne string, feedIdTwo string, cursorOne int, cursorTwo int) {
 	client := prepareTestForGraphQLAPIs()
 	var resp struct {
 		Feeds []struct {
-			FeedId string `json:"feedId"`
-			Posts  []struct {
-				Cursor int `json:"cursor"`
-				Post   struct {
-					Id      string `json:"id"`
-					Title   string `json:"title"`
-					Content string `json:"content"`
-				} `json:"post"`
-			}
+			Id        string `json:"id"`
+			UpdatedAt string `json:"updatedAt"`
+			Posts     []struct {
+				Id      string `json:"id"`
+				Title   string `json:"title"`
+				Content string `json:"content"`
+				Cursor  int    `json:"cursor"`
+			} `json:"posts"`
 		} `json:"feeds"`
 	}
 
@@ -201,51 +196,49 @@ func checkFeedTopPostsMultipleFeeds(t *testing.T, userId string, feedIdOne strin
 	query{
 		feeds (input : {
 		  userId : "%s"
-		  feedsRefreshInput : [
+		  feedRefreshInputs : [
 			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
 			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
 		  ]
 		}) {
-		  feedId
+		  id
+		  updatedAt
 		  posts {
+			id
+			title 
+			content
 			cursor
-			post{
-			  id
-			  title 
-			  content
-			}
 		  }
 		}
 	  }
-	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionTop, feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionTop), &resp)
+	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionNew, feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionNew), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	require.Equal(t, 2, len(resp.Feeds))
-	require.Equal(t, feedIdOne, resp.Feeds[0].FeedId)
+	require.Equal(t, feedIdOne, resp.Feeds[0].Id)
 	require.Equal(t, 2, len(resp.Feeds[0].Posts))
-	require.Equal(t, "test_title_6", resp.Feeds[0].Posts[0].Post.Title)
-	require.Equal(t, "test_title_5", resp.Feeds[0].Posts[1].Post.Title)
+	require.Equal(t, "test_title_6", resp.Feeds[0].Posts[0].Title)
+	require.Equal(t, "test_title_5", resp.Feeds[0].Posts[1].Title)
 
-	require.Equal(t, feedIdTwo, resp.Feeds[1].FeedId)
+	require.Equal(t, feedIdTwo, resp.Feeds[1].Id)
 	require.Equal(t, 2, len(resp.Feeds[1].Posts))
-	require.Equal(t, "test_title_6", resp.Feeds[1].Posts[0].Post.Title)
-	require.Equal(t, "test_title_5", resp.Feeds[1].Posts[1].Post.Title)
+	require.Equal(t, "test_title_6", resp.Feeds[1].Posts[0].Title)
+	require.Equal(t, "test_title_5", resp.Feeds[1].Posts[1].Title)
 }
 
 func checkFeedBottomPostsMultipleFeeds(t *testing.T, userId string, feedIdOne string, feedIdTwo string, cursorOne int, cursorTwo int) {
 	client := prepareTestForGraphQLAPIs()
 	var resp struct {
 		Feeds []struct {
-			FeedId string `json:"feedId"`
-			Posts  []struct {
-				Cursor int `json:"cursor"`
-				Post   struct {
-					Id      string `json:"id"`
-					Title   string `json:"title"`
-					Content string `json:"content"`
-				} `json:"post"`
-			}
+			Id        string `json:"id"`
+			UpdatedAt string `json:"updatedAt"`
+			Posts     []struct {
+				Id      string `json:"id"`
+				Title   string `json:"title"`
+				Content string `json:"content"`
+				Cursor  int    `json:"cursor"`
+			} `json:"posts"`
 		} `json:"feeds"`
 	}
 
@@ -253,51 +246,49 @@ func checkFeedBottomPostsMultipleFeeds(t *testing.T, userId string, feedIdOne st
 	query{
 		feeds (input : {
 		  userId : "%s"
-		  feedsRefreshInput : [
+		  feedRefreshInputs : [
 			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
 			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
 		  ]
 		}) {
-		  feedId
+		  id
+		  updatedAt
 		  posts {
+			id
+			title 
+			content
 			cursor
-			post{
-			  id
-			  title 
-			  content
-			}
 		  }
 		}
 	  }
-	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionBottom, feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionBottom), &resp)
+	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionOld, feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionOld), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	require.Equal(t, 2, len(resp.Feeds))
-	require.Equal(t, feedIdOne, resp.Feeds[0].FeedId)
+	require.Equal(t, feedIdOne, resp.Feeds[0].Id)
 	require.Equal(t, 2, len(resp.Feeds[0].Posts))
-	require.Equal(t, "test_title_2", resp.Feeds[0].Posts[0].Post.Title)
-	require.Equal(t, "test_title_1", resp.Feeds[0].Posts[1].Post.Title)
+	require.Equal(t, "test_title_2", resp.Feeds[0].Posts[0].Title)
+	require.Equal(t, "test_title_1", resp.Feeds[0].Posts[1].Title)
 
-	require.Equal(t, feedIdTwo, resp.Feeds[1].FeedId)
+	require.Equal(t, feedIdTwo, resp.Feeds[1].Id)
 	require.Equal(t, 2, len(resp.Feeds[1].Posts))
-	require.Equal(t, "test_title_2", resp.Feeds[1].Posts[0].Post.Title)
-	require.Equal(t, "test_title_1", resp.Feeds[1].Posts[1].Post.Title)
+	require.Equal(t, "test_title_2", resp.Feeds[1].Posts[0].Title)
+	require.Equal(t, "test_title_1", resp.Feeds[1].Posts[1].Title)
 }
 
 func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne string, feedIdTwo string) {
 	client := prepareTestForGraphQLAPIs()
 	var resp struct {
 		Feeds []struct {
-			FeedId string `json:"feedId"`
-			Posts  []struct {
-				Cursor int `json:"cursor"`
-				Post   struct {
-					Id      string `json:"id"`
-					Title   string `json:"title"`
-					Content string `json:"content"`
-				} `json:"post"`
-			}
+			Id        string `json:"id"`
+			UpdatedAt string `json:"updatedAt"`
+			Posts     []struct {
+				Id      string `json:"id"`
+				Title   string `json:"title"`
+				Content string `json:"content"`
+				Cursor  int    `json:"cursor"`
+			} `json:"posts"`
 		} `json:"feeds"`
 	}
 
@@ -305,16 +296,15 @@ func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne 
 	query{
 		feeds (input : {
 		  userId : "%s"
-		  feedsRefreshInput : []
+		  feedRefreshInputs : []
 		}) {
-		  feedId
+		  id
+		  updatedAt
 		  posts {
+			id
+			title 
+			content
 			cursor
-			post{
-			  id
-			  title 
-			  content
-			}
 		  }
 		}
 	  }
@@ -323,25 +313,25 @@ func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	require.Equal(t, 2, len(resp.Feeds))
-	require.Equal(t, feedIdOne, resp.Feeds[0].FeedId)
+	require.Equal(t, feedIdOne, resp.Feeds[0].Id)
 	require.Equal(t, 7, len(resp.Feeds[0].Posts))
-	require.Equal(t, "test_title_6", resp.Feeds[0].Posts[0].Post.Title)
-	require.Equal(t, "test_title_5", resp.Feeds[0].Posts[1].Post.Title)
-	require.Equal(t, "test_title_4", resp.Feeds[0].Posts[2].Post.Title)
-	require.Equal(t, "test_title_3", resp.Feeds[0].Posts[3].Post.Title)
-	require.Equal(t, "test_title_2", resp.Feeds[0].Posts[4].Post.Title)
-	require.Equal(t, "test_title_1", resp.Feeds[0].Posts[5].Post.Title)
-	require.Equal(t, "test_title_0", resp.Feeds[0].Posts[6].Post.Title)
+	require.Equal(t, "test_title_6", resp.Feeds[0].Posts[0].Title)
+	require.Equal(t, "test_title_5", resp.Feeds[0].Posts[1].Title)
+	require.Equal(t, "test_title_4", resp.Feeds[0].Posts[2].Title)
+	require.Equal(t, "test_title_3", resp.Feeds[0].Posts[3].Title)
+	require.Equal(t, "test_title_2", resp.Feeds[0].Posts[4].Title)
+	require.Equal(t, "test_title_1", resp.Feeds[0].Posts[5].Title)
+	require.Equal(t, "test_title_0", resp.Feeds[0].Posts[6].Title)
 
-	require.Equal(t, feedIdTwo, resp.Feeds[1].FeedId)
+	require.Equal(t, feedIdTwo, resp.Feeds[1].Id)
 	require.Equal(t, 7, len(resp.Feeds[1].Posts))
-	require.Equal(t, "test_title_6", resp.Feeds[1].Posts[0].Post.Title)
-	require.Equal(t, "test_title_5", resp.Feeds[1].Posts[1].Post.Title)
-	require.Equal(t, "test_title_4", resp.Feeds[1].Posts[2].Post.Title)
-	require.Equal(t, "test_title_3", resp.Feeds[1].Posts[3].Post.Title)
-	require.Equal(t, "test_title_2", resp.Feeds[1].Posts[4].Post.Title)
-	require.Equal(t, "test_title_1", resp.Feeds[1].Posts[5].Post.Title)
-	require.Equal(t, "test_title_0", resp.Feeds[1].Posts[6].Post.Title)
+	require.Equal(t, "test_title_6", resp.Feeds[1].Posts[0].Title)
+	require.Equal(t, "test_title_5", resp.Feeds[1].Posts[1].Title)
+	require.Equal(t, "test_title_4", resp.Feeds[1].Posts[2].Title)
+	require.Equal(t, "test_title_3", resp.Feeds[1].Posts[3].Title)
+	require.Equal(t, "test_title_2", resp.Feeds[1].Posts[4].Title)
+	require.Equal(t, "test_title_1", resp.Feeds[1].Posts[5].Title)
+	require.Equal(t, "test_title_0", resp.Feeds[1].Posts[6].Title)
 }
 
 func prepareTestForGraphQLAPIs() *client.Client {

@@ -29,11 +29,9 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserIn
 }
 
 func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedInput) (*model.Feed, error) {
-	var (
-		user   model.User
-		userID = input.UserID
-		uuid   = uuid.New().String()
-	)
+	var user model.User
+	userID := input.UserID
+	uuid := uuid.New().String()
 
 	queryResult := r.DB.Where("id = ?", userID).First(&user)
 	if queryResult.RowsAffected != 1 {
@@ -55,10 +53,11 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error) {
 	var (
 		source         model.Source
-		uuid           string           = uuid.New().String()
-		subSource      *model.SubSource = nil
-		sharedFromPost *model.Post      = nil
+		subSource      *model.SubSource
+		sharedFromPost *model.Post
 	)
+
+	uuid := uuid.New().String()
 
 	if len(input.SourceID) > 0 {
 		result := r.DB.Where("id = ?", input.SourceID).First(&source)
@@ -145,24 +144,16 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 		return nil, result.Error
 	}
 
-	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&user).Association("SubscribedFeeds").Append(&feed); err != nil {
-			return err
-		}
-		if err := tx.Model(&feed).Association("Subscribers").Append(&user); err != nil {
-			return err
-		}
-		// return nil will commit the whole transaction
-		return nil
-	})
-
-	if err != nil {
+	// The join table is ready after this associate, do not need to do for feed model
+	// Doing that will change the UpdateTime, which is not expected and breaks when feed setting is updated
+	if err := r.DB.Model(&user).Association("SubscribedFeeds").Append(&feed); err != nil {
 		return nil, err
 	}
 
 	return &user, nil
 }
 
+// TODO: delete, testing only
 func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error) {
 	uuid := uuid.New().String()
 
@@ -234,7 +225,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return users, result.Error
 }
 
-func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInput) ([]*model.FeedOutput, error) {
+func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInput) ([]*model.Feed, error) {
 	// Each feed needs to specify cursor and direction
 	// Direction = TOP:    load feed new posts with cursor larger than A (default -1), from newest one, no more than LIMIT
 	// Direction = BOTTOM: load feed old posts with cursor smaller than B (default -1), from newest one, no more than LIMIT
@@ -242,24 +233,24 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInpu
 	// If not specified, use TOP as direction, -1 as cursor to give newest Posts
 	// How is cursor defined:
 	//      it is an auto-increament index Posts
-	feedsRefreshInput := input.FeedsRefreshInput
+	feedRefreshInputs := input.FeedRefreshInputs
 
-	if len(feedsRefreshInput) == 0 {
+	if len(feedRefreshInputs) == 0 {
 		feeds, err := getUserSubscriptions(r, input.UserID)
 		if err != nil {
 			return nil, err
 		}
 		for _, feed := range feeds {
-			feedsRefreshInput = append(feedsRefreshInput, &model.FeedRefreshInput{
+			feedRefreshInputs = append(feedRefreshInputs, &model.FeedRefreshInput{
 				FeedID:    feed.Id,
 				Limit:     feedRefreshLimit,
 				Cursor:    defaultCursor,
-				Direction: model.FeedRefreshDirectionTop,
+				Direction: model.FeedRefreshDirectionNew,
 			})
 		}
 	}
 
-	return getRefreshPosts(r, feedsRefreshInput)
+	return getRefreshPosts(r, feedRefreshInputs)
 }
 
 func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {
