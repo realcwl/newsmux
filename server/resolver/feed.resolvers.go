@@ -5,19 +5,14 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 )
 
-func (r *feedResolver) UpdatedAt(ctx context.Context, obj *model.Feed) (*time.Time, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *feedResolver) DeletedAt(ctx context.Context, obj *model.Feed) (*time.Time, error) {
-	panic(fmt.Errorf("not implemented"))
+	return &obj.DeletedAt.Time, nil
 }
 
 // Feed returns generated.FeedResolver implementation.

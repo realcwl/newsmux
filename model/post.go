@@ -37,6 +37,7 @@ SharedFromPost:
 SavedByUser: mark when user save the post, "many-to-many" relation
 PublishedFeeds: feeds that this post published to, "many-to-many" relation
 
+Cursor: The auto-inc indexing to keep the relative order of posts
 */
 
 type Post struct {
@@ -47,10 +48,11 @@ type Post struct {
 	Content          string
 	SourceID         string     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Source           Source     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SubSourceID      string     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	SubSourceID      *string    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	SubSource        *SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SharedFromPostID string
+	SharedFromPostID *string
 	SharedFromPost   *Post
 	SavedByUser      []*User `json:"saved_by_user" gorm:"many2many;"`
 	PublishedFeeds   []*Feed `json:"published_feeds" gorm:"many2many;"`
+	Cursor           int32   `gorm:"autoIncrement"`
 }

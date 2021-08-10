@@ -1,5 +1,10 @@
 # GraphQL schema
 
+enum FeedRefreshDirection {
+  TOP
+  BOTTOM
+}
+
 # TODO(jamie): more documentations on all APIs
 type Query {
   allFeeds: [Feed!]
@@ -7,7 +12,7 @@ type Query {
   subSources: [SubSource!]
   posts: [Post!]
   users: [User!]
-  feeds(input: FeedsForUserInput): [Feed!]
+  feeds(input: FeedsForUserInput): [FeedOutput!]!
 }
 
 input NewUserInput {
@@ -27,7 +32,7 @@ input NewPostInput {
   sourceId: String!
   subSourceId: String
   feedsIdPublishTo: [String!]
-  sharedFromPostID: String
+  sharedFromPostId: String
 }
 
 input SubscribeInput {
@@ -48,16 +53,16 @@ input NewSubSourceInput {
   sourceId: String!
 }
 
-input CurosrInput {
+input FeedRefreshInput {
   feedId: String!
-  start: Int!
-  end: Int!
+  limit: Int!
+  cursor: Int!
+  direction: FeedRefreshDirection!
 }
 
 input FeedsForUserInput {
   userId: String!
-  limit: Int
-  cursors: [CurosrInput!]
+  feedsRefreshInput: [FeedRefreshInput!]!
 }
 
 type Mutation {

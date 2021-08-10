@@ -13,6 +13,7 @@ package flag
 
 import (
 	"flag"
+	"testing"
 )
 
 const (
@@ -26,7 +27,11 @@ var (
 )
 
 func init() {
-	// TODO(jamie): add more flags, able to overwrite envriment variables
+	// TODO: flag.Parse() in a package's init() won't work with golang's testing package, move to main
+	// Issue https://github.com/golang/go/issues/31859
+	// Temporary init testing before flag.Parse
+	testing.Init()
+
 	flag.BoolVar(&IsDevelopment, "dev", true, "set to true if the current run is for development. default value is true")
 	flag.StringVar(&ServiceName, "service", APIServer, "'api_server' or 'feed_publisher'")
 	flag.Parse()

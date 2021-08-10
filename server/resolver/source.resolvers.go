@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
@@ -13,7 +12,7 @@ import (
 )
 
 func (r *sourceResolver) DeletedAt(ctx context.Context, obj *model.Source) (*time.Time, error) {
-	panic(fmt.Errorf("not implemented"))
+	return &obj.DeletedAt.Time, nil
 }
 
 // Source returns generated.SourceResolver implementation.

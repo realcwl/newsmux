@@ -25,42 +25,67 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserIn
 		SubscribedFeeds: []*model.Feed{},
 	}
 	r.DB.Create(&t)
-	r.DB.Save(&t)
 	return &t, nil
 }
 
 func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedInput) (*model.Feed, error) {
-	uuid := uuid.New().String()
+	var (
+		user   model.User
+		userID = input.UserID
+		uuid   = uuid.New().String()
+	)
+
+	queryResult := r.DB.Where("id = ?", userID).First(&user)
+	if queryResult.RowsAffected != 1 {
+		return nil, errors.New("Invalid user id")
+	}
 
 	t := model.Feed{
 		Id:          uuid,
 		Name:        input.Name,
 		CreatedAt:   time.Now(),
+		Creator:     user,
 		Subscribers: []*model.User{},
 		Posts:       []*model.Post{},
 	}
 	r.DB.Create(&t)
-
-	var user model.User
-	r.DB.Where("id = ?", input.UserID).First(&user)
-	r.DB.Model(&t).Association("Creator").Append(&user)
-
-	r.DB.Save(&t)
 	return &t, nil
 }
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error) {
-	uuid := uuid.New().String()
+	var (
+		source         model.Source
+		uuid           string           = uuid.New().String()
+		subSource      *model.SubSource = nil
+		sharedFromPost *model.Post      = nil
+	)
 
-	// TODO: clean up this logic
-	var source model.Source
-	r.DB.Where("id = ?", input.SourceID).First(&source)
+	if len(input.SourceID) > 0 {
+		result := r.DB.Where("id = ?", input.SourceID).First(&source)
+		if result.RowsAffected != 1 {
+			return nil, errors.New("Source not found")
+		}
+	} else {
+		return nil, errors.New("Invalid source id")
+	}
 
-	var subSource model.SubSource
-	r.DB.Where("id = ?", input.SubSourceID).First(&subSource)
+	if input.SubSourceID != nil {
+		var res model.SubSource
+		result := r.DB.Where("id = ?", *input.SubSourceID).First(&res)
+		if result.RowsAffected != 1 {
+			return nil, errors.New("SubSource not found")
+		}
+		subSource = &res
+	}
 
-	var sourcePost model.Post
-	r.DB.Where("id = ?", input.SharedFromPostID).First(&sourcePost)
+	if input.SharedFromPostID != nil {
+		var res model.Post
+		result := r.DB.Where("id = ?", input.SharedFromPostID).First(&res)
+		if result.RowsAffected != 1 {
+			return nil, errors.New("SharedFromPost not found")
+		}
+		sharedFromPost = &res
+	}
 
 	post := model.Post{
 		Id:             uuid,
@@ -68,23 +93,23 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 		Content:        input.Content,
 		CreatedAt:      time.Now(),
 		Source:         source,
-		SubSource:      &subSource,
-		SharedFromPost: &sourcePost,
+		SourceID:       input.SourceID,
+		SharedFromPost: sharedFromPost,
+		SubSource:      subSource,
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 	}
 	r.DB.Create(&post)
 
-	//TODO: test Publish post to feed
 	for _, feedId := range input.FeedsIDPublishTo {
 		err := r.DB.Transaction(func(tx *gorm.DB) error {
 			var feed model.Feed
-			r.DB.Where("id = ?", feedId).First(&feed)
+			result := r.DB.Where("id = ?", feedId).First(&feed)
+			if result.RowsAffected != 1 {
+				return errors.New("Feed not found")
+			}
 
 			if e := r.DB.Model(&post).Association("PublishedFeeds").Append(&feed); e != nil {
-				return e
-			}
-			if e := tx.Model(&feed).Association("Subscribers").Append(&post); e != nil {
 				return e
 			}
 			// return nil will commit the whole transaction
@@ -94,8 +119,6 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 			return nil, err
 		}
 	}
-
-	r.DB.Save(&post)
 	return &post, nil
 }
 
@@ -143,24 +166,25 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error) {
 	uuid := uuid.New().String()
 
+	var user model.User
+	r.DB.Where("id = ?", input.UserID).First(&user)
+
 	t := model.Source{
 		Id:        uuid,
 		Name:      input.Name,
 		Domain:    input.Domain,
 		CreatedAt: time.Now(),
+		Creator:   user,
 	}
 	r.DB.Create(&t)
-
-	var user model.User
-	r.DB.Where("id = ?", input.UserID).First(&user)
-	r.DB.Model(&t).Association("Creator").Append(&user)
-
-	r.DB.Save(&t)
 	return &t, nil
 }
 
 func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewSubSourceInput) (*model.SubSource, error) {
 	uuid := uuid.New().String()
+
+	var user model.User
+	r.DB.Where("id = ?", input.UserID).First(&user)
 
 	t := model.SubSource{
 		Id:                 uuid,
@@ -168,14 +192,10 @@ func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewS
 		ExternalIdentifier: input.ExternalIdentifier,
 		CreatedAt:          time.Now(),
 		SourceID:           input.SourceID,
+		Creator:            user,
 	}
 	r.DB.Create(&t)
 
-	var user model.User
-	r.DB.Where("id = ?", input.UserID).First(&user)
-	r.DB.Model(&t).Association("Creator").Append(&user)
-
-	r.DB.Save(&t)
 	return &t, nil
 }
 
@@ -214,11 +234,32 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return users, result.Error
 }
 
-func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInput) ([]*model.Feed, error) {
-	// TODO: Here we always return all feed, should respect user input
-	var feeds []*model.Feed
-	result := r.DB.Preload(clause.Associations).Find(&feeds)
-	return feeds, result.Error
+func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInput) ([]*model.FeedOutput, error) {
+	// Each feed needs to specify cursor and direction
+	// Direction = TOP:    load feed new posts with cursor larger than A (default -1), from newest one, no more than LIMIT
+	// Direction = BOTTOM: load feed old posts with cursor smaller than B (default -1), from newest one, no more than LIMIT
+	//
+	// If not specified, use TOP as direction, -1 as cursor to give newest Posts
+	// How is cursor defined:
+	//      it is an auto-increament index Posts
+	feedsRefreshInput := input.FeedsRefreshInput
+
+	if len(feedsRefreshInput) == 0 {
+		feeds, err := getUserSubscriptions(r, input.UserID)
+		if err != nil {
+			return nil, err
+		}
+		for _, feed := range feeds {
+			feedsRefreshInput = append(feedsRefreshInput, &model.FeedRefreshInput{
+				FeedID:    feed.Id,
+				Limit:     feedRefreshLimit,
+				Cursor:    defaultCursor,
+				Direction: model.FeedRefreshDirectionTop,
+			})
+		}
+	}
+
+	return getRefreshPosts(r, feedsRefreshInput)
 }
 
 func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {

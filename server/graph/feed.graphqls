@@ -27,3 +27,13 @@ interface FeedSeedStateInterface {
   name: String!
   updatedAt: Time!
 }
+
+type PostInFeedOutput {
+  post: Post!
+  cursor: Int!
+}
+
+type FeedOutput {
+  feedId: String!
+  posts: [PostInFeedOutput!]!
+}
