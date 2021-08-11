@@ -190,6 +190,22 @@ func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewS
 	return &t, nil
 }
 
+func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {
+	if err := r.DB.Transaction(syncUpTransaction(input)); err != nil {
+		return nil, err
+	}
+
+	ss, err := getSeedStateById(r.DB, input.UserSeedState.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Asynchronously push to user's all other channels.
+	go func() { r.SeedStateChans.PushSeedStateToUser(ss, input.UserSeedState.ID) }()
+
+	return ss, err
+}
+
 func (r *queryResolver) AllFeeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
 	result := r.DB.Preload(clause.Associations).Find(&feeds)
@@ -246,6 +262,18 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInpu
 	}
 
 	return getRefreshPosts(r, feedRefreshInputs)
+}
+
+func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {
+	ss, err := getSeedStateById(r.DB, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	ch, chId := r.SeedStateChans.AddNewConnection(ctx, userID)
+	r.SeedStateChans.PushSeedStateToSingleChannelForUser(ss, chId, userID)
+
+	return ch, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -26,17 +26,15 @@ type FeedRefreshInput struct {
 }
 
 type FeedSeedState struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func (FeedSeedState) IsFeedSeedStateInterface() {}
 
 type FeedSeedStateInput struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type FeedsForUserInput struct {
