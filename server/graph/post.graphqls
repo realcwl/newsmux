@@ -9,4 +9,5 @@ type Post @goModel(model: "model.Post") {
   sharedFromPost: Post
   savedByUser: [User!]!
   publishedFeeds: [Feed!]!
+  cursor: Int!
 }

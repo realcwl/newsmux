@@ -83,6 +83,7 @@ type ComplexityRoot struct {
 	Post struct {
 		Content        func(childComplexity int) int
 		CreatedAt      func(childComplexity int) int
+		Cursor         func(childComplexity int) int
 		DeletedAt      func(childComplexity int) int
 		Id             func(childComplexity int) int
 		PublishedFeeds func(childComplexity int) int
@@ -91,6 +92,11 @@ type ComplexityRoot struct {
 		Source         func(childComplexity int) int
 		SubSource      func(childComplexity int) int
 		Title          func(childComplexity int) int
+	}
+
+	PostInFeedOutput struct {
+		Cursor func(childComplexity int) int
+		Post   func(childComplexity int) int
 	}
 
 	Query struct {
@@ -148,7 +154,6 @@ type ComplexityRoot struct {
 }
 
 type FeedResolver interface {
-	UpdatedAt(ctx context.Context, obj *model.Feed) (*time.Time, error)
 	DeletedAt(ctx context.Context, obj *model.Feed) (*time.Time, error)
 }
 type MutationResolver interface {
@@ -383,6 +388,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.CreatedAt(childComplexity), true
 
+	case "Post.cursor":
+		if e.complexity.Post.Cursor == nil {
+			break
+		}
+
+		return e.complexity.Post.Cursor(childComplexity), true
+
 	case "Post.deletedAt":
 		if e.complexity.Post.DeletedAt == nil {
 			break
@@ -438,6 +450,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.Title(childComplexity), true
+
+	case "PostInFeedOutput.cursor":
+		if e.complexity.PostInFeedOutput.Cursor == nil {
+			break
+		}
+
+		return e.complexity.PostInFeedOutput.Cursor(childComplexity), true
+
+	case "PostInFeedOutput.post":
+		if e.complexity.PostInFeedOutput.Post == nil {
+			break
+		}
+
+		return e.complexity.PostInFeedOutput.Post(childComplexity), true
 
 	case "Query.allFeeds":
 		if e.complexity.Query.AllFeeds == nil {
@@ -796,6 +822,11 @@ interface FeedSeedStateInterface {
   name: String!
   updatedAt: Time!
 }
+
+type PostInFeedOutput {
+  post: Post!
+  cursor: Int!
+}
 `, BuiltIn: false},
 	{Name: "graph/post.graphqls", Input: `type Post @goModel(model: "model.Post") {
   id: String!
@@ -808,9 +839,15 @@ interface FeedSeedStateInterface {
   sharedFromPost: Post
   savedByUser: [User!]!
   publishedFeeds: [Feed!]!
+  cursor: Int!
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `# GraphQL schema
+
+enum FeedRefreshDirection {
+  NEW
+  OLD
+}
 
 # TODO(jamie): more documentations on all APIs
 type Query {
@@ -819,7 +856,7 @@ type Query {
   subSources: [SubSource!]
   posts: [Post!]
   users: [User!]
-  feeds(input: FeedsForUserInput): [Feed!]
+  feeds(input: FeedsForUserInput): [Feed!]!
 }
 
 input NewUserInput {
@@ -839,7 +876,7 @@ input NewPostInput {
   sourceId: String!
   subSourceId: String
   feedsIdPublishTo: [String!]
-  sharedFromPostID: String
+  sharedFromPostId: String
 }
 
 input SubscribeInput {
@@ -860,16 +897,17 @@ input NewSubSourceInput {
   sourceId: String!
 }
 
-input CurosrInput {
+input FeedRefreshInput {
   feedId: String!
-  start: Int!
-  end: Int!
+  limit: Int!
+  cursor: Int!
+  direction: FeedRefreshDirection!
+  feedUpdatedTime: Time
 }
 
 input FeedsForUserInput {
   userId: String!
-  limit: Int
-  cursors: [CurosrInput!]
+  feedRefreshInputs: [FeedRefreshInput!]!
 }
 
 type Mutation {
@@ -1222,14 +1260,14 @@ func (ec *executionContext) _Feed_updatedAt(ctx context.Context, field graphql.C
 		Object:     "Feed",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Feed().UpdatedAt(rctx, obj)
+		return obj.UpdatedAt, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1241,9 +1279,9 @@ func (ec *executionContext) _Feed_updatedAt(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*time.Time)
+	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalNTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Feed_deletedAt(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
@@ -2187,6 +2225,111 @@ func (ec *executionContext) _Post_publishedFeeds(ctx context.Context, field grap
 	return ec.marshalNFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_cursor(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int32)
+	fc.Result = res
+	return ec.marshalNInt2int32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PostInFeedOutput_post(ctx context.Context, field graphql.CollectedField, obj *model.PostInFeedOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PostInFeedOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Post, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Post)
+	fc.Result = res
+	return ec.marshalNPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPost(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PostInFeedOutput_cursor(ctx context.Context, field graphql.CollectedField, obj *model.PostInFeedOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PostInFeedOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_allFeeds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2379,11 +2522,14 @@ func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.Coll
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Feed)
 	fc.Result = res
-	return ec.marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
+	return ec.marshalNFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4447,8 +4593,8 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputCurosrInput(ctx context.Context, obj interface{}) (model.CurosrInput, error) {
-	var it model.CurosrInput
+func (ec *executionContext) unmarshalInputFeedRefreshInput(ctx context.Context, obj interface{}) (model.FeedRefreshInput, error) {
+	var it model.FeedRefreshInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -4461,19 +4607,35 @@ func (ec *executionContext) unmarshalInputCurosrInput(ctx context.Context, obj i
 			if err != nil {
 				return it, err
 			}
-		case "start":
+		case "limit":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-			it.Start, err = ec.unmarshalNInt2int(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			it.Limit, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "end":
+		case "cursor":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("end"))
-			it.End, err = ec.unmarshalNInt2int(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+			it.Cursor, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "direction":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			it.Direction, err = ec.unmarshalNFeedRefreshDirection2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedRefreshDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "feedUpdatedTime":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedUpdatedTime"))
+			it.FeedUpdatedTime, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4533,19 +4695,11 @@ func (ec *executionContext) unmarshalInputFeedsForUserInput(ctx context.Context,
 			if err != nil {
 				return it, err
 			}
-		case "limit":
+		case "feedRefreshInputs":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-			it.Limit, err = ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "cursors":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursors"))
-			it.Cursors, err = ec.unmarshalOCurosrInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCurosrInputᚄ(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedRefreshInputs"))
+			it.FeedRefreshInputs, err = ec.unmarshalNFeedRefreshInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedRefreshInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4637,10 +4791,10 @@ func (ec *executionContext) unmarshalInputNewPostInput(ctx context.Context, obj 
 			if err != nil {
 				return it, err
 			}
-		case "sharedFromPostID":
+		case "sharedFromPostId":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sharedFromPostID"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sharedFromPostId"))
 			it.SharedFromPostID, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
@@ -4911,19 +5065,10 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "updatedAt":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Feed_updatedAt(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Feed_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "deletedAt":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5124,6 +5269,43 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "cursor":
+			out.Values[i] = ec._Post_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var postInFeedOutputImplementors = []string{"PostInFeedOutput"}
+
+func (ec *executionContext) _PostInFeedOutput(ctx context.Context, sel ast.SelectionSet, obj *model.PostInFeedOutput) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, postInFeedOutputImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PostInFeedOutput")
+		case "post":
+			out.Values[i] = ec._PostInFeedOutput_post(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._PostInFeedOutput_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5214,6 +5396,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_feeds(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "__type":
@@ -5758,11 +5943,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNCurosrInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCurosrInput(ctx context.Context, v interface{}) (*model.CurosrInput, error) {
-	res, err := ec.unmarshalInputCurosrInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) marshalNFeed2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeed(ctx context.Context, sel ast.SelectionSet, v model.Feed) graphql.Marshaler {
 	return ec._Feed(ctx, sel, &v)
 }
@@ -5812,6 +5992,42 @@ func (ec *executionContext) marshalNFeed2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._Feed(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFeedRefreshDirection2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedRefreshDirection(ctx context.Context, v interface{}) (model.FeedRefreshDirection, error) {
+	var res model.FeedRefreshDirection
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFeedRefreshDirection2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedRefreshDirection(ctx context.Context, sel ast.SelectionSet, v model.FeedRefreshDirection) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNFeedRefreshInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedRefreshInputᚄ(ctx context.Context, v interface{}) ([]*model.FeedRefreshInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.FeedRefreshInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNFeedRefreshInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedRefreshInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNFeedRefreshInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedRefreshInput(ctx context.Context, v interface{}) (*model.FeedRefreshInput, error) {
+	res, err := ec.unmarshalInputFeedRefreshInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNFeedSeedState2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedStateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FeedSeedState) graphql.Marshaler {
@@ -5894,6 +6110,21 @@ func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}
 
 func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
 	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt2int32(ctx context.Context, v interface{}) (int32, error) {
+	res, err := graphql.UnmarshalInt32(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.SelectionSet, v int32) graphql.Marshaler {
+	res := graphql.MarshalInt32(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6121,27 +6352,6 @@ func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v in
 
 func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
 	res := graphql.MarshalTime(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) unmarshalNTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
-	res, err := graphql.UnmarshalTime(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := graphql.MarshalTime(*v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6469,30 +6679,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
-func (ec *executionContext) unmarshalOCurosrInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCurosrInputᚄ(ctx context.Context, v interface{}) ([]*model.CurosrInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]*model.CurosrInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNCurosrInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCurosrInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
 func (ec *executionContext) marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Feed) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -6539,21 +6725,6 @@ func (ec *executionContext) unmarshalOFeedsForUserInput2ᚖgithubᚗcomᚋLuismo
 	}
 	res, err := ec.unmarshalInputFeedsForUserInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalInt(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return graphql.MarshalInt(*v)
 }
 
 func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Post) graphql.Marshaler {
