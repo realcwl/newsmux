@@ -25,8 +25,7 @@ func randomTestDBName() string {
 
 // getDefaultDBConnection returns a connection to the default database postgres.
 func getDefaultDBConnection() (*gorm.DB, error) {
-	dsn := "host=newsfeed-db-dev.c3bzqjvxdcd7.us-west-1.rds.amazonaws.com user=root password=b5OKda1Twb1r dbname=postgres port=5432 sslmode=disable"
-	return getDB(dsn)
+	return getCustomizedConnection("postgres")
 }
 
 // getCustomizedConnection connect to customized database
@@ -94,8 +93,7 @@ func DropTempDB(dbName string) {
 // Get DB instance for development
 func GetDBDev() (db *gorm.DB, err error) {
 	// TODO(jamie): move to .env
-	dsn := "host=newsfeed-db-dev.c3bzqjvxdcd7.us-west-1.rds.amazonaws.com user=root password=b5OKda1Twb1r dbname=dev_jamie port=5432 sslmode=disable"
-	return getDB(dsn)
+	return getCustomizedConnection("dev_jamie")
 }
 
 // Get DB instance for unit test
@@ -108,8 +106,7 @@ func GetDBLocalTest() (db *gorm.DB, err error) {
 // Get DB instance for production
 func GetDBProduction() (db *gorm.DB, err error) {
 	// TODO(jamie): move to .env
-	dsn := "host=newsfeed-db-dev.c3bzqjvxdcd7.us-west-1.rds.amazonaws.com user=root password=b5OKda1Twb1r dbname=dev_jamie port=5432 sslmode=disable"
-	return getDB(dsn)
+	return getCustomizedConnection("dev_jamie")
 }
 
 func getDB(connectionString string) (db *gorm.DB, err error) {
