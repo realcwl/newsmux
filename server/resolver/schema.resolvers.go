@@ -153,7 +153,6 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 	return &user, nil
 }
 
-// TODO: delete, testing only
 func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error) {
 	uuid := uuid.New().String()
 

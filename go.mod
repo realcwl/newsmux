@@ -5,10 +5,8 @@ go 1.16
 require (
 	github.com/99designs/gqlgen v0.13.0
 	github.com/Microsoft/go-winio v0.5.0 // indirect
-	github.com/alexbrainman/sspi v0.0.0-20180613141037-e580b900e9f5 // indirect
-	github.com/aws/aws-sdk-go v1.40.20
+	github.com/aws/aws-sdk-go-v2 v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.5.0
-	github.com/aws/aws-sdk-go-v2/feature/rds/auth v1.1.4
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.4.1
 	github.com/bin3377/logrus-datadog-hook v0.0.3
 	github.com/gin-contrib/cors v1.3.1
@@ -17,7 +15,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/jcmturner/gokrb5/v8 v8.2.0 // indirect
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/lib/pq v1.10.2 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
@@ -28,11 +25,6 @@ require (
 	github.com/vektah/gqlparser/v2 v2.1.0
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/DataDog/dd-trace-go.v1 v1.31.1
-	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
-	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
-	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
-	gopkg.in/jcmturner/gokrb5.v7 v7.5.0 // indirect
-	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	gorm.io/driver/postgres v1.1.0
