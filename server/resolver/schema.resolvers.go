@@ -35,7 +35,7 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 
 	queryResult := r.DB.Where("id = ?", userID).First(&user)
 	if queryResult.RowsAffected != 1 {
-		return nil, errors.New("Invalid user id")
+		return nil, errors.New("invalid user id")
 	}
 
 	t := model.Feed{
@@ -65,7 +65,7 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 			return nil, errors.New("Source not found")
 		}
 	} else {
-		return nil, errors.New("Invalid source id")
+		return nil, errors.New("invalid source id")
 	}
 
 	if input.SubSourceID != nil {

@@ -1,3 +1,7 @@
+// database_utils should be the canonical place to put shared DB utils.
+// It should not include:
+// 1. Any util that doesn't manipulate DB
+// 2. Any util that contains business logic
 package utils
 
 import (
@@ -65,7 +69,7 @@ func CreateTempDB() (*gorm.DB, string) {
 	return newDB, dbName
 }
 
-// Drop a temp db with given name. This should always be called after
+// DropTempDB drops a temp db with given name. This should always be called after
 // CreateTempDB. Abort program on any failure. This function can be called
 // multiple times. It won't fail on deleting non-existing DB.
 func DropTempDB(curDB *gorm.DB, dbName string) {
@@ -103,13 +107,6 @@ func DropTempDB(curDB *gorm.DB, dbName string) {
 func GetDBDev() (db *gorm.DB, err error) {
 	// TODO(jamie): move to .env
 	return getCustomizedConnection("dev_jamie")
-}
-
-// Get DB instance for unit test
-func GetDBLocalTest() (db *gorm.DB, err error) {
-	// TODO(jamie): move to .env and think about how to easily clean up unit test db
-	dsn := "host=localhost user=postgres password=postgres dbname=unit_test_db port=5432 sslmode=disable"
-	return getDB(dsn)
 }
 
 // Get DB instance for production

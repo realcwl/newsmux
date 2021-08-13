@@ -35,7 +35,7 @@ func getRefreshPosts(r *queryResolver, query []*model.FeedRefreshInput) ([]*mode
 		queryResult := r.DB.Where("id = ?", feedID).First(&feed)
 		if queryResult.RowsAffected != 1 {
 			// TODO: add to datadog
-			return nil, errors.New(fmt.Sprintf("Invalid feed id %s", feedID))
+			return nil, fmt.Errorf("invalid feed id %s", feedID)
 		}
 
 		var posts []*model.Post
