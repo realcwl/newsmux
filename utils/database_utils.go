@@ -68,7 +68,7 @@ func CreateTempDB() (*gorm.DB, string) {
 // Drop a temp db with given name. This should always be called after
 // CreateTempDB. Abort program on any failure. This function can be called
 // multiple times. It won't fail on deleting non-existing DB.
-func DropTempDB(dbName string) {
+func DropTempDB(curDB *gorm.DB, dbName string) {
 	if !isTempDB(dbName) {
 		log.Fatalln("cannot delete a non-testing DB")
 	}
@@ -81,6 +81,15 @@ func DropTempDB(dbName string) {
 	if !exists {
 		return
 	}
+
+	// We need to close the current DB connection first. Otherwise it's not
+	// possible to drop it. However we don't check if sqlDB is closed successfully
+	// because fail to close will still produce error when we try to drop it.
+	sqlDB, err := curDB.DB()
+	if err != nil {
+		log.Fatalln("cannot get the current SQL DB")
+	}
+	sqlDB.Close()
 
 	db, err := getDefaultDBConnection()
 
@@ -146,7 +155,7 @@ func DatabaseSetupAndMigration(db *gorm.DB) {
 		panic("failed to connect database")
 	}
 
-	db.Debug().AutoMigrate(&model.Feed{}, &model.User{}, &model.Post{}, &model.Source{}, &model.SubSource{})
+	db.AutoMigrate(&model.Feed{}, &model.User{}, &model.Post{}, &model.Source{}, &model.SubSource{})
 }
 
 // IsDatabaseExist returns true on DB exist, returns false on not exist or error
