@@ -61,7 +61,7 @@ func TestUpdateUserSeedState(t *testing.T) {
 	})
 
 	var user model.User
-	assert.Nil(t, db.Debug().Model(&model.User{}).Select("id", "name", "avatar_url").Where("id=?", "id").First(&user).Error)
+	assert.Nil(t, db.Model(&model.User{}).Select("id", "name", "avatar_url").Where("id=?", "id").First(&user).Error)
 	assert.Equal(t, &model.User{
 		Id:        "id",
 		Name:      "new_name",
