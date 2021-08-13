@@ -13,7 +13,7 @@ func TestConstructSeedStateFromUser(t *testing.T) {
 	ss := constructSeedStateFromUser(&model.User{
 		Id:         "user_id",
 		Name:       "user_name",
-		AvartarUrl: "user_avartar_url",
+		AvatarUrl: "user_avatar_url",
 		SubscribedFeeds: []*model.Feed{
 			{Id: "feed_id_1", Name: "feed_name_1"},
 			{Id: "feed_id_2", Name: "feed_name_2"},
@@ -24,7 +24,7 @@ func TestConstructSeedStateFromUser(t *testing.T) {
 		UserSeedState: &model.UserSeedState{
 			ID:         "user_id",
 			Name:       "user_name",
-			AvartarURL: "user_avartar_url",
+			AvatarURL: "user_avatar_url",
 		},
 		// Order dependent comparison.
 		FeedSeedState: []*model.FeedSeedState{
@@ -41,7 +41,7 @@ func TestUpdateUserSeedState(t *testing.T) {
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
 		Name:            "name",
-		AvartarUrl:      "avartar_url",
+		AvatarUrl:      "avatar_url",
 		SubscribedFeeds: []*model.Feed{},
 	}).Error)
 
@@ -50,7 +50,7 @@ func TestUpdateUserSeedState(t *testing.T) {
 			UserSeedState: &model.UserSeedStateInput{
 				ID:        "id",
 				Name:      "new_name",
-				AvatarURL: "new_avartar_url",
+				AvatarURL: "new_avatar_url",
 			},
 		}); err != nil {
 			// return error will rollback
@@ -61,11 +61,11 @@ func TestUpdateUserSeedState(t *testing.T) {
 	})
 
 	var user model.User
-	assert.Nil(t, db.Debug().Model(&model.User{}).Select("id", "name", "avartar_url").Where("id=?", "id").First(&user).Error)
+	assert.Nil(t, db.Debug().Model(&model.User{}).Select("id", "name", "avatar_url").Where("id=?", "id").First(&user).Error)
 	assert.Equal(t, &model.User{
 		Id:         "id",
 		Name:       "new_name",
-		AvartarUrl: "new_avartar_url",
+		AvatarUrl: "new_avatar_url",
 	}, &user)
 }
 
@@ -78,7 +78,7 @@ func TestUpdateUserSeedState_UserNotFound(t *testing.T) {
 			UserSeedState: &model.UserSeedStateInput{
 				ID:        "id",
 				Name:      "new_name",
-				AvatarURL: "new_avartar_url",
+				AvatarURL: "new_avatar_url",
 			},
 		}); err != nil {
 			// return error will rollback
@@ -137,7 +137,7 @@ func TestUpdateUserFeedSubscription_ChangeOrder(t *testing.T) {
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
 		Name:            "name",
-		AvartarUrl:      "avartar_url",
+		AvatarUrl:      "avatar_url",
 		SubscribedFeeds: []*model.Feed{},
 	}).Error)
 
@@ -192,7 +192,7 @@ func TestUpdateUserFeedSubscription_DropSubscription(t *testing.T) {
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
 		Name:            "name",
-		AvartarUrl:      "avartar_url",
+		AvatarUrl:      "avatar_url",
 		SubscribedFeeds: []*model.Feed{},
 	}).Error)
 
@@ -245,7 +245,7 @@ func TestUpdateUserFeedSubscription_AddSubscription(t *testing.T) {
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
 		Name:            "name",
-		AvartarUrl:      "avartar_url",
+		AvatarUrl:      "avatar_url",
 		SubscribedFeeds: []*model.Feed{},
 	}).Error)
 
@@ -299,7 +299,7 @@ func TestUpdateUserFeedSubscription_AddAndDropSubscription(t *testing.T) {
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
 		Name:            "name",
-		AvartarUrl:      "avartar_url",
+		AvatarUrl:      "avatar_url",
 		SubscribedFeeds: []*model.Feed{},
 	}).Error)
 
@@ -351,7 +351,7 @@ func TestGetSeedStateById(t *testing.T) {
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
 		Name:            "name",
-		AvartarUrl:      "avartar_url",
+		AvatarUrl:      "avatar_url",
 		SubscribedFeeds: []*model.Feed{},
 	}).Error)
 
@@ -378,7 +378,7 @@ func TestGetSeedStateById(t *testing.T) {
 		UserSeedState: &model.UserSeedState{
 			ID:         "id",
 			Name:       "name",
-			AvartarURL: "avartar_url",
+			AvatarURL: "avatar_url",
 		},
 		FeedSeedState: []*model.FeedSeedState{
 			{ID: "id_2", Name: "name_2"},

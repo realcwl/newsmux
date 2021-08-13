@@ -3,7 +3,7 @@ type User implements UserSeedStateInterface @goModel(model: "model.User") {
   createdAt: Time!
   deletedAt: Time
   name: String!
-  avartarUrl: String!
+  avatarUrl: String!
   subscribedFeeds: [Feed!]!
   savedPosts: [Post!]
 }
@@ -11,7 +11,7 @@ type User implements UserSeedStateInterface @goModel(model: "model.User") {
 type UserSeedState implements UserSeedStateInterface {
   id: String!
   name: String!
-  avartarUrl: String!
+  avatarUrl: String!
 }
 
 input UserSeedStateInput {
@@ -23,5 +23,5 @@ input UserSeedStateInput {
 interface UserSeedStateInterface {
   id: String!
   name: String!
-  avartarUrl: String!
+  avatarUrl: String!
 }

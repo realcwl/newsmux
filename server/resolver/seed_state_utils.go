@@ -16,9 +16,9 @@ type GormTransaction func(tx *gorm.DB) error
 func constructSeedStateFromUser(user *model.User) *model.SeedState {
 	res := &model.SeedState{
 		UserSeedState: &model.UserSeedState{
-			ID:         user.Id,
-			Name:       user.Name,
-			AvartarURL: user.AvartarUrl,
+			ID:        user.Id,
+			Name:      user.Name,
+			AvatarURL: user.AvatarUrl,
 		},
 		FeedSeedState: feedToSeedState(user.SubscribedFeeds),
 	}
@@ -47,7 +47,7 @@ func updateUserSeedState(tx *gorm.DB, input *model.SeedStateInput) error {
 		return errors.New("user not found")
 	}
 
-	user.AvartarUrl = input.UserSeedState.AvatarURL
+	user.AvatarUrl = input.UserSeedState.AvatarURL
 	user.Name = input.UserSeedState.Name
 
 	if err := tx.Save(&user).Error; err != nil {

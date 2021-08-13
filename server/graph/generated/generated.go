@@ -137,7 +137,7 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		AvartarUrl      func(childComplexity int) int
+		AvatarUrl       func(childComplexity int) int
 		CreatedAt       func(childComplexity int) int
 		DeletedAt       func(childComplexity int) int
 		Id              func(childComplexity int) int
@@ -147,9 +147,9 @@ type ComplexityRoot struct {
 	}
 
 	UserSeedState struct {
-		AvartarURL func(childComplexity int) int
-		ID         func(childComplexity int) int
-		Name       func(childComplexity int) int
+		AvatarURL func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Name      func(childComplexity int) int
 	}
 }
 
@@ -629,12 +629,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.SyncDown(childComplexity, args["userId"].(string)), true
 
-	case "User.avartarUrl":
-		if e.complexity.User.AvartarUrl == nil {
+	case "User.avatarUrl":
+		if e.complexity.User.AvatarUrl == nil {
 			break
 		}
 
-		return e.complexity.User.AvartarUrl(childComplexity), true
+		return e.complexity.User.AvatarUrl(childComplexity), true
 
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
@@ -678,12 +678,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.SubscribedFeeds(childComplexity), true
 
-	case "UserSeedState.avartarUrl":
-		if e.complexity.UserSeedState.AvartarURL == nil {
+	case "UserSeedState.avatarUrl":
+		if e.complexity.UserSeedState.AvatarURL == nil {
 			break
 		}
 
-		return e.complexity.UserSeedState.AvartarURL(childComplexity), true
+		return e.complexity.UserSeedState.AvatarURL(childComplexity), true
 
 	case "UserSeedState.id":
 		if e.complexity.UserSeedState.ID == nil {
@@ -961,7 +961,7 @@ input SeedStateInput {
   createdAt: Time!
   deletedAt: Time
   name: String!
-  avartarUrl: String!
+  avatarUrl: String!
   subscribedFeeds: [Feed!]!
   savedPosts: [Post!]
 }
@@ -969,7 +969,7 @@ input SeedStateInput {
 type UserSeedState implements UserSeedStateInterface {
   id: String!
   name: String!
-  avartarUrl: String!
+  avatarUrl: String!
 }
 
 input UserSeedStateInput {
@@ -981,7 +981,7 @@ input UserSeedStateInput {
 interface UserSeedStateInterface {
   id: String!
   name: String!
-  avartarUrl: String!
+  avatarUrl: String!
 }
 `, BuiltIn: false},
 }
@@ -3299,7 +3299,7 @@ func (ec *executionContext) _User_name(ctx context.Context, field graphql.Collec
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _User_avartarUrl(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3317,7 +3317,7 @@ func (ec *executionContext) _User_avartarUrl(ctx context.Context, field graphql.
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AvartarUrl, nil
+		return obj.AvatarUrl, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3471,7 +3471,7 @@ func (ec *executionContext) _UserSeedState_name(ctx context.Context, field graph
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _UserSeedState_avartarUrl(ctx context.Context, field graphql.CollectedField, obj *model.UserSeedState) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserSeedState_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *model.UserSeedState) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3489,7 +3489,7 @@ func (ec *executionContext) _UserSeedState_avartarUrl(ctx context.Context, field
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AvartarURL, nil
+		return obj.AvatarURL, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5623,8 +5623,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "avartarUrl":
-			out.Values[i] = ec._User_avartarUrl(ctx, field, obj)
+		case "avatarUrl":
+			out.Values[i] = ec._User_avatarUrl(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -5667,8 +5667,8 @@ func (ec *executionContext) _UserSeedState(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "avartarUrl":
-			out.Values[i] = ec._UserSeedState_avartarUrl(ctx, field, obj)
+		case "avatarUrl":
+			out.Values[i] = ec._UserSeedState_avatarUrl(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

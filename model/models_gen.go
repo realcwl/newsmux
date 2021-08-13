@@ -90,9 +90,9 @@ type SubscribeInput struct {
 }
 
 type UserSeedState struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	AvartarURL string `json:"avartarUrl"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatarUrl"`
 }
 
 func (UserSeedState) IsUserSeedStateInterface() {}
