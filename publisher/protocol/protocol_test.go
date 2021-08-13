@@ -28,8 +28,11 @@ func TestProtoBuf(t *testing.T) {
 		log.Fatalln("Failed to encode:", err)
 	}
 
+	str := string(out)
+	out2 := []byte(str)
+
 	decoded := &CrawlerMessage{}
-	if err := proto.Unmarshal(out, decoded); err != nil {
+	if err := proto.Unmarshal(out2, decoded); err != nil {
 		log.Fatalln("Failed to parse:", err)
 	}
 

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/Luismorlan/newsmux/publisher/protocol"
 	. "github.com/Luismorlan/newsmux/utils"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -27,6 +29,11 @@ func main() {
 		fmt.Println(str)
 
 		// Process data
+		decodedMsg := &CrawlerMessage{}
+		if err := proto.Unmarshal([]byte(str), decodedMsg); err != nil {
+			fmt.Println("wrong!")
+		}
+		fmt.Println(decodedMsg)
 
 		// Delete message if the process is successful
 		reader.DeleteMessage(msg)
