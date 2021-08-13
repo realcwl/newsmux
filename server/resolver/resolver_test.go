@@ -15,8 +15,6 @@ import (
 )
 
 func prepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
-	utils.DatabaseSetupAndMigration(db)
-
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &Resolver{
 		DB:             db,
 		SeedStateChans: NewSeedStateChannels(),
@@ -28,8 +26,10 @@ func TestCreateUser(t *testing.T) {
 	db, name := utils.CreateTempDB()
 	defer utils.DropTempDB(db, name)
 
+	client := prepareTestForGraphQLAPIs(db)
+
 	t.Run("Test User Creation", func(t *testing.T) {
-		createUserAndValidate(t, "test_user_name", db)
+		createUserAndValidate(t, "test_user_name", db, client)
 	})
 }
 
@@ -37,9 +37,11 @@ func TestCreateFeed(t *testing.T) {
 	db, name := utils.CreateTempDB()
 	defer utils.DropTempDB(db, name)
 
+	client := prepareTestForGraphQLAPIs(db)
+
 	t.Run("Test Feed Creation", func(t *testing.T) {
-		uid := createUserAndValidate(t, "test_user_name", db)
-		feedId := createFeedAndValidate(t, uid, "test_feed_for_feeds_api", db)
+		uid := createUserAndValidate(t, "test_user_name", db, client)
+		feedId := createFeedAndValidate(t, uid, "test_feed_for_feeds_api", db, client)
 		require.NotEmpty(t, feedId)
 	})
 }
@@ -48,9 +50,11 @@ func TestCreateSource(t *testing.T) {
 	db, name := utils.CreateTempDB()
 	defer utils.DropTempDB(db, name)
 
+	client := prepareTestForGraphQLAPIs(db)
+
 	t.Run("Test Source Creation", func(t *testing.T) {
-		uid := createUserAndValidate(t, "test_user_name", db)
-		sourceId := createSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db)
+		uid := createUserAndValidate(t, "test_user_name", db, client)
+		sourceId := createSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 		require.NotEmpty(t, sourceId)
 	})
 }
@@ -59,10 +63,12 @@ func TestCreateSubSource(t *testing.T) {
 	db, name := utils.CreateTempDB()
 	defer utils.DropTempDB(db, name)
 
+	client := prepareTestForGraphQLAPIs(db)
+
 	t.Run("Test Source Creation", func(t *testing.T) {
-		uid := createUserAndValidate(t, "test_user_name", db)
-		sourceId := createSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db)
-		subSourceId := createSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId, db)
+		uid := createUserAndValidate(t, "test_user_name", db, client)
+		sourceId := createSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
+		subSourceId := createSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId, db, client)
 		require.NotEmpty(t, subSourceId)
 	})
 }
@@ -71,10 +77,12 @@ func TestUserSubscribeFeed(t *testing.T) {
 	db, name := utils.CreateTempDB()
 	defer utils.DropTempDB(db, name)
 
+	client := prepareTestForGraphQLAPIs(db)
+
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
-		uid := createUserAndValidate(t, "test_user_name", db)
-		feedId := createFeedAndValidate(t, uid, "test_feed_for_feeds_api", db)
-		userSubscribeFeedAndValidate(t, uid, feedId, db)
+		uid := createUserAndValidate(t, "test_user_name", db, client)
+		feedId := createFeedAndValidate(t, uid, "test_feed_for_feeds_api", db, client)
+		userSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	})
 }
 
@@ -82,43 +90,44 @@ func TestQueryFeeds(t *testing.T) {
 	db, name := utils.CreateTempDB()
 	defer utils.DropTempDB(db, name)
 
-	userId := createUserAndValidate(t, "test_user_for_feeds_api", db)
-	feedIdOne := createFeedAndValidate(t, userId, "test_feed_for_feeds_api", db)
-	feedIdTwo := createFeedAndValidate(t, userId, "test_feed_for_feeds_api", db)
-	sourceId := createSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db)
-	createSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, db)
-	userSubscribeFeedAndValidate(t, userId, feedIdOne, db)
-	userSubscribeFeedAndValidate(t, userId, feedIdTwo, db)
+	client := prepareTestForGraphQLAPIs(db)
+
+	userId := createUserAndValidate(t, "test_user_for_feeds_api", db, client)
+	feedIdOne := createFeedAndValidate(t, userId, "test_feed_for_feeds_api", db, client)
+	feedIdTwo := createFeedAndValidate(t, userId, "test_feed_for_feeds_api", db, client)
+	sourceId := createSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
+	createSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, db, client)
+	userSubscribeFeedAndValidate(t, userId, feedIdOne, db, client)
+	userSubscribeFeedAndValidate(t, userId, feedIdTwo, db, client)
 
 	// 0 is oldest post, 6 is newest post
-	createPostAndValidate(t, "test_title_0", "test_content_0", sourceId, feedIdOne, db)
-	createPostAndValidate(t, "test_title_1", "test_content_1", sourceId, feedIdOne, db)
-	createPostAndValidate(t, "test_title_2", "test_content_2", sourceId, feedIdOne, db)
-	_, midCursorFirst := createPostAndValidate(t, "test_title_3", "test_content_3", sourceId, feedIdOne, db)
-	createPostAndValidate(t, "test_title_4", "test_content_4", sourceId, feedIdOne, db)
-	createPostAndValidate(t, "test_title_5", "test_content_5", sourceId, feedIdOne, db)
-	createPostAndValidate(t, "test_title_6", "test_content_6", sourceId, feedIdOne, db)
+	createPostAndValidate(t, "test_title_0", "test_content_0", sourceId, feedIdOne, db, client)
+	createPostAndValidate(t, "test_title_1", "test_content_1", sourceId, feedIdOne, db, client)
+	createPostAndValidate(t, "test_title_2", "test_content_2", sourceId, feedIdOne, db, client)
+	_, midCursorFirst := createPostAndValidate(t, "test_title_3", "test_content_3", sourceId, feedIdOne, db, client)
+	createPostAndValidate(t, "test_title_4", "test_content_4", sourceId, feedIdOne, db, client)
+	createPostAndValidate(t, "test_title_5", "test_content_5", sourceId, feedIdOne, db, client)
+	createPostAndValidate(t, "test_title_6", "test_content_6", sourceId, feedIdOne, db, client)
 
 	// 0 is oldest post, 6 is newest post
-	createPostAndValidate(t, "test_title_0", "test_content_0", sourceId, feedIdTwo, db)
-	createPostAndValidate(t, "test_title_1", "test_content_1", sourceId, feedIdTwo, db)
-	createPostAndValidate(t, "test_title_2", "test_content_2", sourceId, feedIdTwo, db)
-	_, midCursorSecond := createPostAndValidate(t, "test_title_3", "test_content_3", sourceId, feedIdTwo, db)
-	createPostAndValidate(t, "test_title_4", "test_content_4", sourceId, feedIdTwo, db)
-	createPostAndValidate(t, "test_title_5", "test_content_5", sourceId, feedIdTwo, db)
-	createPostAndValidate(t, "test_title_6", "test_content_6", sourceId, feedIdTwo, db)
+	createPostAndValidate(t, "test_title_0", "test_content_0", sourceId, feedIdTwo, db, client)
+	createPostAndValidate(t, "test_title_1", "test_content_1", sourceId, feedIdTwo, db, client)
+	createPostAndValidate(t, "test_title_2", "test_content_2", sourceId, feedIdTwo, db, client)
+	_, midCursorSecond := createPostAndValidate(t, "test_title_3", "test_content_3", sourceId, feedIdTwo, db, client)
+	createPostAndValidate(t, "test_title_4", "test_content_4", sourceId, feedIdTwo, db, client)
+	createPostAndValidate(t, "test_title_5", "test_content_5", sourceId, feedIdTwo, db, client)
+	createPostAndValidate(t, "test_title_6", "test_content_6", sourceId, feedIdTwo, db, client)
 
-	checkFeedTopPosts(t, userId, feedIdOne, midCursorFirst, db)
-	checkFeedBottomPosts(t, userId, feedIdOne, midCursorFirst, db)
+	checkFeedTopPosts(t, userId, feedIdOne, midCursorFirst, db, client)
+	checkFeedBottomPosts(t, userId, feedIdOne, midCursorFirst, db, client)
 
-	checkFeedTopPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, db)
-	checkFeedBottomPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, db)
+	checkFeedTopPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, db, client)
+	checkFeedBottomPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, db, client)
 
-	checkFeedTopPostsWithoutSpecifyFeed(t, userId, feedIdOne, feedIdTwo, db)
+	checkFeedTopPostsWithoutSpecifyFeed(t, userId, feedIdOne, feedIdTwo, db, client)
 }
 
-func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, db *gorm.DB) {
-	client := prepareTestForGraphQLAPIs(db)
+func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -161,8 +170,7 @@ func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, d
 	require.Equal(t, "test_title_5", resp.Feeds[0].Posts[1].Title)
 }
 
-func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int, db *gorm.DB) {
-	client := prepareTestForGraphQLAPIs(db)
+func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -205,8 +213,7 @@ func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int
 	require.Equal(t, "test_title_1", resp.Feeds[0].Posts[1].Title)
 }
 
-func checkFeedTopPostsMultipleFeeds(t *testing.T, userId string, feedIdOne string, feedIdTwo string, cursorOne int, cursorTwo int, db *gorm.DB) {
-	client := prepareTestForGraphQLAPIs(db)
+func checkFeedTopPostsMultipleFeeds(t *testing.T, userId string, feedIdOne string, feedIdTwo string, cursorOne int, cursorTwo int, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -255,8 +262,7 @@ func checkFeedTopPostsMultipleFeeds(t *testing.T, userId string, feedIdOne strin
 	require.Equal(t, "test_title_5", resp.Feeds[1].Posts[1].Title)
 }
 
-func checkFeedBottomPostsMultipleFeeds(t *testing.T, userId string, feedIdOne string, feedIdTwo string, cursorOne int, cursorTwo int, db *gorm.DB) {
-	client := prepareTestForGraphQLAPIs(db)
+func checkFeedBottomPostsMultipleFeeds(t *testing.T, userId string, feedIdOne string, feedIdTwo string, cursorOne int, cursorTwo int, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -305,8 +311,7 @@ func checkFeedBottomPostsMultipleFeeds(t *testing.T, userId string, feedIdOne st
 	require.Equal(t, "test_title_1", resp.Feeds[1].Posts[1].Title)
 }
 
-func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne string, feedIdTwo string, db *gorm.DB) {
-	client := prepareTestForGraphQLAPIs(db)
+func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne string, feedIdTwo string, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -363,9 +368,7 @@ func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne 
 }
 
 // create user with name, do sanity checks and returns its Id
-func createUserAndValidate(t *testing.T, name string, db *gorm.DB) (id string) {
-	client := prepareTestForGraphQLAPIs(db)
-
+func createUserAndValidate(t *testing.T, name string, db *gorm.DB, client *client.Client) (id string) {
 	var resp struct {
 		CreateUser struct {
 			Id         string `json:"id"`
@@ -412,9 +415,7 @@ func createUserAndValidate(t *testing.T, name string, db *gorm.DB) (id string) {
 }
 
 // create feed with name, do sanity checks and returns its Id
-func createFeedAndValidate(t *testing.T, userId string, name string, db *gorm.DB) (id string) {
-	client := prepareTestForGraphQLAPIs(db)
-
+func createFeedAndValidate(t *testing.T, userId string, name string, db *gorm.DB, client *client.Client) (id string) {
 	var resp struct {
 		CreateFeed struct {
 			Id        string `json:"id"`
@@ -447,9 +448,7 @@ func createFeedAndValidate(t *testing.T, userId string, name string, db *gorm.DB
 }
 
 // create source with name, do sanity checks and returns its Id
-func createSourceAndValidate(t *testing.T, userId string, name string, domain string, db *gorm.DB) (id string) {
-	client := prepareTestForGraphQLAPIs(db)
-
+func createSourceAndValidate(t *testing.T, userId string, name string, domain string, db *gorm.DB, client *client.Client) (id string) {
 	var resp struct {
 		CreateSource struct {
 			Id        string `json:"id"`
@@ -484,9 +483,7 @@ func createSourceAndValidate(t *testing.T, userId string, name string, domain st
 }
 
 // create subsource with name, do sanity checks and returns its Id
-func createSubSourceAndValidate(t *testing.T, userId string, name string, externalIdentifier string, sourceId string, db *gorm.DB) (id string) {
-	client := prepareTestForGraphQLAPIs(db)
-
+func createSubSourceAndValidate(t *testing.T, userId string, name string, externalIdentifier string, sourceId string, db *gorm.DB, client *client.Client) (id string) {
 	var resp struct {
 		CreateSubSource struct {
 			Id        string `json:"id"`
@@ -519,9 +516,7 @@ func createSubSourceAndValidate(t *testing.T, userId string, name string, extern
 }
 
 // create subsource with title,content, do sanity checks and returns its Id
-func createPostAndValidate(t *testing.T, title string, content string, sourceId string, publishFeedId string, db *gorm.DB) (id string, cursor int) {
-	client := prepareTestForGraphQLAPIs(db)
-
+func createPostAndValidate(t *testing.T, title string, content string, sourceId string, publishFeedId string, db *gorm.DB, client *client.Client) (id string, cursor int) {
 	var resp struct {
 		CreatePost struct {
 			Id        string `json:"id"`
@@ -566,9 +561,7 @@ func createPostAndValidate(t *testing.T, title string, content string, sourceId 
 }
 
 // create user to feed subscription, do sanity checks
-func userSubscribeFeedAndValidate(t *testing.T, userId string, feedId string, db *gorm.DB) {
-	client := prepareTestForGraphQLAPIs(db)
-
+func userSubscribeFeedAndValidate(t *testing.T, userId string, feedId string, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Subscribe struct {
 			Id string `json:"id"`
