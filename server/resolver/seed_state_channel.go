@@ -3,7 +3,6 @@ package resolver
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/Luismorlan/newsmux/model"
@@ -69,7 +68,6 @@ func (sc *SeedStateChannels) AddNewConnection(ctx context.Context, user_id strin
 	// Spin up a background grabage collector.
 	go sc.cleanUp(ctx, ch_id, user_id)
 
-	fmt.Println("added new connection: ", ch_id)
 	return ch, ch_id
 }
 

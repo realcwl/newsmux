@@ -11,8 +11,8 @@ import (
 
 func TestConstructSeedStateFromUser(t *testing.T) {
 	ss := constructSeedStateFromUser(&model.User{
-		Id:         "user_id",
-		Name:       "user_name",
+		Id:        "user_id",
+		Name:      "user_name",
 		AvatarUrl: "user_avatar_url",
 		SubscribedFeeds: []*model.Feed{
 			{Id: "feed_id_1", Name: "feed_name_1"},
@@ -22,8 +22,8 @@ func TestConstructSeedStateFromUser(t *testing.T) {
 
 	assert.Equal(t, ss, &model.SeedState{
 		UserSeedState: &model.UserSeedState{
-			ID:         "user_id",
-			Name:       "user_name",
+			ID:        "user_id",
+			Name:      "user_name",
 			AvatarURL: "user_avatar_url",
 		},
 		// Order dependent comparison.
@@ -41,7 +41,7 @@ func TestUpdateUserSeedState(t *testing.T) {
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
 		Name:            "name",
-		AvatarUrl:      "avatar_url",
+		AvatarUrl:       "avatar_url",
 		SubscribedFeeds: []*model.Feed{},
 	}).Error)
 
@@ -63,8 +63,8 @@ func TestUpdateUserSeedState(t *testing.T) {
 	var user model.User
 	assert.Nil(t, db.Debug().Model(&model.User{}).Select("id", "name", "avatar_url").Where("id=?", "id").First(&user).Error)
 	assert.Equal(t, &model.User{
-		Id:         "id",
-		Name:       "new_name",
+		Id:        "id",
+		Name:      "new_name",
 		AvatarUrl: "new_avatar_url",
 	}, &user)
 }
@@ -137,7 +137,7 @@ func TestUpdateUserFeedSubscription_ChangeOrder(t *testing.T) {
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
 		Name:            "name",
-		AvatarUrl:      "avatar_url",
+		AvatarUrl:       "avatar_url",
 		SubscribedFeeds: []*model.Feed{},
 	}).Error)
 
@@ -185,165 +185,6 @@ func TestUpdateUserFeedSubscription_ChangeOrder(t *testing.T) {
 	}, userToFeeds)
 }
 
-func TestUpdateUserFeedSubscription_DropSubscription(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
-
-	assert.Nil(t, db.Create(&model.User{
-		Id:              "id",
-		Name:            "name",
-		AvatarUrl:      "avatar_url",
-		SubscribedFeeds: []*model.Feed{},
-	}).Error)
-
-	assert.Nil(t, db.Select("id", "name").Create(&[]model.Feed{
-		{
-			Id:   "id_1",
-			Name: "name_1",
-		},
-		{
-			Id:   "id_2",
-			Name: "name_2",
-		},
-	}).Error)
-
-	assert.Nil(t, db.Create(&[]model.UserFeedSubscription{
-		{UserID: "id", FeedID: "id_1", OrderInPanel: 0},
-		{UserID: "id", FeedID: "id_2", OrderInPanel: 1},
-	}).Error)
-
-	db.Transaction(func(tx *gorm.DB) error {
-		if err := updateUserFeedSubscription(tx, &model.SeedStateInput{
-			UserSeedState: &model.UserSeedStateInput{
-				ID: "id",
-			},
-			// Drop subscription to id_1
-			FeedSeedState: []*model.FeedSeedStateInput{
-				{ID: "id_2", Name: "name_2"},
-			},
-		}); err != nil {
-			return err
-		}
-		return nil
-	})
-
-	var userToFeeds []model.UserFeedSubscription
-	assert.Nil(t, db.Model(&model.UserFeedSubscription{}).
-		Select("user_id, feed_id", "order_in_panel").
-		Where("user_id = ?", "id").
-		Order("order_in_panel").
-		Find(&userToFeeds).Error)
-	assert.Equal(t, []model.UserFeedSubscription{
-		{UserID: "id", FeedID: "id_2", OrderInPanel: 0},
-	}, userToFeeds)
-}
-
-func TestUpdateUserFeedSubscription_AddSubscription(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
-
-	assert.Nil(t, db.Create(&model.User{
-		Id:              "id",
-		Name:            "name",
-		AvatarUrl:      "avatar_url",
-		SubscribedFeeds: []*model.Feed{},
-	}).Error)
-
-	assert.Nil(t, db.Select("id", "name").Create(&[]model.Feed{
-		{
-			Id:   "id_1",
-			Name: "name_1",
-		},
-		{
-			Id:   "id_2",
-			Name: "name_2",
-		},
-	}).Error)
-
-	assert.Nil(t, db.Create(&[]model.UserFeedSubscription{
-		{UserID: "id", FeedID: "id_1", OrderInPanel: 0},
-	}).Error)
-
-	db.Transaction(func(tx *gorm.DB) error {
-		if err := updateUserFeedSubscription(tx, &model.SeedStateInput{
-			UserSeedState: &model.UserSeedStateInput{
-				ID: "id",
-			},
-			// add subscription to id_2
-			FeedSeedState: []*model.FeedSeedStateInput{
-				{ID: "id_1", Name: "name_1"},
-				{ID: "id_2", Name: "name_2"},
-			},
-		}); err != nil {
-			return err
-		}
-		return nil
-	})
-
-	var userToFeeds []model.UserFeedSubscription
-	assert.Nil(t, db.Model(&model.UserFeedSubscription{}).
-		Select("user_id, feed_id", "order_in_panel").
-		Where("user_id = ?", "id").
-		Order("order_in_panel").
-		Find(&userToFeeds).Error)
-	assert.Equal(t, []model.UserFeedSubscription{
-		{UserID: "id", FeedID: "id_1", OrderInPanel: 0},
-		{UserID: "id", FeedID: "id_2", OrderInPanel: 1},
-	}, userToFeeds)
-}
-
-func TestUpdateUserFeedSubscription_AddAndDropSubscription(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
-
-	assert.Nil(t, db.Create(&model.User{
-		Id:              "id",
-		Name:            "name",
-		AvatarUrl:      "avatar_url",
-		SubscribedFeeds: []*model.Feed{},
-	}).Error)
-
-	assert.Nil(t, db.Select("id", "name").Create(&[]model.Feed{
-		{
-			Id:   "id_1",
-			Name: "name_1",
-		},
-		{
-			Id:   "id_2",
-			Name: "name_2",
-		},
-	}).Error)
-
-	assert.Nil(t, db.Create(&[]model.UserFeedSubscription{
-		{UserID: "id", FeedID: "id_1", OrderInPanel: 0},
-	}).Error)
-
-	db.Transaction(func(tx *gorm.DB) error {
-		if err := updateUserFeedSubscription(tx, &model.SeedStateInput{
-			UserSeedState: &model.UserSeedStateInput{
-				ID: "id",
-			},
-			// add subscription to id_2, drop id_1
-			FeedSeedState: []*model.FeedSeedStateInput{
-				{ID: "id_2", Name: "name_2"},
-			},
-		}); err != nil {
-			return err
-		}
-		return nil
-	})
-
-	var userToFeeds []model.UserFeedSubscription
-	assert.Nil(t, db.Model(&model.UserFeedSubscription{}).
-		Select("user_id, feed_id", "order_in_panel").
-		Where("user_id = ?", "id").
-		Order("order_in_panel").
-		Find(&userToFeeds).Error)
-	assert.Equal(t, []model.UserFeedSubscription{
-		{UserID: "id", FeedID: "id_2", OrderInPanel: 0},
-	}, userToFeeds)
-}
-
 func TestGetSeedStateById(t *testing.T) {
 	db, name := utils.CreateTempDB()
 	defer utils.DropTempDB(db, name)
@@ -351,7 +192,7 @@ func TestGetSeedStateById(t *testing.T) {
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
 		Name:            "name",
-		AvatarUrl:      "avatar_url",
+		AvatarUrl:       "avatar_url",
 		SubscribedFeeds: []*model.Feed{},
 	}).Error)
 
@@ -360,6 +201,11 @@ func TestGetSeedStateById(t *testing.T) {
 			Id:   "id_1",
 			Name: "name_1",
 		},
+		{
+			Id:   "id_3",
+			Name: "name_3",
+		},
+
 		{
 			Id:   "id_2",
 			Name: "name_2",
@@ -368,6 +214,7 @@ func TestGetSeedStateById(t *testing.T) {
 
 	assert.Nil(t, db.Create(&[]model.UserFeedSubscription{
 		{UserID: "id", FeedID: "id_1", OrderInPanel: 1},
+		{UserID: "id", FeedID: "id_3", OrderInPanel: 2},
 		{UserID: "id", FeedID: "id_2", OrderInPanel: 0},
 	}).Error)
 
@@ -376,13 +223,14 @@ func TestGetSeedStateById(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, &model.SeedState{
 		UserSeedState: &model.UserSeedState{
-			ID:         "id",
-			Name:       "name",
+			ID:        "id",
+			Name:      "name",
 			AvatarURL: "avatar_url",
 		},
 		FeedSeedState: []*model.FeedSeedState{
 			{ID: "id_2", Name: "name_2"},
 			{ID: "id_1", Name: "name_1"},
+			{ID: "id_3", Name: "name_3"},
 		},
 	}, ss)
 }

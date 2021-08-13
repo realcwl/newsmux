@@ -19,6 +19,9 @@ const (
 	TestDBNameCharLength = 8
 )
 
+// GormTransaction is the callback function used during db.Transaction in Gorm.
+type GormTransaction func(tx *gorm.DB) error
+
 func isTempDB(dbName string) bool {
 	return strings.HasPrefix(dbName, TestDBPrefix)
 }

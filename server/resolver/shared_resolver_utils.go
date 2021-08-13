@@ -40,7 +40,7 @@ func getRefreshPosts(r *queryResolver, query []*model.FeedRefreshInput) ([]*mode
 
 		var posts []*model.Post
 		if direction == model.FeedRefreshDirectionNew {
-			r.DB.Debug().Model(&model.Post{}).
+			r.DB.Model(&model.Post{}).
 				Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 				Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 				Where("feed_id = ? AND posts.cursor > ?", feedID, cursor).
@@ -48,7 +48,7 @@ func getRefreshPosts(r *queryResolver, query []*model.FeedRefreshInput) ([]*mode
 				Limit(limit).
 				Find(&posts)
 		} else {
-			r.DB.Debug().Model(&model.Post{}).
+			r.DB.Model(&model.Post{}).
 				Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 				Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 				Where("feed_id = ? AND posts.cursor < ?", feedID, cursor).
