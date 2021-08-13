@@ -91,6 +91,7 @@ type ComplexityRoot struct {
 		Cursor         func(childComplexity int) int
 		DeletedAt      func(childComplexity int) int
 		Id             func(childComplexity int) int
+		OriginUrl      func(childComplexity int) int
 		PublishedFeeds func(childComplexity int) int
 		SavedByUser    func(childComplexity int) int
 		SharedFromPost func(childComplexity int) int
@@ -133,6 +134,7 @@ type ComplexityRoot struct {
 		Creator            func(childComplexity int) int
 		DeletedAt          func(childComplexity int) int
 		ExternalIdentifier func(childComplexity int) int
+		IconUrl            func(childComplexity int) int
 		Id                 func(childComplexity int) int
 		Name               func(childComplexity int) int
 		Source             func(childComplexity int) int
@@ -428,6 +430,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.Id(childComplexity), true
 
+	case "Post.originUrl":
+		if e.complexity.Post.OriginUrl == nil {
+			break
+		}
+
+		return e.complexity.Post.OriginUrl(childComplexity), true
+
 	case "Post.publishedFeeds":
 		if e.complexity.Post.PublishedFeeds == nil {
 			break
@@ -621,6 +630,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SubSource.ExternalIdentifier(childComplexity), true
+
+	case "SubSource.iconUrl":
+		if e.complexity.SubSource.IconUrl == nil {
+			break
+		}
+
+		return e.complexity.SubSource.IconUrl(childComplexity), true
 
 	case "SubSource.id":
 		if e.complexity.SubSource.Id == nil {
@@ -863,6 +879,7 @@ type FeedOutput {
   savedByUser: [User!]!
   publishedFeeds: [Feed!]!
   cursor: Int!
+  originUrl: String
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `# GraphQL schema
@@ -979,6 +996,7 @@ input SeedStateInput {
   name: String!
   externalIdentifier: String
   source: Source!
+  iconUrl: String
 }
 `, BuiltIn: false},
 	{Name: "graph/user.graphqls", Input: `type User implements UserSeedStateInterface @goModel(model: "model.User") {
@@ -2352,6 +2370,38 @@ func (ec *executionContext) _Post_cursor(ctx context.Context, field graphql.Coll
 	return ec.marshalNInt2int32(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_originUrl(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OriginUrl, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PostInFeedOutput_post(ctx context.Context, field graphql.CollectedField, obj *model.PostInFeedOutput) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3235,6 +3285,38 @@ func (ec *executionContext) _SubSource_source(ctx context.Context, field graphql
 	res := resTmp.(*model.Source)
 	fc.Result = res
 	return ec.marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SubSource_iconUrl(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubSource",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IconUrl, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Subscription_syncDown(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
@@ -5390,6 +5472,8 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "originUrl":
+			out.Values[i] = ec._Post_originUrl(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5676,6 +5760,8 @@ func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet
 				}
 				return res
 			})
+		case "iconUrl":
+			out.Values[i] = ec._SubSource_iconUrl(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

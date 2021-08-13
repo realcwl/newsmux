@@ -32,6 +32,7 @@ type SubSource struct {
 	Name               string
 	ExternalIdentifier string
 	SourceID           string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	IconUrl            string
 }
 
 func (SubSource) IsSubSourceSeedStateInterface() {}

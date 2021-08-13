@@ -10,4 +10,5 @@ type Post @goModel(model: "model.Post") {
   savedByUser: [User!]!
   publishedFeeds: [Feed!]!
   cursor: Int!
+  originUrl: String
 }

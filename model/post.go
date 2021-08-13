@@ -55,4 +55,5 @@ type Post struct {
 	SavedByUser      []*User `json:"saved_by_user" gorm:"many2many;"`
 	PublishedFeeds   []*Feed `json:"published_feeds" gorm:"many2many;"`
 	Cursor           int32   `gorm:"autoIncrement"`
+	OriginUrl        string
 }
