@@ -26,17 +26,15 @@ type FeedRefreshInput struct {
 }
 
 type FeedSeedState struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func (FeedSeedState) IsFeedSeedStateInterface() {}
 
 type FeedSeedStateInput struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type FeedsForUserInput struct {
@@ -81,11 +79,6 @@ type PostInFeedOutput struct {
 	Cursor int   `json:"cursor"`
 }
 
-type SeedState struct {
-	UserSeedState *UserSeedState   `json:"userSeedState"`
-	FeedSeedState []*FeedSeedState `json:"feedSeedState"`
-}
-
 type SeedStateInput struct {
 	UserSeedState *UserSeedStateInput   `json:"userSeedState"`
 	FeedSeedState []*FeedSeedStateInput `json:"feedSeedState"`
@@ -97,13 +90,15 @@ type SubscribeInput struct {
 }
 
 type UserSeedState struct {
-	Name       string `json:"name"`
-	AvartarURL string `json:"avartarUrl"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatarUrl"`
 }
 
 func (UserSeedState) IsUserSeedStateInterface() {}
 
 type UserSeedStateInput struct {
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	AvatarURL string `json:"avatarUrl"`
 }

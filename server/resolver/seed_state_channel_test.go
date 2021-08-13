@@ -51,7 +51,7 @@ func TestSeedStateChannelMultipleCreation(t *testing.T) {
 func TestPushSeedStateToUser(t *testing.T) {
 	ssc := NewSeedStateChannels()
 	ctx, cancel := context.WithCancel(context.Background())
-	ch := ssc.AddNewConnection(ctx, "user_id")
+	ch, _ := ssc.AddNewConnection(ctx, "user_id")
 
 	done := make(chan interface{})
 	go func() {
@@ -69,6 +69,39 @@ func TestPushSeedStateToUser(t *testing.T) {
 			Name: "test",
 		},
 	}, "user_id")
+	<-done
+
+	cancel()
+	// Force trigger an long IO operation to context swiching to clean up.
+	time.Sleep(1 * time.Second)
+	assert.Error(t, ssc.PushSeedStateToUser(&model.SeedState{
+		UserSeedState: &model.UserSeedState{
+			Name: "test",
+		},
+	}, "user_id"))
+}
+
+func TestPushSeedStateToSingleChannel(t *testing.T) {
+	ssc := NewSeedStateChannels()
+	ctx, cancel := context.WithCancel(context.Background())
+	ch, chId := ssc.AddNewConnection(ctx, "user_id")
+
+	done := make(chan interface{})
+	go func() {
+		state := <-ch
+		assert.Equal(t, state, &model.SeedState{
+			UserSeedState: &model.UserSeedState{
+				Name: "test",
+			},
+		})
+		done <- 0
+	}()
+
+	ssc.PushSeedStateToSingleChannelForUser(&model.SeedState{
+		UserSeedState: &model.UserSeedState{
+			Name: "test",
+		},
+	}, chId, "user_id")
 	<-done
 
 	cancel()

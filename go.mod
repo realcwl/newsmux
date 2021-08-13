@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/99designs/gqlgen v0.13.0
 	github.com/Microsoft/go-winio v0.5.0 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.5.0
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.4.1
 	github.com/bin3377/logrus-datadog-hook v0.0.3
@@ -15,7 +16,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.11 // indirect
-	github.com/lib/pq v1.6.0 // indirect
+	github.com/lib/pq v1.10.2 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/sirupsen/logrus v1.8.1

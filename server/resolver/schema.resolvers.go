@@ -35,7 +35,7 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 
 	queryResult := r.DB.Where("id = ?", userID).First(&user)
 	if queryResult.RowsAffected != 1 {
-		return nil, errors.New("Invalid user id")
+		return nil, errors.New("invalid user id")
 	}
 
 	t := model.Feed{
@@ -65,7 +65,7 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 			return nil, errors.New("Source not found")
 		}
 	} else {
-		return nil, errors.New("Invalid source id")
+		return nil, errors.New("invalid source id")
 	}
 
 	if input.SubSourceID != nil {
@@ -153,7 +153,6 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 	return &user, nil
 }
 
-// TODO: delete, testing only
 func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error) {
 	uuid := uuid.New().String()
 
@@ -191,8 +190,19 @@ func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewS
 }
 
 func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {
-	// TODO(chenweilunster): implement the sync up function.
-	return nil, nil
+	if err := r.DB.Transaction(syncUpTransaction(input)); err != nil {
+		return nil, err
+	}
+
+	ss, err := getSeedStateById(r.DB, input.UserSeedState.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Asynchronously push to user's all other channels.
+	go func() { r.SeedStateChans.PushSeedStateToUser(ss, input.UserSeedState.ID) }()
+
+	return ss, err
 }
 
 func (r *queryResolver) AllFeeds(ctx context.Context) ([]*model.Feed, error) {
@@ -254,13 +264,14 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInpu
 }
 
 func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {
-	// TODO(chenweilunster): Implement once Jamie's PR for type definition is merged.
-	ch := r.SeedStateChans.AddNewConnection(ctx, userID)
-	r.SeedStateChans.PushSeedStateToUser(&model.SeedState{
-		UserSeedState: &model.UserSeedState{
-			Name: "Dummy name",
-		},
-	}, userID)
+	ss, err := getSeedStateById(r.DB, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	ch, chId := r.SeedStateChans.AddNewConnection(ctx, userID)
+	r.SeedStateChans.PushSeedStateToSingleChannelForUser(ss, chId, userID)
+
 	return ch, nil
 }
 

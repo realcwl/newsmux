@@ -51,8 +51,8 @@ func (sc *SeedStateChannels) cleanUp(ctx context.Context, ch_id string, user_id 
 	}
 }
 
-// Thead-safe
-func (sc *SeedStateChannels) AddNewConnection(ctx context.Context, user_id string) chan *model.SeedState {
+// Thread-safe
+func (sc *SeedStateChannels) AddNewConnection(ctx context.Context, user_id string) (chan *model.SeedState, string) {
 	ch_id := "csc_" + uuid.New().String()
 	ch := make(chan *model.SeedState, 1)
 
@@ -68,10 +68,10 @@ func (sc *SeedStateChannels) AddNewConnection(ctx context.Context, user_id strin
 	// Spin up a background grabage collector.
 	go sc.cleanUp(ctx, ch_id, user_id)
 
-	return ch
+	return ch, ch_id
 }
 
-// Thead-safe
+// Thread-safe
 func (sc *SeedStateChannels) GetActiveConnectionsCount() int {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
@@ -83,17 +83,34 @@ func (sc *SeedStateChannels) GetActiveConnectionsCount() int {
 	return count
 }
 
-// Thead-safe
-func (sc *SeedStateChannels) PushSeedStateToUser(ss *model.SeedState, user_id string) error {
+// Thread-safe
+func (sc *SeedStateChannels) PushSeedStateToUser(ss *model.SeedState, userId string) error {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
 
-	if _, ok := sc.connectionMap[user_id]; !ok {
-		return errors.New("no active connection for user: " + user_id)
+	if _, ok := sc.connectionMap[userId]; !ok {
+		return errors.New("no active connection for user: " + userId)
 	}
-	userChannels := sc.connectionMap[user_id]
+	userChannels := sc.connectionMap[userId]
 	for _, ch := range userChannels {
 		ch <- ss
 	}
+	return nil
+}
+
+// Thread-safe
+func (sc *SeedStateChannels) PushSeedStateToSingleChannelForUser(ss *model.SeedState, chId string, userId string) error {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+
+	if _, ok := sc.connectionMap[userId]; !ok {
+		return errors.New("no active connection for user: " + userId)
+	}
+
+	userChannels := sc.connectionMap[userId]
+	if ch, ok := userChannels[chId]; ok {
+		ch <- ss
+	}
+
 	return nil
 }

@@ -1,4 +1,4 @@
-type SeedState {
+type SeedState @goModel(model: "model.SeedState") {
   userSeedState: UserSeedState!
   feedSeedState: [FeedSeedState!]!
 }

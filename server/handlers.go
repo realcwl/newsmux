@@ -16,7 +16,6 @@ import (
 // GraphqlHandler is the universal handler for all GraphQL queries issued from
 // client, by default it binds to a POST method.
 func GraphqlHandler() gin.HandlerFunc {
-
 	// TODO(jamie): check if env is dev or prod
 	db, err := utils.GetDBDev()
 	if err != nil {

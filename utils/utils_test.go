@@ -18,3 +18,11 @@ func TestMin(t *testing.T) {
 	assert.Equal(t, -1, Min(-1, 2))
 	assert.Equal(t, 0, Min(0, 0))
 }
+
+func TestRandomAlphabetString(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		first := RandomAlphabetString(8)
+		second := RandomAlphabetString(8)
+		assert.NotEqual(t, first, second)
+	}
+}
