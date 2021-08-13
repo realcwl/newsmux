@@ -25,11 +25,6 @@ func getRefreshPosts(r *queryResolver, query []*model.FeedRefreshInput) ([]*mode
 			continue
 		}
 
-		type FeedPostQueryResult struct {
-			model.Post
-			Cursor int
-		}
-
 		var feed model.Feed
 
 		feedID := refreshInput.FeedID
