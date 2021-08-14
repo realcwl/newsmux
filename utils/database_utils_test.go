@@ -7,13 +7,13 @@ import (
 )
 
 func TestCreateAndDrop(t *testing.T) {
-	db, dbName := CreateTempDB()
+	db, dbName := CreateTempDB(t)
 
 	exists, err := IsDatabaseExist(dbName)
 	assert.Nil(t, err)
 	assert.True(t, exists)
 
-	DropTempDB(db, dbName)
+	dropTempDB(db, dbName)
 
 	exists, err = IsDatabaseExist(dbName)
 	assert.Nil(t, err)

@@ -25,8 +25,7 @@ func prepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
 }
 
 func TestCreateUser(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	t.Run("Test User Creation", func(t *testing.T) {
 		createUserAndValidate(t, "test_user_name", db)
@@ -34,8 +33,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateFeed(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	t.Run("Test Feed Creation", func(t *testing.T) {
 		uid := createUserAndValidate(t, "test_user_name", db)
@@ -45,8 +43,7 @@ func TestCreateFeed(t *testing.T) {
 }
 
 func TestCreateSource(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	t.Run("Test Source Creation", func(t *testing.T) {
 		uid := createUserAndValidate(t, "test_user_name", db)
@@ -56,8 +53,7 @@ func TestCreateSource(t *testing.T) {
 }
 
 func TestCreateSubSource(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	t.Run("Test Source Creation", func(t *testing.T) {
 		uid := createUserAndValidate(t, "test_user_name", db)
@@ -68,8 +64,7 @@ func TestCreateSubSource(t *testing.T) {
 }
 
 func TestUserSubscribeFeed(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
 		uid := createUserAndValidate(t, "test_user_name", db)
@@ -79,8 +74,7 @@ func TestUserSubscribeFeed(t *testing.T) {
 }
 
 func TestQueryFeeds(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	userId := createUserAndValidate(t, "test_user_for_feeds_api", db)
 	feedIdOne := createFeedAndValidate(t, userId, "test_feed_for_feeds_api", db)

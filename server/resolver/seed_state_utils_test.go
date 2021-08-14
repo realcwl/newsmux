@@ -35,8 +35,8 @@ func TestConstructSeedStateFromUser(t *testing.T) {
 }
 
 func TestUpdateUserSeedState(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+
+	db, _ := utils.CreateTempDB(t)
 
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
@@ -70,8 +70,7 @@ func TestUpdateUserSeedState(t *testing.T) {
 }
 
 func TestUpdateUserSeedState_UserNotFound(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	err := db.Transaction(func(tx *gorm.DB) error {
 		if err := updateUserSeedState(tx, &model.SeedStateInput{
@@ -91,8 +90,7 @@ func TestUpdateUserSeedState_UserNotFound(t *testing.T) {
 }
 
 func TestUpdateFeedState(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	assert.Nil(t, db.Select("id", "name").Create(&[]model.Feed{
 		{
@@ -131,8 +129,7 @@ func TestUpdateFeedState(t *testing.T) {
 }
 
 func TestUpdateUserFeedSubscription_ChangeOrder(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
@@ -186,8 +183,7 @@ func TestUpdateUserFeedSubscription_ChangeOrder(t *testing.T) {
 }
 
 func TestGetSeedStateById(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	assert.Nil(t, db.Create(&model.User{
 		Id:              "id",
