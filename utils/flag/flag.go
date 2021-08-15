@@ -26,6 +26,7 @@ var (
 	ServiceName   string
 )
 
+// Example: go run cmd/publisher/main.go -service=feed_publisher -dev=true
 func init() {
 	// TODO: flag.Parse() in a package's init() won't work with golang's testing package, move to main
 	// Issue https://github.com/golang/go/issues/31859
