@@ -30,6 +30,7 @@ require (
 	gopkg.in/DataDog/dd-trace-go.v1 v1.31.1
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gorm.io/datatypes v1.0.1 // indirect
 	gorm.io/driver/postgres v1.1.0
 	gorm.io/gorm v1.21.12
 )
