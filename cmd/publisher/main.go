@@ -1,47 +1,32 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
-	. "github.com/Luismorlan/newsmux/publisher/protocol"
+	. "github.com/Luismorlan/newsmux/publisher"
 	. "github.com/Luismorlan/newsmux/utils"
-	"google.golang.org/protobuf/proto"
+	. "github.com/Luismorlan/newsmux/utils/log"
+)
+
+const (
+	// TODO: Move to .env
+	CRAWLER_PUBLISHER_QUEUE_NAME = "crawler-publisher-queue"
+	MESSAGE_PROCESS_CONCURRENCY  = 1
 )
 
 func main() {
-	reader, err := NewSQSMessageQueueReader("crawler-publisher-queue", 20)
+	reader, err := NewSQSMessageQueueReader(CRAWLER_PUBLISHER_QUEUE_NAME, 20)
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		Log.Fatal("fail initialize SQS message queue reader : ", err)
 	}
+
+	// Main publish logic lives in processor
+	processor := NewPiblisherMessageProcessor(reader)
 
 	for {
-		// Receive 1 message
-		msgs, _ := reader.ReceiveMessages(1)
-		if len(msgs) == 0 {
-			continue
-		}
-		msg := msgs[0]
+		processor.ReadAndProcessMessages(MESSAGE_PROCESS_CONCURRENCY)
 
-		// Parse data into meaningful structure
-		str, _ := msg.Read()
-		fmt.Println(str)
-
-		// Process data
-		decodedMsg := &CrawlerMessage{}
-		if err := proto.Unmarshal([]byte(str), decodedMsg); err != nil {
-			fmt.Println("wrong!")
-		}
-		fmt.Println(decodedMsg)
-
-		// Delete message if the process is successful
-		reader.DeleteMessage(msg)
-
-		protectivePause()
+		// Protective delay
+		time.Sleep(2 * time.Second)
 	}
-}
-
-func protectivePause() {
-	time.Sleep(2 * time.Second)
 }

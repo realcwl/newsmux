@@ -9,14 +9,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
+
+	. "github.com/Luismorlan/newsmux/utils/log"
 )
 
-type MessageQueueMessage interface {
-	Read() (string, error)
+type MessageQueueMessage struct {
+	Message       *string
+	MessageId     *string
+	ReceivedTimes int
+	SentTimeStamp int
+	ReceiptHandle string
 }
 
 type MessageQueueReader interface {
-	ReceiveMessages() (message []MessageQueueMessage, err error)
+	ReceiveMessages(int64) ([]*MessageQueueMessage, error)
 	DeleteMessage(*MessageQueueMessage) error
 }
 
@@ -25,14 +31,6 @@ type SQSMessageQueueReader struct {
 	queueName   string
 	url         string
 	client      *sqs.SQS
-}
-
-type SQSMessageQueueMessage struct {
-	Message       *string
-	MessageId     *string
-	ReceivedTimes int
-	SentTimeStamp int
-	ReceiptHandle string
 }
 
 func NewSQSMessageQueueReader(queueName string, readingTimeout int64) (*SQSMessageQueueReader, error) {
@@ -73,27 +71,31 @@ func NewSQSMessageQueueReader(queueName string, readingTimeout int64) (*SQSMessa
 	}, nil
 }
 
-func (reader *SQSMessageQueueReader) DeleteMessage(msg *SQSMessageQueueMessage) error {
-	resultDelete, err := reader.client.DeleteMessage(&sqs.DeleteMessageInput{
-		QueueUrl:      &reader.url,
-		ReceiptHandle: &msg.ReceiptHandle,
-	})
-
+func (reader *SQSMessageQueueReader) DeleteMessage(msg *MessageQueueMessage) error {
+	deleteHandler, err := msg.GetIDForDelete()
 	if err != nil {
-		fmt.Println("Delete Error", err)
 		return err
 	}
 
-	fmt.Println("Message Deleted", resultDelete)
+	_, err = reader.client.DeleteMessage(&sqs.DeleteMessageInput{
+		QueueUrl:      &reader.url,
+		ReceiptHandle: &deleteHandler,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	Log.Info("message Deleted")
 	return nil
 }
 
-func (reader *SQSMessageQueueReader) ReceiveMessages(maxNumberOfMessages int64) (message []*SQSMessageQueueMessage, err error) {
+func (reader *SQSMessageQueueReader) ReceiveMessages(maxNumberOfMessages int64) (msgs []*MessageQueueMessage, err error) {
 	if maxNumberOfMessages < 1 || maxNumberOfMessages > 10 {
 		return nil, errors.New("maxNumberOfMessages should be >= 1 and <= 10")
 	}
 
-	fmt.Println("Waiting for new message")
+	Log.Info("waiting for new message")
 	result, err := reader.client.ReceiveMessage(&sqs.ReceiveMessageInput{
 		QueueUrl: &reader.url,
 		AttributeNames: aws.StringSlice([]string{
@@ -111,13 +113,7 @@ func (reader *SQSMessageQueueReader) ReceiveMessages(maxNumberOfMessages int64) 
 		return nil, errors.New(fmt.Sprintf("Unable to read: %q, error: %v.", reader.queueName, err))
 	}
 
-	fmt.Printf("Received %d messages from queue %s .\n", len(result.Messages), reader.queueName)
-
-	if len(result.Messages) > 0 {
-		fmt.Println(result.Messages)
-	}
-
-	res := []*SQSMessageQueueMessage{}
+	res := []*MessageQueueMessage{}
 
 	for _, msg := range result.Messages {
 		var (
@@ -131,7 +127,7 @@ func (reader *SQSMessageQueueReader) ReceiveMessages(maxNumberOfMessages int64) 
 			sentTime, _ = strconv.Atoi(*val)
 		}
 
-		res = append(res, &SQSMessageQueueMessage{
+		res = append(res, &MessageQueueMessage{
 			Message:       msg.Body,
 			MessageId:     msg.MessageId,
 			ReceivedTimes: count,
@@ -143,7 +139,10 @@ func (reader *SQSMessageQueueReader) ReceiveMessages(maxNumberOfMessages int64) 
 	return res, nil
 }
 
-func (msg *SQSMessageQueueMessage) Read() (string, error) {
-	fmt.Println(msg)
+func (msg *MessageQueueMessage) Read() (string, error) {
 	return *msg.Message, nil
+}
+
+func (msg *MessageQueueMessage) GetIDForDelete() (string, error) {
+	return *&msg.ReceiptHandle, nil
 }
