@@ -23,8 +23,7 @@ func prepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
 }
 
 func TestCreateUser(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	client := prepareTestForGraphQLAPIs(db)
 
@@ -34,8 +33,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateFeed(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	client := prepareTestForGraphQLAPIs(db)
 
@@ -47,8 +45,7 @@ func TestCreateFeed(t *testing.T) {
 }
 
 func TestCreateSource(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	client := prepareTestForGraphQLAPIs(db)
 
@@ -60,8 +57,7 @@ func TestCreateSource(t *testing.T) {
 }
 
 func TestCreateSubSource(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	client := prepareTestForGraphQLAPIs(db)
 
@@ -74,8 +70,7 @@ func TestCreateSubSource(t *testing.T) {
 }
 
 func TestUserSubscribeFeed(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	client := prepareTestForGraphQLAPIs(db)
 
@@ -87,8 +82,7 @@ func TestUserSubscribeFeed(t *testing.T) {
 }
 
 func TestQueryFeeds(t *testing.T) {
-	db, name := utils.CreateTempDB()
-	defer utils.DropTempDB(db, name)
+	db, _ := utils.CreateTempDB(t)
 
 	client := prepareTestForGraphQLAPIs(db)
 

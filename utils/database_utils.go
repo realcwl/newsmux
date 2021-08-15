@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"testing"
 
 	"github.com/Luismorlan/newsmux/model"
 	"gorm.io/driver/postgres"
@@ -41,16 +42,19 @@ func getCustomizedConnection(dbName string) (*gorm.DB, error) {
 	return getDB(dsn)
 }
 
-// Create a temp DB for testing, not that this function should only be called
-// in a testing environment, and should almost always Destroy the temp DB
-// immediatly after usage (via DropTempDB). Abort program on any failure.
-// e.g. Unless you know what you're doing, in all cases you should write:
+// Create a temp DB for testing, note that this function should only be called
+// in a testing environment with test state manager testing.T
+// It is guaranteed that this table will be dropped after each test case, user
+// will not need to drop the database explicitly.
 //
-// 		db, name := utils.CreateTempDB()
-// 		defer utils.DropTempDB(name)
-//
-// to make sure the DB is cleaned up.
-func CreateTempDB() (*gorm.DB, string) {
+// Note: There are 2 cases where database won't be cleaned up:
+// 1. Test fail due to timeout
+// 2. Exit with signal Ctrl+C
+// In both cases you should log into the database and do a manual cleanup for
+// databases with prefix "testonlydb_".
+func CreateTempDB(t *testing.T) (*gorm.DB, string) {
+	t.Helper()
+
 	db, err := getDefaultDBConnection()
 
 	if err != nil {
@@ -69,13 +73,18 @@ func CreateTempDB() (*gorm.DB, string) {
 		log.Fatalln("fail to connect to newly created DB: ", dbName)
 	}
 	DatabaseSetupAndMigration(newDB)
+
+	t.Cleanup(func() {
+		dropTempDB(newDB, dbName)
+	})
+
 	return newDB, dbName
 }
 
-// DropTempDB drops a temp db with given name. This should always be called after
+// dropTempDB drops a temp db with given name. This will always be called after
 // CreateTempDB. Abort program on any failure. This function can be called
 // multiple times. It won't fail on deleting non-existing DB.
-func DropTempDB(curDB *gorm.DB, dbName string) {
+func dropTempDB(curDB *gorm.DB, dbName string) {
 	if !isTempDB(dbName) {
 		log.Fatalln("cannot delete a non-testing DB")
 	}
