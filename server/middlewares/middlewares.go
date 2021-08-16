@@ -92,5 +92,6 @@ func CorsWhitelist(srcs []string) gin.HandlerFunc {
 		AllowOriginFunc: func(origin string) bool {
 			return utils.ContainsString(srcs, origin)
 		},
+		AllowHeaders: []string{"Content-Type"},
 	})
 }
