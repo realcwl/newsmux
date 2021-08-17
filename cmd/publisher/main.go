@@ -10,21 +10,21 @@ import (
 
 const (
 	// TODO: Move to .env
-	CRAWLER_PUBLISHER_QUEUE_NAME = "crawler-publisher-queue"
-	MESSAGE_PROCESS_CONCURRENCY  = 1
+	crawlerPublisherQueueName = "crawler-publisher-queue"
+	messageProcessConcurrency = 1
 )
 
 func main() {
-	reader, err := NewSQSMessageQueueReader(CRAWLER_PUBLISHER_QUEUE_NAME, 20)
+	reader, err := NewSQSMessageQueueReader(crawlerPublisherQueueName, 20)
 	if err != nil {
 		Log.Fatal("fail initialize SQS message queue reader : ", err)
 	}
 
 	// Main publish logic lives in processor
-	processor := NewPiblisherMessageProcessor(reader)
+	processor := NewpublisherMessageProcessor(reader)
 
 	for {
-		processor.ReadAndProcessMessages(MESSAGE_PROCESS_CONCURRENCY)
+		processor.ReadAndProcessMessages(messageProcessConcurrency)
 
 		// Protective delay
 		time.Sleep(2 * time.Second)

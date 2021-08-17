@@ -65,7 +65,7 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 	})
 
 	// Inject test dependent reader
-	processor := NewPiblisherMessageProcessor(reader)
+	processor := NewpublisherMessageProcessor(reader)
 
 	msgs, _ := reader.ReceiveMessages(1)
 	assert.Equal(t, len(msgs), 1)

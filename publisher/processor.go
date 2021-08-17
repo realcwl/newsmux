@@ -9,13 +9,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type CrawlerPiblisherMessageProcessor struct {
+type CrawlerpublisherMessageProcessor struct {
 	Reader MessageQueueReader
 }
 
 // Create new processor with reader dependency injection
-func NewPiblisherMessageProcessor(reader MessageQueueReader) *CrawlerPiblisherMessageProcessor {
-	return &CrawlerPiblisherMessageProcessor{
+func NewpublisherMessageProcessor(reader MessageQueueReader) *CrawlerpublisherMessageProcessor {
+	return &CrawlerpublisherMessageProcessor{
 		Reader: reader,
 	}
 }
@@ -25,7 +25,7 @@ func NewPiblisherMessageProcessor(reader MessageQueueReader) *CrawlerPiblisherMe
 // Reader focus on how to get message from queue
 // Processor focus on how to process the message
 // This function doesn't return anything, only log errors
-func (processor *CrawlerPiblisherMessageProcessor) ReadAndProcessMessages(maxNumberOfMessages int64) {
+func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(maxNumberOfMessages int64) {
 	// Pull queued messages from queue
 	msgs, err := processor.Reader.ReceiveMessages(maxNumberOfMessages)
 
@@ -48,7 +48,7 @@ func (processor *CrawlerPiblisherMessageProcessor) ReadAndProcessMessages(maxNum
 // Step1. decode into protobuf generated struct
 // Step2. do publishing with new post
 // Step3. if publishing succeeds, delete message in queue
-func (processor *CrawlerPiblisherMessageProcessor) ProcessOneCralwerMessage(msg *MessageQueueMessage) error {
+func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg *MessageQueueMessage) error {
 
 	decodedMsg, err := processor.decodeCrawlerMessage(msg)
 	if err != nil {
@@ -63,7 +63,7 @@ func (processor *CrawlerPiblisherMessageProcessor) ProcessOneCralwerMessage(msg 
 
 // Parse message into meaningful structure CrawlerMessage
 // This function assumes message passed in can be parsed, otherwise it will throw error
-func (processor *CrawlerPiblisherMessageProcessor) decodeCrawlerMessage(msg *MessageQueueMessage) (*CrawlerMessage, error) {
+func (processor *CrawlerpublisherMessageProcessor) decodeCrawlerMessage(msg *MessageQueueMessage) (*CrawlerMessage, error) {
 	str, err := msg.Read()
 	if err != nil {
 		return nil, err
