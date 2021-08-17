@@ -46,18 +46,20 @@ func NewTestMessageQueueReader(crawlerMsgs []*protocol.CrawlerMessage) *TestMess
 func TestDecodeCrawlerMessage(t *testing.T) {
 
 	origin := protocol.CrawlerMessage{
-		SourceId:           "1",
-		SubSourceId:        "2",
-		Title:              "hello",
-		Content:            "hello world!",
-		ImageUrls:          []string{"1", "4"},
-		FilesUrls:          []string{"2", "3"},
-		CrawledAt:          &timestamp.Timestamp{},
-		OriginUrl:          "aaa",
-		CrawlerIp:          "123",
-		CrawlerVersion:     "vde",
-		IsTest:             false,
-		ContentGeneratedAt: &timestamp.Timestamp{},
+		Post: &protocol.CrawlerMessage_CrawledPost{
+			SourceId:           "1",
+			SubSourceId:        "2",
+			Title:              "hello",
+			Content:            "hello world!",
+			ImageUrls:          []string{"1", "4"},
+			FilesUrls:          []string{"2", "3"},
+			OriginUrl:          "aaa",
+			ContentGeneratedAt: &timestamp.Timestamp{},
+		},
+		CrawledAt:      &timestamp.Timestamp{},
+		CrawlerIp:      "123",
+		CrawlerVersion: "vde",
+		IsTest:         false,
 	}
 
 	reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
@@ -74,5 +76,9 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 	//given MessageQueueMessage, decode it into struct
 	decodedObj, _ := processor.decodeCrawlerMessage(msgs[0])
 
-	assert.True(t, cmp.Equal(*decodedObj, origin, cmpopts.IgnoreUnexported(protocol.CrawlerMessage{}, timestamp.Timestamp{})))
+	assert.True(t, cmp.Equal(*decodedObj, origin, cmpopts.IgnoreUnexported(
+		protocol.CrawlerMessage{},
+		protocol.CrawlerMessage_CrawledPost{},
+		timestamp.Timestamp{},
+	)))
 }
