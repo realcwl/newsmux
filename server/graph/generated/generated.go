@@ -53,15 +53,17 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Feed struct {
-		CreatedAt   func(childComplexity int) int
-		Creator     func(childComplexity int) int
-		DeletedAt   func(childComplexity int) int
-		Id          func(childComplexity int) int
-		Name        func(childComplexity int) int
-		Posts       func(childComplexity int) int
-		Sources     func(childComplexity int) int
-		Subscribers func(childComplexity int) int
-		UpdatedAt   func(childComplexity int) int
+		CreatedAt            func(childComplexity int) int
+		Creator              func(childComplexity int) int
+		DeletedAt            func(childComplexity int) int
+		FilterDataExpression func(childComplexity int) int
+		Id                   func(childComplexity int) int
+		Name                 func(childComplexity int) int
+		Posts                func(childComplexity int) int
+		Sources              func(childComplexity int) int
+		SubSources           func(childComplexity int) int
+		Subscribers          func(childComplexity int) int
+		UpdatedAt            func(childComplexity int) int
 	}
 
 	FeedSeedState struct {
@@ -161,6 +163,8 @@ type ComplexityRoot struct {
 
 type FeedResolver interface {
 	DeletedAt(ctx context.Context, obj *model.Feed) (*time.Time, error)
+
+	FilterDataExpression(ctx context.Context, obj *model.Feed) (string, error)
 }
 type MutationResolver interface {
 	CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error)
@@ -236,6 +240,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Feed.DeletedAt(childComplexity), true
 
+	case "Feed.filterDataExpression":
+		if e.complexity.Feed.FilterDataExpression == nil {
+			break
+		}
+
+		return e.complexity.Feed.FilterDataExpression(childComplexity), true
+
 	case "Feed.id":
 		if e.complexity.Feed.Id == nil {
 			break
@@ -263,6 +274,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Feed.Sources(childComplexity), true
+
+	case "Feed.subSources":
+		if e.complexity.Feed.SubSources == nil {
+			break
+		}
+
+		return e.complexity.Feed.SubSources(childComplexity), true
 
 	case "Feed.subscribers":
 		if e.complexity.Feed.Subscribers == nil {
@@ -854,6 +872,8 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
   subscribers: [User!]!
   posts: [Post!]!
   sources: [Source!]!
+  subSources: [SubSource!]!
+  filterDataExpression: String!
 }
 
 type FeedSeedState implements FeedSeedStateInterface {
@@ -1551,6 +1571,76 @@ func (ec *executionContext) _Feed_sources(ctx context.Context, field graphql.Col
 	res := resTmp.([]*model.Source)
 	fc.Result = res
 	return ec.marshalNSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Feed_subSources(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Feed",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SubSources, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.SubSource)
+	fc.Result = res
+	return ec.marshalNSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Feed_filterDataExpression(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Feed",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Feed().FilterDataExpression(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _FeedSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
@@ -5365,6 +5455,25 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "subSources":
+			out.Values[i] = ec._Feed_subSources(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "filterDataExpression":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Feed_filterDataExpression(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6647,6 +6756,43 @@ func (ec *executionContext) marshalNSubSource2ᚕgithubᚗcomᚋLuismorlanᚋnew
 				defer wg.Done()
 			}
 			ret[i] = ec.marshalNSubSource2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SubSource) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

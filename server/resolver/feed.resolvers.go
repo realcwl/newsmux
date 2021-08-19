@@ -15,6 +15,10 @@ func (r *feedResolver) DeletedAt(ctx context.Context, obj *model.Feed) (*time.Ti
 	return &obj.DeletedAt.Time, nil
 }
 
+func (r *feedResolver) FilterDataExpression(ctx context.Context, obj *model.Feed) (string, error) {
+	return string(obj.FilterDataExpression), nil
+}
+
 // Feed returns generated.FeedResolver implementation.
 func (r *Resolver) Feed() generated.FeedResolver { return &feedResolver{r} }
 
