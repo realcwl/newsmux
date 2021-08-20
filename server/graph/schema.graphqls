@@ -23,6 +23,8 @@ input NewFeedInput {
   userId: String!
   name: String!
   filterDataExpression: String!
+  sourceIds: [String!]!
+  subSourceIds: [String!]!
 }
 
 # TODO: for testing purpose, real post is created by crawler and publisher

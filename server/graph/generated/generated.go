@@ -948,6 +948,8 @@ input NewFeedInput {
   userId: String!
   name: String!
   filterDataExpression: String!
+  sourceIds: [String!]!
+  subSourceIds: [String!]!
 }
 
 # TODO: for testing purpose, real post is created by crawler and publisher
@@ -5081,6 +5083,22 @@ func (ec *executionContext) unmarshalInputNewFeedInput(ctx context.Context, obj 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filterDataExpression"))
 			it.FilterDataExpression, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "sourceIds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sourceIds"))
+			it.SourceIds, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "subSourceIds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subSourceIds"))
+			it.SubSourceIds, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
