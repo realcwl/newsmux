@@ -139,7 +139,17 @@ func DatabaseSetupAndMigration(db *gorm.DB) {
 		panic("failed to connect database")
 	}
 
+	err = db.SetupJoinTable(&model.User{}, "SavedPosts", &model.UserPostSave{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
 	err = db.SetupJoinTable(&model.Feed{}, "Subscribers", &model.UserFeedSubscription{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	err = db.SetupJoinTable(&model.Feed{}, "Posts", &model.PostFeedPublish{})
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -149,17 +159,7 @@ func DatabaseSetupAndMigration(db *gorm.DB) {
 		panic("failed to connect database")
 	}
 
-	err = db.SetupJoinTable(&model.User{}, "SavedPosts", &model.UserPostSave{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-
 	err = db.SetupJoinTable(&model.Post{}, "PublishedFeeds", &model.PostFeedPublish{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-
-	err = db.SetupJoinTable(&model.Feed{}, "Posts", &model.PostFeedPublish{})
 	if err != nil {
 		panic("failed to connect database")
 	}
