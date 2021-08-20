@@ -15,13 +15,20 @@ const (
 )
 
 func main() {
+	// TODO(jamie): check if env is dev or prod
+	db, err := GetDBDev()
+	if err != nil {
+		// TODO(Jamie): check env and move to datadog if it is prod
+		panic("failed to connect database")
+	}
+
 	reader, err := NewSQSMessageQueueReader(crawlerPublisherQueueName, 20)
 	if err != nil {
 		Log.Fatal("fail initialize SQS message queue reader : ", err)
 	}
 
 	// Main publish logic lives in processor
-	processor := NewpublisherMessageProcessor(reader)
+	processor := NewPublisherMessageProcessor(reader, db)
 
 	for {
 		processor.ReadAndProcessMessages(messageProcessConcurrency)
