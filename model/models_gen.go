@@ -43,9 +43,9 @@ type FeedsForUserInput struct {
 }
 
 type NewFeedInput struct {
-	UserID        string  `json:"userId"`
-	Name          string  `json:"name"`
-	FilterSetting *string `json:"filterSetting"`
+	UserID               string `json:"userId"`
+	Name                 string `json:"name"`
+	FilterDataExpression string `json:"filterDataExpression"`
 }
 
 type NewPostInput struct {

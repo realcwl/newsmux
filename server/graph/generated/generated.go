@@ -947,7 +947,7 @@ input NewUserInput {
 input NewFeedInput {
   userId: String!
   name: String!
-  filterSetting: String
+  filterDataExpression: String!
 }
 
 # TODO: for testing purpose, real post is created by crawler and publisher
@@ -5076,11 +5076,11 @@ func (ec *executionContext) unmarshalInputNewFeedInput(ctx context.Context, obj 
 			if err != nil {
 				return it, err
 			}
-		case "filterSetting":
+		case "filterDataExpression":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filterSetting"))
-			it.FilterSetting, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filterDataExpression"))
+			it.FilterDataExpression, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}

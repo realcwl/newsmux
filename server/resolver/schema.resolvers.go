@@ -11,6 +11,7 @@ import (
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/google/uuid"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -39,12 +40,13 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 	}
 
 	t := model.Feed{
-		Id:          uuid,
-		Name:        input.Name,
-		CreatedAt:   time.Now(),
-		Creator:     user,
-		Subscribers: []*model.User{},
-		Posts:       []*model.Post{},
+		Id:                   uuid,
+		Name:                 input.Name,
+		CreatedAt:            time.Now(),
+		Creator:              user,
+		FilterDataExpression: datatypes.JSON(input.FilterDataExpression),
+		Subscribers:          []*model.User{},
+		Posts:                []*model.Post{},
 	}
 	r.DB.Create(&t)
 	return &t, nil
