@@ -29,6 +29,24 @@ func TestCreateUser(t *testing.T) {
 	t.Run("Test User Creation", func(t *testing.T) {
 		utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
 	})
+
+	// Test no double creation for the same id
+	var resp struct {
+		CreateUser struct {
+			Id   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"createUser"`
+	}
+	client.MustPost(fmt.Sprintf(`mutation {
+		createUser(input:{name:"%s" id: "%s"}) {
+			id
+			name
+		}
+	}`, "test_user_name_new", "test_user_id"), &resp)
+
+	require.NotEmpty(t, resp.CreateUser.Id)
+	require.Equal(t, resp.CreateUser.Id, "test_user_id")
+	require.Equal(t, resp.CreateUser.Name, "test_user_name")
 }
 
 func TestCreateFeed(t *testing.T) {
