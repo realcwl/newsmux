@@ -52,6 +52,12 @@ func TestCreateSource(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", db, client)
 		sourceId := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 		require.NotEmpty(t, sourceId)
+
+		var source model.Source
+		queryResult := db.Where("id = ?", sourceId).Preload("SubSources").First(&source)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
+		require.Equal(t, 1, len(source.SubSources))
+		require.Equal(t, DefaultSubSourceName, source.SubSources[0].Name)
 	})
 }
 

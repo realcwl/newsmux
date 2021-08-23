@@ -160,20 +160,30 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 }
 
 func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error) {
-	uuid := uuid.New().String()
-
 	var user model.User
 	r.DB.Where("id = ?", input.UserID).First(&user)
 
-	t := model.Source{
-		Id:        uuid,
+	source := model.Source{
+		Id:        uuid.New().String(),
 		Name:      input.Name,
 		Domain:    input.Domain,
 		CreatedAt: time.Now(),
 		Creator:   user,
 	}
-	r.DB.Create(&t)
-	return &t, nil
+
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		r.DB.Create(&source)
+		// Create default sub source, this subsource have no creator, no external id
+		r.CreateSubSource(ctx, model.NewSubSourceInput{
+			UserID:             user.Id,
+			Name:               DefaultSubSourceName,
+			ExternalIdentifier: "",
+			SourceID:           source.Id,
+		})
+		return nil
+	})
+
+	return &source, err
 }
 
 func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewSubSourceInput) (*model.SubSource, error) {
