@@ -158,18 +158,22 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	}
 
 	// Check each feed's source/subsource and data expression
+	feedsToPublish := []*model.Feed{}
+	for _, feed := range feedCandidates {
+		// Once a message is matched to a feed, write the PostFeedPublish relation to DB
+		matched, err := DataExpressionJsonMatch(feed.FilterDataExpression.String(), post.Content)
+		if err != nil {
+			return err
+		}
+		if matched {
+			feedsToPublish = append(feedsToPublish, feed)
+		}
+	}
+
+	// Write to DB
 	err = processor.DB.Transaction(func(tx *gorm.DB) error {
 		processor.DB.Create(&post)
-		for _, feed := range feedCandidates {
-			// Once a message is matched to a feed, write the PostFeedPublish relation to DB
-			matched, err := DataExpressionJsonMatch(feed.FilterDataExpression.String(), post.Content)
-			if err != nil {
-				return err
-			}
-			if matched {
-				processor.DB.Model(&post).Association("PublishedFeeds").Append(feed)
-			}
-		}
+		processor.DB.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
 		return nil
 	})
 	if err != nil {
