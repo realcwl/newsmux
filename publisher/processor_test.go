@@ -2,7 +2,8 @@ package publisher
 
 import (
 	b64 "encoding/base64"
-	"fmt"
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/99designs/gqlgen/client"
@@ -16,6 +17,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -104,7 +106,12 @@ func PrepareTestDBClient(db *gorm.DB) *client.Client {
 func TestProcessCrawlerMessage(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 	client := PrepareTestDBClient(db)
-	dataExpression := `{\"a\":1}`
+
+	jsonStr := jsonStringForTest
+	var root model.DataExpressionRoot
+	json.Unmarshal([]byte(jsonStr), &root)
+	bytes, _ := json.Marshal(root)
+	dataExpression := strings.ReplaceAll(string(bytes), `"`, `\"`)
 
 	uid := utils.TestCreateUserAndValidate(t, "test_user_name", db, client)
 	sourceId1 := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
@@ -118,74 +125,111 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, uid, feedId2, db, client)
 
+	msgToTwoFeeds := protocol.CrawlerMessage{
+		Post: &protocol.CrawlerMessage_CrawledPost{
+			SourceId:           sourceId1,
+			SubSourceId:        subSourceId1,
+			Title:              "msgToTwoFeeds",
+			Content:            "老王做空以太坊",
+			ImageUrls:          []string{"1", "4"},
+			FilesUrls:          []string{"2", "3"},
+			OriginUrl:          "aaa",
+			ContentGeneratedAt: &timestamp.Timestamp{},
+		},
+		CrawledAt:      &timestamp.Timestamp{},
+		CrawlerIp:      "123",
+		CrawlerVersion: "vde",
+		IsTest:         false,
+	}
+
+	msgToOneFeed := protocol.CrawlerMessage{
+		Post: &protocol.CrawlerMessage_CrawledPost{
+			SourceId:           sourceId3,
+			SubSourceId:        "",
+			Title:              "msgToOneFeed",
+			Content:            "老王做空以太坊",
+			ImageUrls:          []string{"1", "4"},
+			FilesUrls:          []string{"2", "3"},
+			OriginUrl:          "aaa",
+			ContentGeneratedAt: &timestamp.Timestamp{},
+		},
+		CrawledAt:      &timestamp.Timestamp{},
+		CrawlerIp:      "123",
+		CrawlerVersion: "vde",
+		IsTest:         false,
+	}
+
+	var msgDataExpressionUnMatched protocol.CrawlerMessage
+	copier.Copy(&msgDataExpressionUnMatched, &msgToOneFeed)
+	msgDataExpressionUnMatched.Post.Title = "msgDataExpressionUnMatched"
+	msgDataExpressionUnMatched.Post.Content = "马斯克做空以太坊"
+
 	t.Run("Test Publish Post to Feed based on subsource", func(t *testing.T) {
-		// msg1 is from subsource 1 which in 2 feeds
-		msg1 := protocol.CrawlerMessage{
-			Post: &protocol.CrawlerMessage_CrawledPost{
-				SourceId:           sourceId1,
-				SubSourceId:        subSourceId1,
-				Title:              "hello",
-				Content:            "hello world!",
-				ImageUrls:          []string{"1", "4"},
-				FilesUrls:          []string{"2", "3"},
-				OriginUrl:          "aaa",
-				ContentGeneratedAt: &timestamp.Timestamp{},
-			},
-			CrawledAt:      &timestamp.Timestamp{},
-			CrawlerIp:      "123",
-			CrawlerVersion: "vde",
-			IsTest:         false,
-		}
+		// msgToTwoFeeds is from subsource 1 which in 2 feeds
 		reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
-			&msg1,
+			&msgToTwoFeeds,
 		})
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
 		processor := NewPublisherMessageProcessor(reader, db)
-		processor.ProcessOneCralwerMessage(msgs[0])
+		err := processor.ProcessOneCralwerMessage(msgs[0])
+		require.Nil(t, err)
 
 		// Checking process result
 		var post model.Post
-		processor.DB.Preload("PublishedFeeds").First(&post, "title = ?", msg1.Post.Title)
-		fmt.Println(post.Content)
+		processor.DB.Preload("PublishedFeeds").First(&post, "title = ?", msgToTwoFeeds.Post.Title)
 		require.Equal(t, 2, len(post.PublishedFeeds))
 		require.Equal(t, feedId, post.PublishedFeeds[0].Id)
 		require.Equal(t, feedId2, post.PublishedFeeds[1].Id)
 	})
 
 	t.Run("Test Publish Post to Feed based on source", func(t *testing.T) {
-		// msg2 is from source 1 which in 1 feed
-		msg2 := protocol.CrawlerMessage{
-			Post: &protocol.CrawlerMessage_CrawledPost{
-				SourceId:           sourceId3,
-				SubSourceId:        "",
-				Title:              "hello2",
-				Content:            "hello world!",
-				ImageUrls:          []string{"1", "4"},
-				FilesUrls:          []string{"2", "3"},
-				OriginUrl:          "aaa",
-				ContentGeneratedAt: &timestamp.Timestamp{},
-			},
-			CrawledAt:      &timestamp.Timestamp{},
-			CrawlerIp:      "123",
-			CrawlerVersion: "vde",
-			IsTest:         false,
-		}
+		// msgToOneFeed is from source 1 which in 1 feed
 		reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
-			&msg2,
+			&msgToOneFeed,
 		})
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
 		processor := NewPublisherMessageProcessor(reader, db)
-		processor.ProcessOneCralwerMessage(msgs[0])
+		err := processor.ProcessOneCralwerMessage(msgs[0])
+		require.Nil(t, err)
 
 		// Checking process result
 		var post model.Post
-		processor.DB.Preload("PublishedFeeds").First(&post, "title = ?", msg2.Post.Title)
-		fmt.Println(post.Content)
+		processor.DB.Preload("PublishedFeeds").First(&post, "title = ?", msgToOneFeed.Post.Title)
 		require.Equal(t, 1, len(post.PublishedFeeds))
 		require.Equal(t, post.PublishedFeeds[0].Id, feedId2)
+	})
+
+	t.Run("Test Post deduplication", func(t *testing.T) {
+		// msgToOneFeed is from source 1 which in 1 feed
+		reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
+			&msgToOneFeed,
+		})
+		msgs, _ := reader.ReceiveMessages(1)
+
+		// Processing Again, should have error indicating publish failure
+		processor := NewPublisherMessageProcessor(reader, db)
+		err := processor.ProcessOneCralwerMessage(msgs[0])
+		require.NotNil(t, err)
+	})
+
+	t.Run("Test Publish Post to Feed based on source Data Expression not matched", func(t *testing.T) {
+		reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
+			&msgDataExpressionUnMatched,
+		})
+		msgs, _ := reader.ReceiveMessages(1)
+
+		// Processing
+		processor := NewPublisherMessageProcessor(reader, db)
+		err := processor.ProcessOneCralwerMessage(msgs[0])
+		require.Nil(t, err)
+
+		// Checking process result
+		var post model.Post
+		processor.DB.Preload("PublishedFeeds").First(&post, "title = ?", msgDataExpressionUnMatched.Post.Title)
+		require.Equal(t, 0, len(post.PublishedFeeds))
 	})
 }

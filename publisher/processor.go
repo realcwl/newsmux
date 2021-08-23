@@ -2,6 +2,7 @@ package publisher
 
 import (
 	b64 "encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type CrawlerpublisherMessageProcessor struct {
@@ -52,97 +52,131 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(maxNum
 	}
 }
 
-// Process one cralwer-publisher message
-// Step1. decode into protobuf generated struct
-// Step2. do publishing with new post
-// Step3. if publishing succeeds, delete message in queue
-func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg *MessageQueueMessage) error {
-
-	decodedMsg, err := processor.decodeCrawlerMessage(msg)
-	if err != nil {
-		return err
-	}
-
-	// TODO: Do actual publishing for decodedMsg
-	Log.Info(decodedMsg)
-
-	feedCandidates := make(map[string]*model.Feed)
-
-	// 1. Load all feeds into memory
-	var feeds []*model.Feed
-	processor.DB.Preload(clause.Associations).Find(&feeds)
-
-	// 2. Once get a message, check if there is exact same Post (same source, same content), if not store into DB as Post
+func (processor *CrawlerpublisherMessageProcessor) findDuplicatedPost(decodedMsg *CrawlerMessage) (bool, *model.Post) {
 	var post model.Post
-
-	queryResult := processor.DB.Where(
-		"source_id = ? AND (IF(sub_source_id IS NULL, TRUE, sub_source_id = ?)) AND title = ? AND content = ? ",
+	queryResult := processor.DB.Debug().Where(
+		"source_id = ? AND (COALESCE(sub_source_id, '') = COALESCE(?, '')) AND title = ? AND content = ? ",
 		decodedMsg.Post.SourceId,
 		decodedMsg.Post.SubSourceId,
 		decodedMsg.Post.Title,
 		decodedMsg.Post.Content,
 	).First(&post)
 
-	if queryResult.RowsAffected != 0 {
-		fmt.Println("message has already been processed: ", post.Content)
-		Log.Error("message has already been processed")
-	}
+	return queryResult.RowsAffected != 0, &post
+}
 
-	uuid := uuid.New().String()
-	var (
-		source    model.Source
-		subSource *model.SubSource
-	)
+func (processor *CrawlerpublisherMessageProcessor) prepareFeedCandidates(
+	source *model.Source,
+	subSource *model.SubSource,
+) map[string]*model.Feed {
 
-	if len(decodedMsg.Post.SourceId) > 0 {
-		result := processor.DB.Preload("Feeds").Where("id = ?", decodedMsg.Post.SourceId).First(&source)
-		if result.RowsAffected != 1 {
+	feedCandidates := make(map[string]*model.Feed)
 
-		}
+	if source != nil {
 		for _, feed := range source.Feeds {
 			feedCandidates[feed.Id] = feed
 		}
-	} else {
-
 	}
 
-	if len(decodedMsg.Post.SubSourceId) > 0 {
-		var res model.SubSource
-		result := processor.DB.Preload("Feeds").Where("id = ?", decodedMsg.Post.SubSourceId).First(&res)
-		if result.RowsAffected != 1 {
-
-		}
-		subSource = &res
+	if subSource != nil {
 		for _, feed := range subSource.Feeds {
 			feedCandidates[feed.Id] = feed
 		}
 	}
+	return feedCandidates
+}
 
-	post = model.Post{
-		Id:             uuid,
+func (processor *CrawlerpublisherMessageProcessor) prepareSource(id string) (*model.Source, error) {
+	var res model.Source
+	if len(id) > 0 {
+		result := processor.DB.Preload("Feeds").Where("id = ?", id).First(&res)
+		if result.RowsAffected != 1 {
+			return nil, errors.New(fmt.Sprintf("source not found: %s", id))
+		}
+		return &res, nil
+	} else {
+		return nil, errors.New("source id can not be empty")
+	}
+}
+
+func (processor *CrawlerpublisherMessageProcessor) prepareSubSource(id string) (*model.SubSource, error) {
+	var res model.SubSource
+	if len(id) > 0 {
+		result := processor.DB.Preload("Feeds").Where("id = ?", id).First(&res)
+		if result.RowsAffected != 1 {
+			return nil, errors.New(fmt.Sprintf("sub source not found: %s", id))
+		}
+		return &res, nil
+	}
+	return nil, nil
+}
+
+// Process one cralwer-publisher message in following major steps:
+// Step1. decode into protobuf generated struct
+// Step2. deduplication
+// Step3. do publishing with new post
+// Step4. if publishing succeeds, delete message in queue
+func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg *MessageQueueMessage) error {
+	Log.Info("process queued message")
+
+	decodedMsg, err := processor.decodeCrawlerMessage(msg)
+	if err != nil {
+		return err
+	}
+
+	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
+	if duplicated, existingPost := processor.findDuplicatedPost(decodedMsg); duplicated == true {
+		return errors.New(fmt.Sprintf("message has already been processed, existing post_id: %s", existingPost.Id))
+	}
+
+	// Prepare Post relations to Sources and Subsources
+	source, err := processor.prepareSource(decodedMsg.Post.SourceId)
+	if err != nil {
+		return err
+	}
+
+	// subsource can be nil
+	subSource, err := processor.prepareSubSource(decodedMsg.Post.SubSourceId)
+	if err != nil {
+		return err
+	}
+
+	// Load feeds into memory based on source and subsource of the post
+	feedCandidates := processor.prepareFeedCandidates(source, subSource)
+
+	// Create new post based on message
+	post := model.Post{
+		Id:             uuid.New().String(),
 		Title:          decodedMsg.Post.Title,
 		Content:        decodedMsg.Post.Content,
 		CreatedAt:      time.Now(),
-		Source:         source,
+		Source:         *source,
 		SourceID:       decodedMsg.Post.SourceId,
 		SubSource:      subSource,
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 	}
 
-	// 3. Check each feed's source/subsource and data expression
-	processor.DB.Transaction(func(tx *gorm.DB) error {
+	// Check each feed's source/subsource and data expression
+	err = processor.DB.Transaction(func(tx *gorm.DB) error {
 		processor.DB.Create(&post)
-		for id, feed := range feedCandidates {
-			fmt.Println("Checking feed candidates Key: ", id, " Value: ", feed.Name)
+		for _, feed := range feedCandidates {
 			// Once a message is matched to a feed, write the PostFeedPublish relation to DB
-			// TODO: ADD matching basedon data expression
-			processor.DB.Model(&post).Association("PublishedFeeds").Append(feed)
+			matched, err := DataExpressionJsonMatch(feed.FilterDataExpression.String(), post.Content)
+			if err != nil {
+				return err
+			}
+			if matched {
+				processor.DB.Model(&post).Association("PublishedFeeds").Append(feed)
+			}
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 
-	// 5. Delete message from queue
+	// Delete message from queue
 	return processor.Reader.DeleteMessage(msg)
 }
 
