@@ -38,7 +38,7 @@ func TestCreateFeed(t *testing.T) {
 
 	t.Run("Test Feed Creation", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", db, client)
-		feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, []string{}, db, client)
+		feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		require.NotEmpty(t, feedId)
 	})
 }
@@ -75,7 +75,7 @@ func TestUserSubscribeFeed(t *testing.T) {
 
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", db, client)
-		feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, []string{}, db, client)
+		feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	})
 }
@@ -86,30 +86,31 @@ func TestQueryFeeds(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", db, client)
-	feedIdOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, []string{}, db, client)
-	feedIdTwo := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, []string{}, db, client)
+	feedIdOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
+	feedIdTwo := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
+	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "123123213123", sourceId, db, client)
 	utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, userId, feedIdOne, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, userId, feedIdTwo, db, client)
 
 	// 0 is oldest post, 6 is newest post
-	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", sourceId, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", sourceId, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_2", "test_content_2", sourceId, feedIdOne, db, client)
-	_, midCursorFirst := utils.TestCreatePostAndValidate(t, "test_title_3", "test_content_3", sourceId, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_4", "test_content_4", sourceId, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", sourceId, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_6", "test_content_6", sourceId, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceId, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceId, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_2", "test_content_2", subSourceId, feedIdOne, db, client)
+	_, midCursorFirst := utils.TestCreatePostAndValidate(t, "test_title_3", "test_content_3", subSourceId, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_4", "test_content_4", subSourceId, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", subSourceId, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_6", "test_content_6", subSourceId, feedIdOne, db, client)
 
 	// 0 is oldest post, 6 is newest post
-	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", sourceId, feedIdTwo, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", sourceId, feedIdTwo, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_2", "test_content_2", sourceId, feedIdTwo, db, client)
-	_, midCursorSecond := utils.TestCreatePostAndValidate(t, "test_title_3", "test_content_3", sourceId, feedIdTwo, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_4", "test_content_4", sourceId, feedIdTwo, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", sourceId, feedIdTwo, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_6", "test_content_6", sourceId, feedIdTwo, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceId, feedIdTwo, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceId, feedIdTwo, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_2", "test_content_2", subSourceId, feedIdTwo, db, client)
+	_, midCursorSecond := utils.TestCreatePostAndValidate(t, "test_title_3", "test_content_3", subSourceId, feedIdTwo, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_4", "test_content_4", subSourceId, feedIdTwo, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", subSourceId, feedIdTwo, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_6", "test_content_6", subSourceId, feedIdTwo, db, client)
 
 	checkFeedTopPosts(t, userId, feedIdOne, midCursorFirst, db, client)
 	checkFeedBottomPosts(t, userId, feedIdOne, midCursorFirst, db, client)

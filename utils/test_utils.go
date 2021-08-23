@@ -62,7 +62,7 @@ func TestCreateUserAndValidate(t *testing.T, name string, db *gorm.DB, client *c
 // create feed with name, do sanity checks and returns its Id
 // filterDataExpression in graphql input should have escapes \
 //
-func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, sourceIds []string, subSourceIds []string, db *gorm.DB, client *client.Client) (id string) {
+func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, subSourceIds []string, db *gorm.DB, client *client.Client) (id string) {
 	var resp struct {
 		CreateFeed struct {
 			Id                   string `json:"id"`
@@ -70,34 +70,27 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 			CreatedAt            string `json:"createdAt"`
 			DeletedAt            string `json:"deletedAt"`
 			FilterDataExpression string `json:"filterDataExpression"`
-			Sources              []struct {
-				Id string `json:"id"`
-			} `json:"sources"`
-			SubSources []struct {
+			SubSources           []struct {
 				Id string `json:"id"`
 			} `json:"subSources"`
 		} `json:"createFeed"`
 	}
 
-	sourceIdsStr, _ := json.MarshalIndent(sourceIds, "", "  ")
 	subSourceIdsStr, _ := json.MarshalIndent(subSourceIds, "", "  ")
 
 	query := fmt.Sprintf(`mutation {
-		createFeed(input:{userId:"%s" name:"%s" filterDataExpression:"%s" sourceIds:%s subSourceIds:%s}) {
+		createFeed(input:{userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s}) {
 		  id
 		  name
 		  createdAt
 		  deletedAt
 		  filterDataExpression
-		  sources {
-			id
-		  }
 		  subSources {
 			id
 		  }
 		}
 	  }
-	  `, userId, name, filterDataExpression, sourceIdsStr, subSourceIdsStr)
+	  `, userId, name, filterDataExpression, subSourceIdsStr)
 
 	fmt.Println(query)
 
@@ -107,16 +100,12 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.CreateFeed.CreatedAt)
 	require.NotEmpty(t, resp.CreateFeed.Id)
 	require.Equal(t, name, resp.CreateFeed.Name)
-	require.Equal(t, len(sourceIds), len(resp.CreateFeed.Sources))
 	require.Equal(t, len(subSourceIds), len(resp.CreateFeed.SubSources))
 	// original expression after escape == received and parsed expression
 	require.Equal(t, strings.ReplaceAll(filterDataExpression, `\`, ""), resp.CreateFeed.FilterDataExpression)
 	require.Truef(t, time.Now().UnixNano() > createTime.UnixNano(), "time created wrong")
 	require.Equal(t, "", resp.CreateFeed.DeletedAt)
 
-	if len(sourceIds) > 0 {
-		require.Equal(t, sourceIds[0], resp.CreateFeed.Sources[0].Id)
-	}
 	if len(subSourceIds) > 0 {
 		require.Equal(t, subSourceIds[0], resp.CreateFeed.SubSources[0].Id)
 	}
@@ -192,7 +181,7 @@ func TestCreateSubSourceAndValidate(t *testing.T, userId string, name string, ex
 }
 
 // create subsource with title,content, do sanity checks and returns its Id
-func TestCreatePostAndValidate(t *testing.T, title string, content string, sourceId string, publishFeedId string, db *gorm.DB, client *client.Client) (id string, cursor int) {
+func TestCreatePostAndValidate(t *testing.T, title string, content string, subSourceId string, publishFeedId string, db *gorm.DB, client *client.Client) (id string, cursor int) {
 	var resp struct {
 		CreatePost struct {
 			Id        string `json:"id"`
@@ -209,7 +198,7 @@ func TestCreatePostAndValidate(t *testing.T, title string, content string, sourc
 			input: {
 				title: "%s"
 				content: "%s"
-				sourceId: "%s"
+				subSourceId: "%s"
 				feedsIdPublishTo: ["%s"]
 			}
 		) {
@@ -221,7 +210,7 @@ func TestCreatePostAndValidate(t *testing.T, title string, content string, sourc
 		  deletedAt
 		}
 	  }
-	  `, title, content, sourceId, publishFeedId), &resp)
+	  `, title, content, subSourceId, publishFeedId), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 

@@ -4,8 +4,7 @@ type Post @goModel(model: "model.Post") {
   deletedAt: Time
   title: String!
   content: String!
-  source: Source!
-  subSource: SubSource
+  subSource: SubSource!
   sharedFromPost: Post
   savedByUser: [User!]!
   publishedFeeds: [Feed!]!

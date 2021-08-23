@@ -46,15 +46,13 @@ type NewFeedInput struct {
 	UserID               string   `json:"userId"`
 	Name                 string   `json:"name"`
 	FilterDataExpression string   `json:"filterDataExpression"`
-	SourceIds            []string `json:"sourceIds"`
 	SubSourceIds         []string `json:"subSourceIds"`
 }
 
 type NewPostInput struct {
 	Title            string   `json:"title"`
 	Content          string   `json:"content"`
-	SourceID         string   `json:"sourceId"`
-	SubSourceID      *string  `json:"subSourceId"`
+	SubSourceID      string   `json:"subSourceId"`
 	FeedsIDPublishTo []string `json:"feedsIdPublishTo"`
 	SharedFromPostID *string  `json:"sharedFromPostId"`
 }

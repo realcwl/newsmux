@@ -22,7 +22,11 @@ Creator: user who added this source, "belongs-to" relation
 Name: feed's display name (title)
 Subscribers: all users who subscribed to this feed, "many-to-many" relation
 Posts: all posts published to this feed, "many-to-many" relation
-Sources: All sources this feed is listening to, "many-to-many" relationship.
+
+-- Sources: All sources this feed is listening to, "many-to-many" relationship.
+-- We don't keep sources, since we assume there is always a sub-source "default" for each source
+-- For those sources without subsource like wall-street-news, we use the "default" subsource only
+
 SubSources: All subsources this feed is listening to, "many-to-many" relationship.
 	Do not only rely on subsource to infer source, so that we can have Feed only subscribe to source
 */
@@ -36,7 +40,6 @@ type Feed struct {
 	Name                 string
 	Subscribers          []*User      `json:"subscribers" gorm:"many2many;"`
 	Posts                []*Post      `json:"posts" gorm:"many2many;"`
-	Sources              []*Source    `json:"sources" gorm:"many2many:feed_sources;"`
 	SubSources           []*SubSource `json:"subSources" gorm:"many2many:feed_subsources;"`
 	FilterDataExpression datatypes.JSON
 }

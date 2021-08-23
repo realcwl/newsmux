@@ -60,7 +60,6 @@ type ComplexityRoot struct {
 		Id                   func(childComplexity int) int
 		Name                 func(childComplexity int) int
 		Posts                func(childComplexity int) int
-		Sources              func(childComplexity int) int
 		SubSources           func(childComplexity int) int
 		Subscribers          func(childComplexity int) int
 		UpdatedAt            func(childComplexity int) int
@@ -95,7 +94,6 @@ type ComplexityRoot struct {
 		PublishedFeeds     func(childComplexity int) int
 		SavedByUser        func(childComplexity int) int
 		SharedFromPost     func(childComplexity int) int
-		Source             func(childComplexity int) int
 		SubSource          func(childComplexity int) int
 		Title              func(childComplexity int) int
 	}
@@ -267,13 +265,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Feed.Posts(childComplexity), true
-
-	case "Feed.sources":
-		if e.complexity.Feed.Sources == nil {
-			break
-		}
-
-		return e.complexity.Feed.Sources(childComplexity), true
 
 	case "Feed.subSources":
 		if e.complexity.Feed.SubSources == nil {
@@ -484,13 +475,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.SharedFromPost(childComplexity), true
-
-	case "Post.source":
-		if e.complexity.Post.Source == nil {
-			break
-		}
-
-		return e.complexity.Post.Source(childComplexity), true
 
 	case "Post.subSource":
 		if e.complexity.Post.SubSource == nil {
@@ -871,7 +855,6 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
   name: String!
   subscribers: [User!]!
   posts: [Post!]!
-  sources: [Source!]!
   subSources: [SubSource!]!
   filterDataExpression: String!
 }
@@ -902,8 +885,7 @@ type PostInFeedOutput {
   deletedAt: Time
   title: String!
   content: String!
-  source: Source!
-  subSource: SubSource
+  subSource: SubSource!
   sharedFromPost: Post
   savedByUser: [User!]!
   publishedFeeds: [Feed!]!
@@ -948,7 +930,6 @@ input NewFeedInput {
   userId: String!
   name: String!
   filterDataExpression: String!
-  sourceIds: [String!]!
   subSourceIds: [String!]!
 }
 
@@ -956,8 +937,7 @@ input NewFeedInput {
 input NewPostInput {
   title: String!
   content: String!
-  sourceId: String!
-  subSourceId: String
+  subSourceId: String!
   feedsIdPublishTo: [String!]
   sharedFromPostId: String
 }
@@ -1538,41 +1518,6 @@ func (ec *executionContext) _Feed_posts(ctx context.Context, field graphql.Colle
 	res := resTmp.([]*model.Post)
 	fc.Result = res
 	return ec.marshalNPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Feed_sources(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Feed",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Sources, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Source)
-	fc.Result = res
-	return ec.marshalNSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Feed_subSources(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
@@ -2178,41 +2123,6 @@ func (ec *executionContext) _Post_content(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_source(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Post",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Source, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.Source)
-	fc.Result = res
-	return ec.marshalNSource2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Post_subSource(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2238,11 +2148,14 @@ func (ec *executionContext) _Post_subSource(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.SubSource)
+	res := resTmp.(model.SubSource)
 	fc.Result = res
-	return ec.marshalOSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
+	return ec.marshalNSubSource2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_sharedFromPost(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -5086,14 +4999,6 @@ func (ec *executionContext) unmarshalInputNewFeedInput(ctx context.Context, obj 
 			if err != nil {
 				return it, err
 			}
-		case "sourceIds":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sourceIds"))
-			it.SourceIds, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "subSourceIds":
 			var err error
 
@@ -5130,19 +5035,11 @@ func (ec *executionContext) unmarshalInputNewPostInput(ctx context.Context, obj 
 			if err != nil {
 				return it, err
 			}
-		case "sourceId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sourceId"))
-			it.SourceID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "subSourceId":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subSourceId"))
-			it.SubSourceID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.SubSourceID, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5468,11 +5365,6 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "sources":
-			out.Values[i] = ec._Feed_sources(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "subSources":
 			out.Values[i] = ec._Feed_subSources(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5635,13 +5527,11 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "source":
-			out.Values[i] = ec._Post_source(ctx, field, obj)
+		case "subSource":
+			out.Values[i] = ec._Post_subSource(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "subSource":
-			out.Values[i] = ec._Post_subSource(ctx, field, obj)
 		case "sharedFromPost":
 			out.Values[i] = ec._Post_sharedFromPost(ctx, field, obj)
 		case "savedByUser":
@@ -6653,43 +6543,6 @@ func (ec *executionContext) marshalNSource2githubᚗcomᚋLuismorlanᚋnewsmux�
 	return ec._Source(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Source) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
 func (ec *executionContext) marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx context.Context, sel ast.SelectionSet, v *model.Source) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -7420,13 +7273,6 @@ func (ec *executionContext) marshalOSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋ
 	}
 	wg.Wait()
 	return ret
-}
-
-func (ec *executionContext) marshalOSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx context.Context, sel ast.SelectionSet, v *model.SubSource) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._SubSource(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
