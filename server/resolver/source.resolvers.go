@@ -11,6 +11,10 @@ import (
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 )
 
+const (
+	DefaultSubSourceName = "default"
+)
+
 func (r *sourceResolver) DeletedAt(ctx context.Context, obj *model.Source) (*time.Time, error) {
 	return &obj.DeletedAt.Time, nil
 }
