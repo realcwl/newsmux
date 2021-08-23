@@ -23,7 +23,6 @@ input NewFeedInput {
   userId: String!
   name: String!
   filterDataExpression: String!
-  sourceIds: [String!]!
   subSourceIds: [String!]!
 }
 
@@ -31,8 +30,7 @@ input NewFeedInput {
 input NewPostInput {
   title: String!
   content: String!
-  sourceId: String!
-  subSourceId: String
+  subSourceId: String!
   feedsIdPublishTo: [String!]
   sharedFromPostId: String
 }
