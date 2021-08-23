@@ -73,6 +73,7 @@ type NewSubSourceInput struct {
 }
 
 type NewUserInput struct {
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 

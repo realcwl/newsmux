@@ -16,6 +16,7 @@ type Query {
 }
 
 input NewUserInput {
+  id: String!
   name: String!
 }
 

@@ -8,7 +8,6 @@ import (
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -53,7 +52,7 @@ func setCognitoClient(client *cognitoidentityprovider.Client) {
 // error on token not provided or token is invalid (wrong token or expired).
 func JWT() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		jwt := c.GetHeader("token")
+		jwt := c.Query("token")
 
 		if jwt == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
@@ -83,15 +82,4 @@ func JWT() gin.HandlerFunc {
 		// before request
 		c.Next()
 	}
-}
-
-// CorsWhitelist will allow CORS call from the input list of origins. This is
-// needed during debuging to whitelist call from localhost.
-func CorsWhitelist(srcs []string) gin.HandlerFunc {
-	return cors.New(cors.Config{
-		AllowOriginFunc: func(origin string) bool {
-			return utils.ContainsString(srcs, origin)
-		},
-		AllowHeaders: []string{"Content-Type"},
-	})
 }
