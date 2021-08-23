@@ -153,38 +153,38 @@ func TestDataExpressionMatch(t *testing.T) {
 		bytes2, _ := json.Marshal(res)
 		fmt.Println(string(bytes2))
 
-		matched, err := DataExpressionMatch(res.Root, "马斯克做空以太坊")
+		matched, err := DataExpressionMatch(res.Root, model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatch(res.Root, "老王做空以太坊")
+		matched, err = DataExpressionMatch(res.Root, model.Post{Content: "老王做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 
-		matched, err = DataExpressionMatch(res.Root, "老王做空比特币")
+		matched, err = DataExpressionMatch(res.Root, model.Post{Content: "老王做空比特币"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatch(res.Root, "老王做空bitcoin")
+		matched, err = DataExpressionMatch(res.Root, model.Post{Content: "老王做空bitcoin"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 	})
 
 	t.Run("Test matching from json string", func(t *testing.T) {
 
-		matched, err := DataExpressionJsonMatch(jsonStringForTest, "马斯克做空以太坊")
+		matched, err := DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionJsonMatch(jsonStringForTest, "老王做空以太坊")
+		matched, err = DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "老王做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 
-		matched, err = DataExpressionJsonMatch(jsonStringForTest, "老王做空比特币")
+		matched, err = DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "老王做空比特币"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionJsonMatch(jsonStringForTest, "老王做空bitcoin")
+		matched, err = DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "老王做空bitcoin"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 	})

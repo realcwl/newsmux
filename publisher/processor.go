@@ -161,7 +161,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	feedsToPublish := []*model.Feed{}
 	for _, feed := range feedCandidates {
 		// Once a message is matched to a feed, write the PostFeedPublish relation to DB
-		matched, err := DataExpressionJsonMatch(feed.FilterDataExpression.String(), post.Content)
+		matched, err := DataExpressionMatchPost(feed.FilterDataExpression.String(), post)
 		if err != nil {
 			return err
 		}
