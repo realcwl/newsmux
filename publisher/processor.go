@@ -55,8 +55,7 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(maxNum
 func (processor *CrawlerpublisherMessageProcessor) findDuplicatedPost(decodedMsg *CrawlerMessage) (bool, *model.Post) {
 	var post model.Post
 	queryResult := processor.DB.Debug().Where(
-		"source_id = ? AND (COALESCE(sub_source_id, '') = COALESCE(?, '')) AND title = ? AND content = ? ",
-		decodedMsg.Post.SourceId,
+		"sub_source_id = ? AND title = ? AND content = ? ",
 		decodedMsg.Post.SubSourceId,
 		decodedMsg.Post.Title,
 		decodedMsg.Post.Content,
@@ -66,17 +65,9 @@ func (processor *CrawlerpublisherMessageProcessor) findDuplicatedPost(decodedMsg
 }
 
 func (processor *CrawlerpublisherMessageProcessor) prepareFeedCandidates(
-	source *model.Source,
 	subSource *model.SubSource,
 ) map[string]*model.Feed {
-
 	feedCandidates := make(map[string]*model.Feed)
-
-	if source != nil {
-		for _, feed := range source.Feeds {
-			feedCandidates[feed.Id] = feed
-		}
-	}
 
 	if subSource != nil {
 		for _, feed := range subSource.Feeds {
@@ -130,20 +121,14 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		return errors.New(fmt.Sprintf("message has already been processed, existing post_id: %s", existingPost.Id))
 	}
 
-	// Prepare Post relations to Sources and Subsources
-	source, err := processor.prepareSource(decodedMsg.Post.SourceId)
-	if err != nil {
-		return err
-	}
-
-	// subsource can be nil
+	// Prepare Post relations to Subsources (Sources can be inferred)
 	subSource, err := processor.prepareSubSource(decodedMsg.Post.SubSourceId)
 	if err != nil {
 		return err
 	}
 
 	// Load feeds into memory based on source and subsource of the post
-	feedCandidates := processor.prepareFeedCandidates(source, subSource)
+	feedCandidates := processor.prepareFeedCandidates(subSource)
 
 	// Create new post based on message
 	post := model.Post{
@@ -151,9 +136,8 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		Title:          decodedMsg.Post.Title,
 		Content:        decodedMsg.Post.Content,
 		CreatedAt:      time.Now(),
-		Source:         *source,
-		SourceID:       decodedMsg.Post.SourceId,
-		SubSource:      subSource,
+		SubSource:      *subSource,
+		SubSourceID:    decodedMsg.Post.SubSourceId,
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 	}

@@ -59,7 +59,6 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 
 	origin := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
-			SourceId:           "1",
 			SubSourceId:        "2",
 			Title:              "hello",
 			Content:            "hello world!",
@@ -116,18 +115,16 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
 	sourceId1 := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	sourceId2 := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
-	sourceId3 := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId1 := utils.TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, db, client)
 	subSourceId2 := utils.TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId2, db, client)
 
-	feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", dataExpression, []string{}, []string{subSourceId1}, db, client)
-	feedId2 := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", dataExpression, []string{sourceId3}, []string{subSourceId1, subSourceId2}, db, client)
+	feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", dataExpression, []string{subSourceId1}, db, client)
+	feedId2 := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", dataExpression, []string{subSourceId1, subSourceId2}, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, uid, feedId2, db, client)
 
 	msgToTwoFeeds := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
-			SourceId:           sourceId1,
 			SubSourceId:        subSourceId1,
 			Title:              "msgToTwoFeeds",
 			Content:            "老王做空以太坊",
@@ -144,8 +141,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
-			SourceId:           sourceId3,
-			SubSourceId:        "",
+			SubSourceId:        subSourceId2,
 			Title:              "msgToOneFeed",
 			Content:            "老王做空以太坊",
 			ImageUrls:          []string{"1", "4"},
