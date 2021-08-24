@@ -118,13 +118,13 @@ func dropTempDB(curDB *gorm.DB, dbName string) {
 // Get DB instance for development
 func GetDBDev() (db *gorm.DB, err error) {
 	// TODO(jamie): move to .env
-	return getCustomizedConnection("dev_jamie")
+	return getCustomizedConnection("dev_warren")
 }
 
 // Get DB instance for production
 func GetDBProduction() (db *gorm.DB, err error) {
 	// TODO(jamie): move to .env
-	return getCustomizedConnection("dev_jamie")
+	return getCustomizedConnection("dev_warren")
 }
 
 func getDB(connectionString string) (db *gorm.DB, err error) {

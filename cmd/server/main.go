@@ -10,6 +10,7 @@ import (
 	. "github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/flag"
 	. "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 )
@@ -33,11 +34,11 @@ func main() {
 	// Default With the Logger and Recovery middleware already attached
 	router := gin.Default()
 
+	router.Use(cors.Default())
 	router.Use(gintrace.Middleware(ServiceName))
-
-	// TODO: remove once we fiture out how to test with jwt turned on
-	// router.Use(middlewares.JWT())
-	router.Use(middlewares.CorsWhitelist([]string{"http://localhost:3000"}))
+	if !ByPassAuth {
+		router.Use(middlewares.JWT())
+	}
 
 	handler := server.GraphqlHandler()
 	router.POST("/graphql", handler)

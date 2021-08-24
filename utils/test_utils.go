@@ -13,7 +13,7 @@ import (
 )
 
 // create user with name, do sanity checks and returns its Id
-func TestCreateUserAndValidate(t *testing.T, name string, db *gorm.DB, client *client.Client) (id string) {
+func TestCreateUserAndValidate(t *testing.T, name string, userId string, db *gorm.DB, client *client.Client) (id string) {
 	var resp struct {
 		CreateUser struct {
 			Id         string `json:"id"`
@@ -30,7 +30,7 @@ func TestCreateUserAndValidate(t *testing.T, name string, db *gorm.DB, client *c
 	}
 
 	client.MustPost(fmt.Sprintf(`mutation {
-		createUser(input:{name:"%s"}) {
+		createUser(input:{name:"%s" id: "%s"}) {
 		  id
 		  name
 		  createdAt
@@ -43,7 +43,7 @@ func TestCreateUserAndValidate(t *testing.T, name string, db *gorm.DB, client *c
 		  }
 		}
 	  }
-	  `, name), &resp)
+	  `, name, userId), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
@@ -57,6 +57,7 @@ func TestCreateUserAndValidate(t *testing.T, name string, db *gorm.DB, client *c
 	require.Equal(t, "", resp.CreateUser.DeletedAt)
 
 	return resp.CreateUser.Id
+
 }
 
 // create feed with name, do sanity checks and returns its Id

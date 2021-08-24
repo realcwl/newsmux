@@ -17,16 +17,22 @@ import (
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error) {
-	uuid := uuid.New().String()
-
-	t := model.User{
-		Id:              uuid,
-		Name:            input.Name,
-		CreatedAt:       time.Now(),
-		SubscribedFeeds: []*model.Feed{},
+	var user model.User
+	res := r.DB.Model(&model.User{}).Where("id = ?", input.ID).First(&user)
+	if res.RowsAffected != 1 {
+		// if the user doesn't exist, create the user.
+		t := model.User{
+			Id:              input.ID,
+			Name:            input.Name,
+			CreatedAt:       time.Now(),
+			SubscribedFeeds: []*model.Feed{},
+		}
+		r.DB.Create(&t)
+		return &t, nil
 	}
-	r.DB.Create(&t)
-	return &t, nil
+
+	// otherwise
+	return &user, nil
 }
 
 func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedInput) (*model.Feed, error) {

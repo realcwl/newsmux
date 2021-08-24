@@ -144,6 +144,7 @@ func getSeedStateById(db *gorm.DB, userId string) (*model.SeedState, error) {
 	db.Model(&model.UserFeedSubscription{}).
 		Select("feeds.id", "feeds.name").
 		Joins("INNER JOIN feeds ON feeds.id = user_feed_subscriptions.feed_id").
+		Where("user_feed_subscriptions.user_id = ?", userId).
 		Order("order_in_panel").
 		Find(&feeds)
 
