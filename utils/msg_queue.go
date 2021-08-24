@@ -27,6 +27,8 @@ type MessageQueueReader interface {
 }
 
 type SQSMessageQueueReader struct {
+	MessageQueueReader
+
 	readTimeout int64
 	queueName   string
 	url         string
