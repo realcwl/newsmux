@@ -10,7 +10,7 @@ import (
 
 const (
 	// TODO: Move to .env
-	crawlerPublisherQueueName = "crawler-publisher-queue"
+	crawlerPublisherQueueName = "newsfeed_crawled_items_queue.fifo"
 	messageProcessConcurrency = 1
 )
 

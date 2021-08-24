@@ -121,6 +121,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 
 	decodedMsg, err := processor.decodeCrawlerMessage(msg)
 	if err != nil {
+		processor.Reader.DeleteMessage(msg)
 		return err
 	}
 
