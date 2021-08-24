@@ -2,21 +2,29 @@ package publisher
 
 import (
 	b64 "encoding/base64"
+	"errors"
+	"fmt"
+	"time"
 
+	"github.com/Luismorlan/newsmux/model"
 	. "github.com/Luismorlan/newsmux/protocol"
 	. "github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
+	"gorm.io/gorm"
 )
 
 type CrawlerpublisherMessageProcessor struct {
 	Reader MessageQueueReader
+	DB     *gorm.DB
 }
 
 // Create new processor with reader dependency injection
-func NewpublisherMessageProcessor(reader MessageQueueReader) *CrawlerpublisherMessageProcessor {
+func NewPublisherMessageProcessor(reader MessageQueueReader, db *gorm.DB) *CrawlerpublisherMessageProcessor {
 	return &CrawlerpublisherMessageProcessor{
 		Reader: reader,
+		DB:     db,
 	}
 }
 
@@ -44,20 +52,135 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(maxNum
 	}
 }
 
-// Process one cralwer-publisher message
+func (processor *CrawlerpublisherMessageProcessor) findDuplicatedPost(decodedMsg *CrawlerMessage) (bool, *model.Post) {
+	var post model.Post
+	queryResult := processor.DB.Debug().Where(
+		"source_id = ? AND (COALESCE(sub_source_id, '') = COALESCE(?, '')) AND title = ? AND content = ? ",
+		decodedMsg.Post.SourceId,
+		decodedMsg.Post.SubSourceId,
+		decodedMsg.Post.Title,
+		decodedMsg.Post.Content,
+	).First(&post)
+
+	return queryResult.RowsAffected != 0, &post
+}
+
+func (processor *CrawlerpublisherMessageProcessor) prepareFeedCandidates(
+	source *model.Source,
+	subSource *model.SubSource,
+) map[string]*model.Feed {
+
+	feedCandidates := make(map[string]*model.Feed)
+
+	if source != nil {
+		for _, feed := range source.Feeds {
+			feedCandidates[feed.Id] = feed
+		}
+	}
+
+	if subSource != nil {
+		for _, feed := range subSource.Feeds {
+			feedCandidates[feed.Id] = feed
+		}
+	}
+	return feedCandidates
+}
+
+func (processor *CrawlerpublisherMessageProcessor) prepareSource(id string) (*model.Source, error) {
+	var res model.Source
+	if len(id) > 0 {
+		result := processor.DB.Preload("Feeds").Where("id = ?", id).First(&res)
+		if result.RowsAffected != 1 {
+			return nil, errors.New(fmt.Sprintf("source not found: %s", id))
+		}
+		return &res, nil
+	} else {
+		return nil, errors.New("source id can not be empty")
+	}
+}
+
+func (processor *CrawlerpublisherMessageProcessor) prepareSubSource(id string) (*model.SubSource, error) {
+	var res model.SubSource
+	if len(id) > 0 {
+		result := processor.DB.Preload("Feeds").Where("id = ?", id).First(&res)
+		if result.RowsAffected != 1 {
+			return nil, errors.New(fmt.Sprintf("sub source not found: %s", id))
+		}
+		return &res, nil
+	}
+	return nil, nil
+}
+
+// Process one cralwer-publisher message in following major steps:
 // Step1. decode into protobuf generated struct
-// Step2. do publishing with new post
-// Step3. if publishing succeeds, delete message in queue
+// Step2. deduplication
+// Step3. do publishing with new post
+// Step4. if publishing succeeds, delete message in queue
 func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg *MessageQueueMessage) error {
+	Log.Info("process queued message")
 
 	decodedMsg, err := processor.decodeCrawlerMessage(msg)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Do actual publishing for decodedMsg
-	Log.Info(decodedMsg)
+	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
+	if duplicated, existingPost := processor.findDuplicatedPost(decodedMsg); duplicated == true {
+		return errors.New(fmt.Sprintf("message has already been processed, existing post_id: %s", existingPost.Id))
+	}
 
+	// Prepare Post relations to Sources and Subsources
+	source, err := processor.prepareSource(decodedMsg.Post.SourceId)
+	if err != nil {
+		return err
+	}
+
+	// subsource can be nil
+	subSource, err := processor.prepareSubSource(decodedMsg.Post.SubSourceId)
+	if err != nil {
+		return err
+	}
+
+	// Load feeds into memory based on source and subsource of the post
+	feedCandidates := processor.prepareFeedCandidates(source, subSource)
+
+	// Create new post based on message
+	post := model.Post{
+		Id:             uuid.New().String(),
+		Title:          decodedMsg.Post.Title,
+		Content:        decodedMsg.Post.Content,
+		CreatedAt:      time.Now(),
+		Source:         *source,
+		SourceID:       decodedMsg.Post.SourceId,
+		SubSource:      subSource,
+		SavedByUser:    []*model.User{},
+		PublishedFeeds: []*model.Feed{},
+	}
+
+	// Check each feed's source/subsource and data expression
+	feedsToPublish := []*model.Feed{}
+	for _, feed := range feedCandidates {
+		// Once a message is matched to a feed, write the PostFeedPublish relation to DB
+		matched, err := DataExpressionMatchPost(feed.FilterDataExpression.String(), post)
+		if err != nil {
+			return err
+		}
+		if matched {
+			feedsToPublish = append(feedsToPublish, feed)
+		}
+	}
+
+	// Write to DB
+	err = processor.DB.Transaction(func(tx *gorm.DB) error {
+		processor.DB.Create(&post)
+		processor.DB.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Delete message from queue
 	return processor.Reader.DeleteMessage(msg)
 }
 

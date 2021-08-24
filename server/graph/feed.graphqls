@@ -8,6 +8,8 @@ type Feed implements FeedSeedStateInterface @goModel(model: "model.Feed") {
   subscribers: [User!]!
   posts: [Post!]!
   sources: [Source!]!
+  subSources: [SubSource!]!
+  filterDataExpression: String!
 }
 
 type FeedSeedState implements FeedSeedStateInterface {

@@ -11,6 +11,7 @@ import (
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/google/uuid"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -30,6 +31,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserIn
 
 func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedInput) (*model.Feed, error) {
 	var user model.User
+
 	userID := input.UserID
 	uuid := uuid.New().String()
 
@@ -38,16 +40,50 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 		return nil, errors.New("invalid user id")
 	}
 
-	t := model.Feed{
-		Id:          uuid,
-		Name:        input.Name,
-		CreatedAt:   time.Now(),
-		Creator:     user,
-		Subscribers: []*model.User{},
-		Posts:       []*model.Post{},
+	feed := model.Feed{
+		Id:                   uuid,
+		Name:                 input.Name,
+		CreatedAt:            time.Now(),
+		Creator:              user,
+		FilterDataExpression: datatypes.JSON(input.FilterDataExpression),
+		Subscribers:          []*model.User{},
+		Posts:                []*model.Post{},
 	}
-	r.DB.Create(&t)
-	return &t, nil
+
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		r.DB.Create(&feed)
+
+		for _, sourceId := range input.SourceIds {
+			var source model.Source
+			result := r.DB.Where("id = ?", sourceId).First(&source)
+			if result.RowsAffected != 1 {
+				return errors.New("Source not found")
+			}
+
+			if e := r.DB.Model(&feed).Association("Sources").Append(&source); e != nil {
+				return e
+			}
+		}
+
+		for _, subSourceId := range input.SubSourceIds {
+			var subSource model.SubSource
+			result := r.DB.Where("id = ?", subSourceId).First(&subSource)
+			if result.RowsAffected != 1 {
+				return errors.New("SubSource not found")
+			}
+
+			if e := r.DB.Model(&feed).Association("SubSources").Append(&subSource); e != nil {
+				return e
+			}
+		}
+		// return nil will commit the whole transaction
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &feed, nil
 }
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error) {

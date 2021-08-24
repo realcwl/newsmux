@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"gorm.io/datatypes"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -72,6 +72,6 @@ type Post struct {
 	ContentGeneratedAt time.Time
 
 	// TODO: convert json to array when serve graphql API and ingest from crawler
-	ImageUrlsInJson datatypes.JSON
-	FileUrlsInJson  datatypes.JSON
+	ImageUrls pq.StringArray `gorm:"type:TEXT[]"`
+	FileUrls  pq.StringArray `gorm:"type:TEXT[]"`
 }
