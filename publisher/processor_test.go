@@ -113,7 +113,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	bytes, _ := json.Marshal(root)
 	dataExpression := strings.ReplaceAll(string(bytes), `"`, `\"`)
 
-	uid := utils.TestCreateUserAndValidate(t, "test_user_name", db, client)
+	uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
 	sourceId1 := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	sourceId2 := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	sourceId3 := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
