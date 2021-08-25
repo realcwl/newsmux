@@ -105,7 +105,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		AllFeeds   func(childComplexity int) int
-		Feeds      func(childComplexity int, input *model.FeedsForUserInput) int
+		Feeds      func(childComplexity int, input *model.FeedsGetPostsInput) int
 		Posts      func(childComplexity int) int
 		Sources    func(childComplexity int) int
 		SubSources func(childComplexity int) int
@@ -185,7 +185,7 @@ type QueryResolver interface {
 	SubSources(ctx context.Context) ([]*model.SubSource, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 	Users(ctx context.Context) ([]*model.User, error)
-	Feeds(ctx context.Context, input *model.FeedsForUserInput) ([]*model.Feed, error)
+	Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error)
 }
 type SourceResolver interface {
 	DeletedAt(ctx context.Context, obj *model.Source) (*time.Time, error)
@@ -521,7 +521,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Feeds(childComplexity, args["input"].(*model.FeedsForUserInput)), true
+		return e.complexity.Query.Feeds(childComplexity, args["input"].(*model.FeedsGetPostsInput)), true
 
 	case "Query.posts":
 		if e.complexity.Query.Posts == nil {
@@ -919,7 +919,45 @@ type Query {
   subSources: [SubSource!]
   posts: [Post!]
   users: [User!]
-  feeds(input: FeedsForUserInput): [Feed!]!
+
+  # Feeds is the main API for newsfeed
+  # WARNING: if you do not pass feedUpdatedTime, your curosr/direction will be ignored
+  
+  # It is used to return posts for a feed
+  # It can be called with a list of following queries, each query represent a feed
+  # Caller can specify only 1 or more feeds
+
+  # FeedID          string					Feed id to fetch posts
+  # Limit           int						Max amount of posts shall the API return
+  # Cursor          int						The cursor of the pivot post
+  # Direction       FeedRefreshDirection	NEW or OLD description below
+  # FeedUpdatedTime *time.Time				Time stamp used to represent feed version description below
+
+  # Returns: Feeds
+  # 	caller can get each feed's FeedUpdatedTime and its posts, and each post has a cursor
+
+  # How to use cursor and direction?
+  # 	Direction = NEW:    load feed new posts with cursor larger than cursor A (default -1), from newest one, no more than Limit
+  # 	Direction = OLD: load feed old posts with cursor smaller than cursor B (default -1), from newest one, no more than Limit
+
+  # 	If not specified, use TOP as direction, -1 as cursor to give newest Posts
+
+  # 	How is cursor defined:
+  # 		it is an auto-increament index Posts
+
+  # What if feed is changed, and front end doesn't know?
+  # Feed updates are not pushed to frontend, backend pass a turn-around field FeedUpdatedTime
+  # 	to frontend, and API call will carry this timestamp. Once feed is updated, API will know the
+  # 	input timestamp is not same as the updated "FeedUpdatedTime", thus, will not respect the cursor
+
+  # If frontend disconnected for a while, how do front end know it gets all posts up until latest?
+  # In this case, front end can still query {Feeds} with its stored NEWest cursor
+  # 	{Feeds} will return the most recent N post up to N=Limit
+  # 	Front end can check if the N == Limit, if so, it indicate there is very likely to be more posts
+  # 	need to be fetched. And frontend can send another {Feeds} request. It can also choose not
+  # 	to fetch so many posts.
+
+  feeds(input: FeedsGetPostsInput): [Feed!]!
 }
 
 input NewUserInput {
@@ -969,7 +1007,7 @@ input FeedRefreshInput {
   feedUpdatedTime: Time
 }
 
-input FeedsForUserInput {
+input FeedsGetPostsInput {
   userId: String!
   feedRefreshInputs: [FeedRefreshInput!]!
 }
@@ -1182,10 +1220,10 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_feeds_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.FeedsForUserInput
+	var arg0 *model.FeedsGetPostsInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalOFeedsForUserInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedsForUserInput(ctx, tmp)
+		arg0, err = ec.unmarshalOFeedsGetPostsInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedsGetPostsInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2717,7 +2755,7 @@ func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.Coll
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Feeds(rctx, args["input"].(*model.FeedsForUserInput))
+		return ec.resolvers.Query().Feeds(rctx, args["input"].(*model.FeedsGetPostsInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4942,8 +4980,8 @@ func (ec *executionContext) unmarshalInputFeedSeedStateInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputFeedsForUserInput(ctx context.Context, obj interface{}) (model.FeedsForUserInput, error) {
-	var it model.FeedsForUserInput
+func (ec *executionContext) unmarshalInputFeedsGetPostsInput(ctx context.Context, obj interface{}) (model.FeedsGetPostsInput, error) {
+	var it model.FeedsGetPostsInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -7074,11 +7112,11 @@ func (ec *executionContext) marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 	return ret
 }
 
-func (ec *executionContext) unmarshalOFeedsForUserInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedsForUserInput(ctx context.Context, v interface{}) (*model.FeedsForUserInput, error) {
+func (ec *executionContext) unmarshalOFeedsGetPostsInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedsGetPostsInput(ctx context.Context, v interface{}) (*model.FeedsGetPostsInput, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputFeedsForUserInput(ctx, v)
+	res, err := ec.unmarshalInputFeedsGetPostsInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

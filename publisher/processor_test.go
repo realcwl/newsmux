@@ -118,8 +118,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	subSourceId1 := utils.TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, db, client)
 	subSourceId2 := utils.TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId2, db, client)
 
-	feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", dataExpression, []string{subSourceId1}, db, client)
-	feedId2 := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", dataExpression, []string{subSourceId1, subSourceId2}, db, client)
+	feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", dataExpression, []string{subSourceId1}, db, client)
+	feedId2, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", dataExpression, []string{subSourceId1, subSourceId2}, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, uid, feedId2, db, client)
 

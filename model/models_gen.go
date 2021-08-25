@@ -37,7 +37,7 @@ type FeedSeedStateInput struct {
 	Name string `json:"name"`
 }
 
-type FeedsForUserInput struct {
+type FeedsGetPostsInput struct {
 	UserID            string              `json:"userId"`
 	FeedRefreshInputs []*FeedRefreshInput `json:"feedRefreshInputs"`
 }
