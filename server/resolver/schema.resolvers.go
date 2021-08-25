@@ -257,14 +257,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return users, result.Error
 }
 
-func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInput) ([]*model.Feed, error) {
-	// Each feed needs to specify cursor and direction
-	// Direction = TOP:    load feed new posts with cursor larger than A (default -1), from newest one, no more than LIMIT
-	// Direction = BOTTOM: load feed old posts with cursor smaller than B (default -1), from newest one, no more than LIMIT
-	//
-	// If not specified, use TOP as direction, -1 as cursor to give newest Posts
-	// How is cursor defined:
-	//      it is an auto-increament index Posts
+func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error) {
 	feedRefreshInputs := input.FeedRefreshInputs
 
 	if len(feedRefreshInputs) == 0 {

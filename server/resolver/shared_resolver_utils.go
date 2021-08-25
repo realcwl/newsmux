@@ -15,52 +15,68 @@ const (
 
 // Given a list of FeedRefreshInput, get posts for the requested feeds
 // Do it by iterating through feeds
-func getRefreshPosts(r *queryResolver, query []*model.FeedRefreshInput) ([]*model.Feed, error) {
+func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*model.Feed, error) {
 	results := []*model.Feed{}
 
 	//TODO: can be run in parallel
-	for _, refreshInput := range query {
-		// TODO why can input be null?
-		if refreshInput == nil {
+	for _, query := range queries {
+		if query == nil {
+			// This is not expected since gqlgen guarantees it is not nil
 			continue
 		}
 
-		var feed model.Feed
-
-		feedID := refreshInput.FeedID
-		cursor := refreshInput.Cursor
-		direction := refreshInput.Direction
-		limit := utils.Min(feedRefreshLimit, refreshInput.Limit)
-
+		// Prepare feed basic info
+		var (
+			feed      model.Feed
+			feedID    = query.FeedID
+			cursor    = query.Cursor
+			direction = query.Direction
+		)
 		queryResult := r.DB.Where("id = ?", feedID).First(&feed)
 		if queryResult.RowsAffected != 1 {
-			// TODO: add to datadog
-			return nil, fmt.Errorf("invalid feed id %s", feedID)
+			return []*model.Feed{}, fmt.Errorf("invalid feed id %s", feedID)
 		}
 
-		var posts []*model.Post
-		if direction == model.FeedRefreshDirectionNew {
-			r.DB.Model(&model.Post{}).
-				Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
-				Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
-				Where("feed_id = ? AND posts.cursor > ?", feedID, cursor).
-				Order("cursor desc").
-				Limit(limit).
-				Find(&posts)
-		} else {
-			r.DB.Model(&model.Post{}).
-				Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
-				Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
-				Where("feed_id = ? AND posts.cursor < ?", feedID, cursor).
-				Order("cursor desc").
-				Limit(limit).
-				Find(&posts)
+		// Check if requested cursors are out of sync from last feed update
+		// If out of sync, default to query latest posts
+		// Use unix() to avoid accuracy loss due to gqlgen serialization impacting matching
+		if query.FeedUpdatedTime == nil || query.FeedUpdatedTime.Unix() != feed.UpdatedAt.Unix() {
+			cursor = -1
+			direction = model.FeedRefreshDirectionNew
 		}
-		feed.Posts = posts
+
+		// Fill in posts
+		limit := utils.Min(feedRefreshLimit, query.Limit)
+		if err := getOneFeedRefreshPosts(r, &feed, cursor, direction, limit); err != nil {
+			return []*model.Feed{}, fmt.Errorf("failure when get posts for feed id %s", feedID)
+		}
 		results = append(results, &feed)
 	}
 
 	return results, nil
+}
+
+func getOneFeedRefreshPosts(r *queryResolver, feed *model.Feed, cursor int, direction model.FeedRefreshDirection, limit int) error {
+	var posts []*model.Post
+	if direction == model.FeedRefreshDirectionNew {
+		r.DB.Model(&model.Post{}).
+			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
+			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
+			Where("feed_id = ? AND posts.cursor > ?", feed.Id, cursor).
+			Order("cursor desc").
+			Limit(limit).
+			Find(&posts)
+	} else {
+		r.DB.Model(&model.Post{}).
+			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
+			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
+			Where("feed_id = ? AND posts.cursor < ?", feed.Id, cursor).
+			Order("cursor desc").
+			Limit(limit).
+			Find(&posts)
+	}
+	feed.Posts = posts
+	return nil
 }
 
 // get all feeds a user subscribed

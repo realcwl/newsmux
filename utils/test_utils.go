@@ -63,12 +63,13 @@ func TestCreateUserAndValidate(t *testing.T, name string, userId string, db *gor
 // create feed with name, do sanity checks and returns its Id
 // filterDataExpression in graphql input should have escapes \
 //
-func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, subSourceIds []string, db *gorm.DB, client *client.Client) (id string) {
+func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, subSourceIds []string, db *gorm.DB, client *client.Client) (id string, updatedAt string) {
 	var resp struct {
 		CreateFeed struct {
 			Id                   string `json:"id"`
 			Name                 string `json:"name"`
 			CreatedAt            string `json:"createdAt"`
+			UpdatedAt            string `json:"updatedAt"`
 			DeletedAt            string `json:"deletedAt"`
 			FilterDataExpression string `json:"filterDataExpression"`
 			SubSources           []struct {
@@ -84,6 +85,7 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 		  id
 		  name
 		  createdAt
+		  updatedAt
 		  deletedAt
 		  filterDataExpression
 		  subSources {
@@ -98,7 +100,8 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	// here the escape will happen, so in resp, the FilterDataExpression is already escaped
 	client.MustPost(query, &resp)
 
-	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.CreateFeed.CreatedAt)
+	createTime, _ := parseGQLTimeString(resp.CreateFeed.CreatedAt)
+
 	require.NotEmpty(t, resp.CreateFeed.Id)
 	require.Equal(t, name, resp.CreateFeed.Name)
 	require.Equal(t, len(subSourceIds), len(resp.CreateFeed.SubSources))
@@ -110,7 +113,8 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	if len(subSourceIds) > 0 {
 		require.Equal(t, subSourceIds[0], resp.CreateFeed.SubSources[0].Id)
 	}
-	return resp.CreateFeed.Id
+
+	return resp.CreateFeed.Id, resp.CreateFeed.UpdatedAt
 }
 
 // create source with name, do sanity checks and returns its Id

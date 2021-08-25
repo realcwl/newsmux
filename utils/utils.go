@@ -35,3 +35,12 @@ func RandomAlphabetString(length int) string {
 	}
 	return b.String()
 }
+
+// for testing
+func parseGQLTimeString(str string) (time.Time, error) {
+	return time.Parse(time.RFC3339, str)
+}
+
+func serializeGQLTime(t time.Time) string {
+	return t.Format(time.RFC3339)
+}
