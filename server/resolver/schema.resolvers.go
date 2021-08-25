@@ -58,19 +58,6 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		r.DB.Create(&feed)
-
-		for _, sourceId := range input.SourceIds {
-			var source model.Source
-			result := r.DB.Where("id = ?", sourceId).First(&source)
-			if result.RowsAffected != 1 {
-				return errors.New("Source not found")
-			}
-
-			if e := r.DB.Model(&feed).Association("Sources").Append(&source); e != nil {
-				return e
-			}
-		}
-
 		for _, subSourceId := range input.SubSourceIds {
 			var subSource model.SubSource
 			result := r.DB.Where("id = ?", subSourceId).First(&subSource)
@@ -94,29 +81,13 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedIn
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error) {
 	var (
-		source         model.Source
-		subSource      *model.SubSource
+		subSource      model.SubSource
 		sharedFromPost *model.Post
 	)
 
-	uuid := uuid.New().String()
-
-	if len(input.SourceID) > 0 {
-		result := r.DB.Where("id = ?", input.SourceID).First(&source)
-		if result.RowsAffected != 1 {
-			return nil, errors.New("Source not found")
-		}
-	} else {
-		return nil, errors.New("invalid source id")
-	}
-
-	if input.SubSourceID != nil {
-		var res model.SubSource
-		result := r.DB.Where("id = ?", *input.SubSourceID).First(&res)
-		if result.RowsAffected != 1 {
-			return nil, errors.New("SubSource not found")
-		}
-		subSource = &res
+	result := r.DB.Where("id = ?", input.SubSourceID).First(&subSource)
+	if result.RowsAffected != 1 {
+		return nil, errors.New("SubSource not found")
 	}
 
 	if input.SharedFromPostID != nil {
@@ -129,14 +100,13 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 	}
 
 	post := model.Post{
-		Id:             uuid,
+		Id:             uuid.New().String(),
 		Title:          input.Title,
 		Content:        input.Content,
 		CreatedAt:      time.Now(),
-		Source:         source,
-		SourceID:       input.SourceID,
-		SharedFromPost: sharedFromPost,
 		SubSource:      subSource,
+		SubSourceID:    input.SubSourceID,
+		SharedFromPost: sharedFromPost,
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 	}
@@ -196,20 +166,30 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 }
 
 func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error) {
-	uuid := uuid.New().String()
-
 	var user model.User
 	r.DB.Where("id = ?", input.UserID).First(&user)
 
-	t := model.Source{
-		Id:        uuid,
+	source := model.Source{
+		Id:        uuid.New().String(),
 		Name:      input.Name,
 		Domain:    input.Domain,
 		CreatedAt: time.Now(),
 		Creator:   user,
 	}
-	r.DB.Create(&t)
-	return &t, nil
+
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		r.DB.Create(&source)
+		// Create default sub source, this subsource have no creator, no external id
+		r.CreateSubSource(ctx, model.NewSubSourceInput{
+			UserID:             user.Id,
+			Name:               DefaultSubSourceName,
+			ExternalIdentifier: "",
+			SourceID:           source.Id,
+		})
+		return nil
+	})
+
+	return &source, err
 }
 
 func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewSubSourceInput) (*model.SubSource, error) {

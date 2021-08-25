@@ -58,10 +58,8 @@ type Post struct {
 	DeletedAt          gorm.DeletedAt
 	Title              string
 	Content            string
-	SourceID           string     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Source             Source     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SubSourceID        *string    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SubSource          *SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	SubSourceID        string    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	SubSource          SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	SharedFromPostID   *string
 	SharedFromPost     *Post
 	SavedByUser        []*User `json:"saved_by_user" gorm:"many2many;"`
