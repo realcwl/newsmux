@@ -107,9 +107,9 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	client := PrepareTestDBClient(db)
 
 	jsonStr := jsonStringForTest
-	var root model.DataExpressionRoot
-	json.Unmarshal([]byte(jsonStr), &root)
-	bytes, _ := json.Marshal(root)
+	var dataExpressionWrap model.DataExpressionWrap
+	json.Unmarshal([]byte(jsonStr), &dataExpressionWrap)
+	bytes, _ := json.Marshal(dataExpressionWrap)
 	dataExpression := strings.ReplaceAll(string(bytes), `"`, `\"`)
 
 	uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)

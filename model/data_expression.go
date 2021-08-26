@@ -12,28 +12,49 @@ type DataExpressionWrap struct {
 	Expr ExpressionNode `json:"expr"`
 }
 
+// DataExpression is empty iff both fields are unset. This kind of expression
+// is also called pure id expression, which is a mechanism for frontend to know
+// where it can insert sub expression. Pure id expression is rendered as "+"
+// button and has no semantic meaning when doing expression matching.
+func (dataExpressionWrap DataExpressionWrap) IsEmpty() bool {
+	return dataExpressionWrap.Expr == nil
+}
+
 // ExpressionNode is a abstract container, it takes/generate the "expr"
-type ExpressionNode interface{}
+type ExpressionNode interface {
+	isExpressionNode() bool
+}
 
 // AllOf is a type of ExpressionNode
 type AllOf struct {
+	ExpressionNode
 	AllOf []DataExpressionWrap `json:"allOf"`
 }
 
 // AnyOf is a type of ExpressionNode
 type AnyOf struct {
+	ExpressionNode
 	AnyOf []DataExpressionWrap `json:"anyOf"`
 }
 
 // NotTrue is a type of ExpressionNode
 type NotTrue struct {
+	ExpressionNode
 	NotTrue DataExpressionWrap `json:"notTrue"`
 }
 
 // PredicateWrap is a type of ExpressionNode
 type PredicateWrap struct {
+	ExpressionNode
 	Predicate Predicate `json:"pred"`
 }
+
+// Bind AllOf/AnyOf/NotTrue/PredicateWrap to Expression Node by implementing
+// the interface.
+func (AllOf) isExpressionNode() bool         { return true }
+func (AnyOf) isExpressionNode() bool         { return true }
+func (NotTrue) isExpressionNode() bool       { return true }
+func (PredicateWrap) isExpressionNode() bool { return true }
 
 // Predicate is a type of ExpressionNode
 type Predicate struct {
@@ -45,10 +66,6 @@ type Literal struct {
 	Text string `json:"text"`
 }
 
-type DataExpressionRoot struct {
-	Root DataExpressionWrap `json:"dataExpression"`
-}
-
 // Custom unmarshal function for DataExpressionWrap
 // since DataExpressionWrap contains interface ExpressionNode
 // which needs "look-ahead" into next level
@@ -58,6 +75,15 @@ func (target *DataExpressionWrap) UnmarshalJSON(b []byte) error {
 	err := json.Unmarshal(b, &objMap)
 	if err != nil {
 		return err
+	}
+
+	if _, ok := objMap["expr"]; !ok {
+		// noop if the field doesn't have any expression. This is because frontend
+		// uses this pure id expression to signal potential place for expression
+		// addition (such "pure id expression" is rendered as a "+" button in the
+		// data expression editor), and when parsing the data expression such
+		// expression should be skipped because it has no semantic meaning.
+		return nil
 	}
 
 	if err = json.Unmarshal(*objMap["id"], &target.ID); err != nil {
@@ -83,7 +109,9 @@ func (target *DataExpressionWrap) UnmarshalJSON(b []byte) error {
 			if err = json.Unmarshal(*t, &tt); err != nil {
 				return err
 			}
-			node.AllOf = append(node.AllOf, tt)
+			if !tt.IsEmpty() {
+				node.AllOf = append(node.AllOf, tt)
+			}
 		}
 		target.Expr = node
 	} else if val, ok := expr["anyOf"]; ok {
@@ -97,7 +125,9 @@ func (target *DataExpressionWrap) UnmarshalJSON(b []byte) error {
 			if err = json.Unmarshal(*t, &tt); err != nil {
 				return err
 			}
-			node.AnyOf = append(node.AnyOf, tt)
+			if !tt.IsEmpty() {
+				node.AnyOf = append(node.AnyOf, tt)
+			}
 		}
 		target.Expr = node
 	} else if val, ok := expr["notTrue"]; ok {
@@ -105,7 +135,9 @@ func (target *DataExpressionWrap) UnmarshalJSON(b []byte) error {
 		if err = json.Unmarshal(*val, &node.NotTrue); err != nil {
 			return err
 		}
-		target.Expr = node
+		if !node.NotTrue.IsEmpty() {
+			target.Expr = node
+		}
 	} else if val, ok := expr["pred"]; ok {
 		var node PredicateWrap
 		if err = json.Unmarshal(*val, &node.Predicate); err != nil {
