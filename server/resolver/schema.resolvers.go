@@ -6,10 +6,12 @@ package resolver
 import (
 	"context"
 	"errors"
+	"reflect"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -35,47 +37,77 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserIn
 	return &user, nil
 }
 
-func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedInput) (*model.Feed, error) {
-	var user model.User
+func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFeedInput) (*model.Feed, error) {
+	// Upsert a feed
+	// return feed with updated posts
+	// this needs to run publish for all posts in the subsources and do a publish online
+	var (
+		user          model.User
+		feed          model.Feed
+		id            = uuid.New().String()
+		needRePublish = true
+	)
 
+	// If it is update, check if re-publish is needed
+	if input.FeedID != nil {
+		id = *input.FeedID
+		r.DB.Where("id = ?", id).Preload("SubSources").Preload("Posts").First(&feed)
+		needRePublish = false
+
+		var subsourceIds []string
+		for _, subsource := range feed.SubSources {
+			subsourceIds = append(subsourceIds, subsource.Id)
+		}
+		if feed.FilterDataExpression.String() != input.FilterDataExpression || !reflect.DeepEqual(subsourceIds, input.SubSourceIds) {
+			needRePublish = true
+		}
+	}
+
+	// get user
 	userID := input.UserID
-	uuid := uuid.New().String()
-
 	queryResult := r.DB.Where("id = ?", userID).First(&user)
 	if queryResult.RowsAffected != 1 {
 		return nil, errors.New("invalid user id")
 	}
 
-	feed := model.Feed{
-		Id:                   uuid,
+	// prepare feed to upsert
+	feed = model.Feed{
+		Id:                   id,
 		Name:                 input.Name,
-		CreatedAt:            time.Now(),
 		Creator:              user,
 		FilterDataExpression: datatypes.JSON(input.FilterDataExpression),
-		Subscribers:          []*model.User{},
-		Posts:                []*model.Post{},
 	}
 
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		r.DB.Create(&feed)
-		for _, subSourceId := range input.SubSourceIds {
-			var subSource model.SubSource
-			result := r.DB.Where("id = ?", subSourceId).First(&subSource)
-			if result.RowsAffected != 1 {
-				return errors.New("SubSource not found")
-			}
+		// Update all columns, except primary keys and subscribers, to new value on conflict
+		r.DB.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"name", "creator_id", "filter_data_expression"}),
+		}).Create(&feed)
 
-			if e := r.DB.Model(&feed).Association("SubSources").Append(&subSource); e != nil {
-				return e
-			}
+		// Update subsources
+		var subSources []model.SubSource
+		r.DB.Where("id IN ?", input.SubSourceIds).Find(&subSources)
+		if e := r.DB.Model(&feed).Association("SubSources").Replace(subSources); e != nil {
+			return e
 		}
-		// return nil will commit the whole transaction
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	// If no data expression or subsources changed, skip, otherwise re-publish
+	if !needRePublish {
+		// get posts
+		Log.Info("update feed no re-publishing")
+		getOneFeedRefreshPosts(r.DB, &feed, -1, model.FeedRefreshDirectionNew, 20)
+		return &feed, nil
+	}
+
+	// Re Publish posts
+	Log.Info("update feed and need posts re-publishing")
+	rePublishPostsForFeed(r.DB, &feed, input, 20, 5)
 	return &feed, nil
 }
 
