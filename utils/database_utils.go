@@ -7,6 +7,7 @@ package utils
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"testing"
 
@@ -38,7 +39,7 @@ func getDefaultDBConnection() (*gorm.DB, error) {
 
 // getCustomizedConnection connect to customized database
 func getCustomizedConnection(dbName string) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=newsfeed-db-dev.c3bzqjvxdcd7.us-west-1.rds.amazonaws.com user=root password=b5OKda1Twb1r dbname=%s port=5432 sslmode=disable", dbName)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), dbName, os.Getenv("DB_PORT"))
 	return getDB(dsn)
 }
 
