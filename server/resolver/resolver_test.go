@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/99designs/gqlgen/client"
@@ -9,9 +10,15 @@ import (
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/Luismorlan/newsmux/utils"
+	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
+
+func TestMain(m *testing.M) {
+	dotenv.LoadDotEnvsInTests()
+	os.Exit(m.Run())
+}
 
 func PrepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &Resolver{

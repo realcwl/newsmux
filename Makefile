@@ -16,3 +16,6 @@ run_prodserver:
 fmt:
 	$(info ******************** checking formatting ********************)
 	@test -z $(shell gofmt -l $(SRC)) || (gofmt -d $(SRC); exit 1)
+
+test:
+	NEWSMUX_ENV=test go test ./...

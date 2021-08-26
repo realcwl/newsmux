@@ -39,7 +39,8 @@ func getDefaultDBConnection() (*gorm.DB, error) {
 
 // getCustomizedConnection connect to customized database
 func getCustomizedConnection(dbName string) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), dbName, os.Getenv("DB_PORT"))
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), dbName, os.Getenv("DB_PORT"))
+	fmt.Println("dsn???", dsn)
 	return getDB(dsn)
 }
 
