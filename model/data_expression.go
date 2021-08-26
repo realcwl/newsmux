@@ -12,10 +12,10 @@ type DataExpressionWrap struct {
 	Expr ExpressionNode `json:"expr"`
 }
 
-// DataExpression is empty iff both fields are unset. This kind of expression
-// is also called pure id expression, which is a mechanism for frontend to know
-// where it can insert sub expression. Pure id expression is rendered as "+"
-// button and has no semantic meaning when doing expression matching.
+// DataExpression is expression is unset. This kind of expression is also called
+// pure id expression, which is a mechanism for frontend to know where it can
+// insert sub expression. Pure id expression is rendered as "+" button and has
+// no semantic meaning when doing expression matching.
 func (dataExpressionWrap DataExpressionWrap) IsEmpty() bool {
 	return dataExpressionWrap.Expr == nil
 }
