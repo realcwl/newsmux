@@ -5,13 +5,61 @@ import (
 	"fmt"
 
 	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/publisher"
 	"github.com/Luismorlan/newsmux/utils"
+	"gorm.io/gorm"
 )
 
 const (
 	feedRefreshLimit = 30
 	defaultCursor    = -1
 )
+
+// Redo posts publish to feeds
+// This is done by load all posts in subsources in a feed
+// And go over each post check if match with feed's data expression
+//
+func rePublishPostsForFeed(db *gorm.DB, feed *model.Feed, input model.UpsertFeedInput, limit int, maxDBLookupBatches int) {
+	var (
+		postsToPublish []model.Post
+		batches        = 0
+		oldestCursor   = 2147483647
+	)
+
+	for {
+		var postsCandidates []model.Post
+		// 1. Read subsources' most recent posts
+		db.Debug().Model(&model.Post{}).
+			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
+			Where("sub_sources.id IN ? AND posts.cursor < ?", input.SubSourceIds, oldestCursor).
+			Order("cursor desc").
+			Limit(limit).
+			Find(&postsCandidates)
+
+		fmt.Println(postsCandidates)
+		fmt.Println(len(postsCandidates))
+
+		// 2. Try match postsCandidate with Feed
+		for _, post := range postsCandidates {
+			oldestCursor = int(post.Cursor)
+			matched, error := publisher.DataExpressionMatchPost(input.FilterDataExpression, post)
+			if error != nil {
+				continue
+			}
+			if matched {
+				postsToPublish = append(postsToPublish, post)
+			}
+		}
+
+		if len(postsToPublish) >= limit || batches > maxDBLookupBatches {
+			break
+		}
+		batches = batches + 1
+	}
+
+	db.Model(&feed).Association("Posts").Delete()
+	db.Model(&feed).Association("Posts").Replace(postsToPublish)
+}
 
 // Given a list of FeedRefreshInput, get posts for the requested feeds
 // Do it by iterating through feeds
@@ -47,7 +95,7 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 
 		// Fill in posts
 		limit := utils.Min(feedRefreshLimit, query.Limit)
-		if err := getOneFeedRefreshPosts(r, &feed, cursor, direction, limit); err != nil {
+		if err := getOneFeedRefreshPosts(r.DB, &feed, cursor, direction, limit); err != nil {
 			return []*model.Feed{}, fmt.Errorf("failure when get posts for feed id %s", feedID)
 		}
 		results = append(results, &feed)
@@ -56,10 +104,10 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 	return results, nil
 }
 
-func getOneFeedRefreshPosts(r *queryResolver, feed *model.Feed, cursor int, direction model.FeedRefreshDirection, limit int) error {
+func getOneFeedRefreshPosts(db *gorm.DB, feed *model.Feed, cursor int, direction model.FeedRefreshDirection, limit int) error {
 	var posts []*model.Post
 	if direction == model.FeedRefreshDirectionNew {
-		r.DB.Model(&model.Post{}).
+		db.Model(&model.Post{}).
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor > ?", feed.Id, cursor).
@@ -67,7 +115,7 @@ func getOneFeedRefreshPosts(r *queryResolver, feed *model.Feed, cursor int, dire
 			Limit(limit).
 			Find(&posts)
 	} else {
-		r.DB.Model(&model.Post{}).
+		db.Model(&model.Post{}).
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor < ?", feed.Id, cursor).

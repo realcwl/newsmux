@@ -21,7 +21,6 @@ type PostFeedPublish struct {
 	PostID    string `gorm:"primaryKey"`
 	FeedID    string `gorm:"primaryKey"`
 	CreatedAt time.Time
-	DeletedAt gorm.DeletedAt
 }
 
 func (PostFeedPublish) BeforeCreate(db *gorm.DB) error {

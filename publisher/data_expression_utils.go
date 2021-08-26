@@ -10,6 +10,10 @@ import (
 
 // TODO(jamie): optimize by first parsing json and match later
 func DataExpressionMatchPost(jsonStr string, post model.Post) (bool, error) {
+	if len(jsonStr) == 0 {
+		return true, nil
+	}
+
 	var res model.DataExpressionRoot
 	json.Unmarshal([]byte(jsonStr), &res)
 	return DataExpressionMatch(res.Root, post)

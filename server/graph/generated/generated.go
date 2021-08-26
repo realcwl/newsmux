@@ -71,13 +71,13 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateFeed      func(childComplexity int, input model.NewFeedInput) int
 		CreatePost      func(childComplexity int, input model.NewPostInput) int
 		CreateSource    func(childComplexity int, input model.NewSourceInput) int
 		CreateSubSource func(childComplexity int, input model.NewSubSourceInput) int
 		CreateUser      func(childComplexity int, input model.NewUserInput) int
 		Subscribe       func(childComplexity int, input model.SubscribeInput) int
 		SyncUp          func(childComplexity int, input *model.SeedStateInput) int
+		UpsertFeed      func(childComplexity int, input model.UpsertFeedInput) int
 	}
 
 	Post struct {
@@ -166,7 +166,7 @@ type FeedResolver interface {
 }
 type MutationResolver interface {
 	CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error)
-	CreateFeed(ctx context.Context, input model.NewFeedInput) (*model.Feed, error)
+	UpsertFeed(ctx context.Context, input model.UpsertFeedInput) (*model.Feed, error)
 	CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error)
 	Subscribe(ctx context.Context, input model.SubscribeInput) (*model.User, error)
 	CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error)
@@ -301,18 +301,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FeedSeedState.Name(childComplexity), true
 
-	case "Mutation.createFeed":
-		if e.complexity.Mutation.CreateFeed == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createFeed_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateFeed(childComplexity, args["input"].(model.NewFeedInput)), true
-
 	case "Mutation.createPost":
 		if e.complexity.Mutation.CreatePost == nil {
 			break
@@ -384,6 +372,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.SyncUp(childComplexity, args["input"].(*model.SeedStateInput)), true
+
+	case "Mutation.upsertFeed":
+		if e.complexity.Mutation.UpsertFeed == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_upsertFeed_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpsertFeed(childComplexity, args["input"].(model.UpsertFeedInput)), true
 
 	case "Post.content":
 		if e.complexity.Post.Content == nil {
@@ -965,8 +965,9 @@ input NewUserInput {
   name: String!
 }
 
-input NewFeedInput {
+input UpsertFeedInput {
   userId: String!
+  feedId: String
   name: String!
   filterDataExpression: String!
   subSourceIds: [String!]!
@@ -1014,7 +1015,7 @@ input FeedsGetPostsInput {
 
 type Mutation {
   createUser(input: NewUserInput!): User!
-  createFeed(input: NewFeedInput!): Feed!
+  upsertFeed(input: UpsertFeedInput!): Feed!
   # TODO: for testing purpose, real post is created by crawler and publisher
   createPost(input: NewPostInput!): Post!
   # TODO: what should be a better output
@@ -1096,21 +1097,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) field_Mutation_createFeed_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.NewFeedInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewFeedInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewFeedInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
 
 func (ec *executionContext) field_Mutation_createPost_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1194,6 +1180,21 @@ func (ec *executionContext) field_Mutation_syncUp_args(ctx context.Context, rawA
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalOSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedStateInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_upsertFeed_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpsertFeedInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUpsertFeedInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUpsertFeedInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1741,7 +1742,7 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	return ec.marshalNUser2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createFeed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_upsertFeed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1758,7 +1759,7 @@ func (ec *executionContext) _Mutation_createFeed(ctx context.Context, field grap
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createFeed_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_upsertFeed_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1766,7 +1767,7 @@ func (ec *executionContext) _Mutation_createFeed(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateFeed(rctx, args["input"].(model.NewFeedInput))
+		return ec.resolvers.Mutation().UpsertFeed(rctx, args["input"].(model.UpsertFeedInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5008,50 +5009,6 @@ func (ec *executionContext) unmarshalInputFeedsGetPostsInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewFeedInput(ctx context.Context, obj interface{}) (model.NewFeedInput, error) {
-	var it model.NewFeedInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "userId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "filterDataExpression":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filterDataExpression"))
-			it.FilterDataExpression, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "subSourceIds":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subSourceIds"))
-			it.SubSourceIds, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputNewPostInput(ctx context.Context, obj interface{}) (model.NewPostInput, error) {
 	var it model.NewPostInput
 	var asMap = obj.(map[string]interface{})
@@ -5259,6 +5216,58 @@ func (ec *executionContext) unmarshalInputSubscribeInput(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedId"))
 			it.FeedID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpsertFeedInput(ctx context.Context, obj interface{}) (model.UpsertFeedInput, error) {
+	var it model.UpsertFeedInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "userId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "feedId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedId"))
+			it.FeedID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "filterDataExpression":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filterDataExpression"))
+			it.FilterDataExpression, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "subSourceIds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subSourceIds"))
+			it.SubSourceIds, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5494,8 +5503,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "createFeed":
-			out.Values[i] = ec._Mutation_createFeed(ctx, field)
+		case "upsertFeed":
+			out.Values[i] = ec._Mutation_upsertFeed(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6496,11 +6505,6 @@ func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNNewFeedInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewFeedInput(ctx context.Context, v interface{}) (model.NewFeedInput, error) {
-	res, err := ec.unmarshalInputNewFeedInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNNewPostInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewPostInput(ctx context.Context, v interface{}) (model.NewPostInput, error) {
 	res, err := ec.unmarshalInputNewPostInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -6751,6 +6755,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNUpsertFeedInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUpsertFeedInput(ctx context.Context, v interface{}) (model.UpsertFeedInput, error) {
+	res, err := ec.unmarshalInputUpsertFeedInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNUser2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {

@@ -58,8 +58,9 @@ input NewUserInput {
   name: String!
 }
 
-input NewFeedInput {
+input UpsertFeedInput {
   userId: String!
+  feedId: String
   name: String!
   filterDataExpression: String!
   subSourceIds: [String!]!
@@ -107,7 +108,7 @@ input FeedsGetPostsInput {
 
 type Mutation {
   createUser(input: NewUserInput!): User!
-  createFeed(input: NewFeedInput!): Feed!
+  upsertFeed(input: UpsertFeedInput!): Feed!
   # TODO: for testing purpose, real post is created by crawler and publisher
   createPost(input: NewPostInput!): Post!
   # TODO: what should be a better output
