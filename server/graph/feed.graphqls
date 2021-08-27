@@ -2,7 +2,6 @@ type Feed implements FeedSeedStateInterface @goModel(model: "model.Feed") {
   id: String!
   createdAt: Time!
   updatedAt: Time!
-  deletedAt: Time
   creator: User
   name: String!
   subscribers: [User!]!
