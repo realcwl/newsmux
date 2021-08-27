@@ -7,4 +7,4 @@ docker run -i --rm postgres pg_dump \
   -h $RDSHOST \
   -p 5432 \
   -U root \
-  -W -d postgres > dump.sql
+  -W -d dev_jamie > dump.sql
