@@ -24,7 +24,7 @@ func loadDotEnvs(rootPath string) {
 
 	// .env.[runtime_env].local has highest priority, usually contains username and password and other sensitive information
 	godotenv.Load(rootPath + ".env." + env + ".local")
-	godotenv.Load(rootPath + ".env." + ".local")
+	godotenv.Load(rootPath + ".env.local")
 	// .env.[runtime_env] usually contains db connection information
 	godotenv.Load(rootPath + ".env." + env)
 	// .env usually contains shared variables(which might be overwritten by envs above)

@@ -32,15 +32,14 @@ func randomTestDBName() string {
 	return TestDBPrefix + RandomAlphabetString(TestDBNameCharLength)
 }
 
-// getDefaultDBConnection returns a connection to the default database postgres.
-func getDefaultDBConnection() (*gorm.DB, error) {
-	return getCustomizedConnection("postgres")
+// getCustomizedConnection connect to customized database
+func GetDBConnection() (*gorm.DB, error) {
+	return GetCustomizedConnection(os.Getenv("DB_NAME"))
 }
 
-// getCustomizedConnection connect to customized database
-func getCustomizedConnection(dbName string) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), dbName, os.Getenv("DB_PORT"))
-	fmt.Println("dsn???", dsn)
+func GetCustomizedConnection(dbname string) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), dbname, os.Getenv("DB_PORT"))
+	fmt.Println("whatdsn", dsn)
 	return getDB(dsn)
 }
 
@@ -57,7 +56,7 @@ func getCustomizedConnection(dbName string) (*gorm.DB, error) {
 func CreateTempDB(t *testing.T) (*gorm.DB, string) {
 	t.Helper()
 
-	db, err := getDefaultDBConnection()
+	db, err := GetDBConnection()
 
 	if err != nil {
 		log.Fatalln("cannot connect to DB")
@@ -70,7 +69,7 @@ func CreateTempDB(t *testing.T) (*gorm.DB, string) {
 		log.Fatalln("fail to create temp DB with name: ", dbName)
 	}
 
-	newDB, err := getCustomizedConnection(dbName)
+	newDB, err := GetCustomizedConnection(dbName)
 	if err != nil {
 		log.Fatalln("fail to connect to newly created DB: ", dbName)
 	}
@@ -109,24 +108,12 @@ func dropTempDB(curDB *gorm.DB, dbName string) {
 	}
 	sqlDB.Close()
 
-	db, err := getDefaultDBConnection()
+	db, err := GetDBConnection()
 
 	if err != nil {
 		log.Fatalln("cannot connect to DB")
 	}
 	db.Exec("DROP DATABASE " + dbName)
-}
-
-// Get DB instance for development
-func GetDBDev() (db *gorm.DB, err error) {
-	// TODO(jamie): move to .env
-	return getCustomizedConnection("dev_warren")
-}
-
-// Get DB instance for production
-func GetDBProduction() (db *gorm.DB, err error) {
-	// TODO(jamie): move to .env
-	return getCustomizedConnection("dev_warren")
 }
 
 func getDB(connectionString string) (db *gorm.DB, err error) {
@@ -171,7 +158,7 @@ func DatabaseSetupAndMigration(db *gorm.DB) {
 
 // IsDatabaseExist returns true on DB exist, returns false on not exist or error
 func IsDatabaseExist(dbName string) (bool, error) {
-	db, err := getDefaultDBConnection()
+	db, err := GetCustomizedConnection(dbName)
 	if err != nil {
 		return false, err
 	}

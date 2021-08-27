@@ -9,7 +9,7 @@ services:
     environment:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=r1o2c3k4!
-      - POSTGRES_DB=localdb
+      - POSTGRES_DB=postgres
     shm_size: 1g
     ports:
       - "5432:5432"
