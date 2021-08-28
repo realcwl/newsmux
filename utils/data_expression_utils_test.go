@@ -1,4 +1,4 @@
-package publisher
+package utils
 
 import (
 	"encoding/json"
@@ -10,70 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	// develop based on this json structure, if there is any changes in json structure
-	// please also change this in order to keep unit test still alive
-	jsonStringForTest = `
-	{
-		"dataExpression":{
-		   "id":"1",
-		   "expr":{
-			  "allOf":[
-				 {
-					"id":"1.1",
-					"expr":{
-					   "anyOf":[
-						  {
-							 "id":"1.1.1",
-							 "expr":{
-								"pred":{
-								   "type":"LITERAL",
-								   "param":{
-									  "text":"bitcoin"
-								   }
-								}
-							 }
-						  },
-						  {
-							 "id":"1.1.2",
-							 "expr":{
-								"pred":{
-								   "type":"LITERAL",
-								   "param":{
-									  "text":"以太坊"
-								   }
-								}
-							 }
-						  }
-					   ]
-					}
-				 },
-				 {
-					"id":"1.2",
-					"expr":{
-					   "notTrue":{
-						  "id":"1.2.1",
-						  "expr":{
-							 "pred":{
-								"type":"LITERAL",
-								"param":{
-								   "text":"马斯克"
-								}
-							 }
-						  }
-					   }
-					}
-				 }
-			  ]
-		   }
-		}
-	 }
-	`
-)
-
 func TestDataExpressionUnmarshal(t *testing.T) {
 	t.Run("Test unmarshal 1", func(t *testing.T) {
-		jsonStr := jsonStringForTest
+		jsonStr := DataExpressionJsonForTest
 		// Check  marshal - unmarshal are consistent
 		var root model.DataExpressionRoot
 		json.Unmarshal([]byte(jsonStr), &root)
@@ -151,7 +90,6 @@ func TestDataExpressionMatch(t *testing.T) {
 		fmt.Printf("%+v \n", res.Root.Expr)
 
 		bytes2, _ := json.Marshal(res)
-		fmt.Println(string(bytes2))
 
 		matched, err := DataExpressionMatch(res.Root, model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
@@ -172,19 +110,19 @@ func TestDataExpressionMatch(t *testing.T) {
 
 	t.Run("Test matching from json string", func(t *testing.T) {
 
-		matched, err := DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "马斯克做空以太坊"})
+		matched, err := DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "老王做空以太坊"})
+		matched, err = DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "老王做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 
-		matched, err = DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "老王做空比特币"})
+		matched, err = DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "老王做空比特币"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "老王做空bitcoin"})
+		matched, err = DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "老王做空bitcoin"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 	})
