@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -44,16 +45,26 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	var (
 		user          model.User
 		feed          model.Feed
-		id            = uuid.New().String()
 		needRePublish = true
 	)
 
-	// If it is update, check if re-publish is needed
-	if input.FeedID != nil {
-		id = *input.FeedID
-		r.DB.Where("id = ?", id).Preload("SubSources").Preload("Posts").First(&feed)
-		needRePublish = false
+	// get creator user
+	userID := input.UserID
+	queryResult := r.DB.Where("id = ?", userID).First(&user)
+	if queryResult.RowsAffected != 1 {
+		return nil, errors.New("invalid user id")
+	}
 
+	if input.FeedID != nil {
+		// If it is update:
+		// 1. read from DB
+		queryResult := r.DB.Debug().Where("id = ?", *input.FeedID).Preload("SubSources").Preload("Posts").First(&feed)
+		if queryResult.RowsAffected != 1 {
+			return nil, errors.New("invalid feed id")
+		}
+
+		// 2. check if re-publish is needed
+		needRePublish = false
 		var subsourceIds []string
 		for _, subsource := range feed.SubSources {
 			subsourceIds = append(subsourceIds, subsource.Id)
@@ -61,29 +72,37 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 		if feed.FilterDataExpression.String() != input.FilterDataExpression || !reflect.DeepEqual(subsourceIds, input.SubSourceIds) {
 			needRePublish = true
 		}
+
+		// Update feed object
+		feed.Name = input.Name
+		feed.Creator = user
+		feed.FilterDataExpression = datatypes.JSON(input.FilterDataExpression)
+	} else {
+		// If it is insert, create feed object
+		feed = model.Feed{
+			Id:                   uuid.New().String(),
+			Name:                 input.Name,
+			Creator:              user,
+			FilterDataExpression: datatypes.JSON(input.FilterDataExpression),
+		}
 	}
 
-	// get user
-	userID := input.UserID
-	queryResult := r.DB.Where("id = ?", userID).First(&user)
-	if queryResult.RowsAffected != 1 {
-		return nil, errors.New("invalid user id")
-	}
+	// One caveat on gorm: if we don't specify a createdAt
+	// gorm will automatically update its created time after Save is called
+	// even though DB is not udpated (this is a hell of debugging)
 
-	// prepare feed to upsert
-	feed = model.Feed{
-		Id:                   id,
-		Name:                 input.Name,
-		Creator:              user,
-		FilterDataExpression: datatypes.JSON(input.FilterDataExpression),
-	}
-
+	// Upsert DB
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		// Update all columns, except primary keys and subscribers, to new value on conflict
-		r.DB.Clauses(clause.OnConflict{
+		queryResult = r.DB.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
-			DoUpdates: clause.AssignmentColumns([]string{"name", "creator_id", "filter_data_expression"}),
+			UpdateAll: false,
+			DoUpdates: clause.AssignmentColumns([]string{"name", "updated_at", "creator_id", "filter_data_expression"}),
 		}).Create(&feed)
+
+		if queryResult.RowsAffected != 1 {
+			return errors.New("can't upsert")
+		}
 
 		// Update subsources
 		var subSources []model.SubSource
@@ -97,18 +116,21 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 		return nil, err
 	}
 
+	var updatedFeed model.Feed
+	r.DB.First(&updatedFeed, "id = ?", feed.Id)
+
 	// If no data expression or subsources changed, skip, otherwise re-publish
 	if !needRePublish {
 		// get posts
 		Log.Info("update feed no re-publishing")
-		getOneFeedRefreshPosts(r.DB, &feed, -1, model.FeedRefreshDirectionNew, 20)
-		return &feed, nil
+		getOneFeedRefreshPosts(r.DB, &updatedFeed, -1, model.FeedRefreshDirectionNew, 20)
+		return &updatedFeed, nil
 	}
 
 	// Re Publish posts
 	Log.Info("update feed and need posts re-publishing")
-	rePublishPostsForFeed(r.DB, &feed, input, 20, 5)
-	return &feed, nil
+	rePublishPostsForFeed(r.DB, &updatedFeed, input, 20, 5)
+	return &updatedFeed, nil
 }
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error) {
@@ -174,7 +196,7 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 
 	result := r.DB.First(&user, "id = ?", userId)
 	if result.RowsAffected != 1 {
-		return nil, errors.New("no valid user found")
+		return nil, errors.New(fmt.Sprintf("no valid user found %s", userId))
 	}
 	if result.Error != nil {
 		return nil, result.Error
@@ -182,7 +204,7 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 
 	result = r.DB.First(&feed, "id = ?", feedId)
 	if result.RowsAffected != 1 {
-		return nil, errors.New("no valid feed found")
+		return nil, errors.New(fmt.Sprintf("no valid feed found %s", feedId))
 	}
 	if result.Error != nil {
 		return nil, result.Error

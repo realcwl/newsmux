@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -8,8 +9,145 @@ import (
 	"time"
 
 	"github.com/99designs/gqlgen/client"
+	"github.com/Luismorlan/newsmux/model"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+)
+
+const (
+	// develop based on this json structure, if there is any changes in json structure
+	// please also change this in order to keep unit test still alive
+	DataExpressionJsonForTest = `
+	{
+		"dataExpression":{
+		   "id":"1",
+		   "expr":{
+			  "allOf":[
+				 {
+					"id":"1.1",
+					"expr":{
+					   "anyOf":[
+						  {
+							 "id":"1.1.1",
+							 "expr":{
+								"pred":{
+								   "type":"LITERAL",
+								   "param":{
+									  "text":"bitcoin"
+								   }
+								}
+							 }
+						  },
+						  {
+							 "id":"1.1.2",
+							 "expr":{
+								"pred":{
+								   "type":"LITERAL",
+								   "param":{
+									  "text":"以太坊"
+								   }
+								}
+							 }
+						  }
+					   ]
+					}
+				 },
+				 {
+					"id":"1.2",
+					"expr":{
+					   "notTrue":{
+						  "id":"1.2.1",
+						  "expr":{
+							 "pred":{
+								"type":"LITERAL",
+								"param":{
+								   "text":"马斯克"
+								}
+							 }
+						  }
+					   }
+					}
+				 }
+			  ]
+		   }
+		}
+	 }
+	`
+
+	EmptyExpressionJson = `
+	{
+		"id": "1"
+	}
+	`
+
+	PureIdExpressionJson = `
+	{
+		"id":"1",
+		"expr":{
+			"allOf":[
+				{
+					"id":"1.1",
+					"expr":{
+						"anyOf":[
+							{
+								"id":"1.1.1",
+								"expr":{
+									"pred":{
+										"type":"LITERAL",
+										"param":{
+											"text":"bitcoin"
+										}
+									}
+								}
+							},
+							{
+								"id":"1.1.2",
+								"expr":{
+									"pred":{
+										"type":"LITERAL",
+										"param":{
+											"text":"以太坊"
+										}
+									}
+								}
+							},
+							{
+								"id": "1.1.3",
+								"expr": {
+									"notTrue": {
+										"id": "1.1.3.1"
+									}
+								}
+							},
+							{
+								"id": "1.1.4"
+							}
+						]
+					}
+				},
+				{
+					"id":"1.2",
+					"expr":{
+						"notTrue":{
+							"id":"1.2.1",
+							"expr":{
+								"pred":{
+									"type":"LITERAL",
+									"param":{
+										"text":"马斯克"
+									}
+								}
+							}
+						}
+					}
+				}, 
+				{
+					"id": "1.3"
+				}
+			]
+		}
+	}
+	`
 )
 
 // create user with name, do sanity checks and returns its Id
@@ -65,7 +203,7 @@ func TestCreateUserAndValidate(t *testing.T, name string, userId string, db *gor
 //
 func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, subSourceIds []string, db *gorm.DB, client *client.Client) (id string, updatedAt string) {
 	var resp struct {
-		CreateFeed struct {
+		UpsertFeed struct {
 			Id                   string `json:"id"`
 			Name                 string `json:"name"`
 			CreatedAt            string `json:"createdAt"`
@@ -75,13 +213,13 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 			SubSources           []struct {
 				Id string `json:"id"`
 			} `json:"subSources"`
-		} `json:"createFeed"`
+		} `json:"upsertFeed"`
 	}
 
 	subSourceIdsStr, _ := json.MarshalIndent(subSourceIds, "", "  ")
 
 	query := fmt.Sprintf(`mutation {
-		createFeed(input:{userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s}) {
+		upsertFeed(input:{userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s}) {
 		  id
 		  name
 		  createdAt
@@ -100,21 +238,117 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	// here the escape will happen, so in resp, the FilterDataExpression is already escaped
 	client.MustPost(query, &resp)
 
-	createTime, _ := parseGQLTimeString(resp.CreateFeed.CreatedAt)
+	createTime, _ := parseGQLTimeString(resp.UpsertFeed.CreatedAt)
 
-	require.NotEmpty(t, resp.CreateFeed.Id)
-	require.Equal(t, name, resp.CreateFeed.Name)
-	require.Equal(t, len(subSourceIds), len(resp.CreateFeed.SubSources))
+	require.NotEmpty(t, resp.UpsertFeed.Id)
+	require.Equal(t, name, resp.UpsertFeed.Name)
+	require.Equal(t, len(subSourceIds), len(resp.UpsertFeed.SubSources))
 	// original expression after escape == received and parsed expression
-	require.Equal(t, strings.ReplaceAll(filterDataExpression, `\`, ""), resp.CreateFeed.FilterDataExpression)
+	require.Equal(t, strings.ReplaceAll(filterDataExpression, `\`, ""), resp.UpsertFeed.FilterDataExpression)
 	require.Truef(t, time.Now().UnixNano() > createTime.UnixNano(), "time created wrong")
-	require.Equal(t, "", resp.CreateFeed.DeletedAt)
+	require.Equal(t, "", resp.UpsertFeed.DeletedAt)
 
 	if len(subSourceIds) > 0 {
-		require.Equal(t, subSourceIds[0], resp.CreateFeed.SubSources[0].Id)
+		require.Equal(t, subSourceIds[0], resp.UpsertFeed.SubSources[0].Id)
 	}
 
-	return resp.CreateFeed.Id, resp.CreateFeed.UpdatedAt
+	return resp.UpsertFeed.Id, resp.UpsertFeed.UpdatedAt
+}
+
+func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, client *client.Client) (postIds []string) {
+	var resp struct {
+		UpsertFeed struct {
+			Id                   string `json:"id"`
+			Name                 string `json:"name"`
+			CreatedAt            string `json:"createdAt"`
+			UpdatedAt            string `json:"updatedAt"`
+			DeletedAt            string `json:"deletedAt"`
+			FilterDataExpression string `json:"filterDataExpression"`
+			SubSources           []struct {
+				Id string `json:"id"`
+			} `json:"subSources"`
+			Subscribers []struct {
+				Id string `json:"id"`
+			} `json:"subscribers"`
+			Posts []struct {
+				Id string `json:"id"`
+			} `json:"posts"`
+		} `json:"upsertFeed"`
+	}
+
+	var subSourceIds []string
+	for _, subsource := range feed.SubSources {
+		subSourceIds = append(subSourceIds, subsource.Id)
+	}
+	subSourceIdsStr, _ := json.MarshalIndent(subSourceIds, "", "  ")
+
+	compactEscapedjson := ""
+	dataExpression, err := feed.FilterDataExpression.MarshalJSON()
+	if err == nil && string(dataExpression) != "null" {
+		compactedBuffer := new(bytes.Buffer)
+		// json needs to be compact into one line in order to comply with graphql
+		json.Compact(compactedBuffer, dataExpression)
+		compactEscapedjson = strings.ReplaceAll(compactedBuffer.String(), `"`, `\"`)
+	}
+
+	// make the create-update gap more obvious
+	time.Sleep(2 * time.Second)
+	query := fmt.Sprintf(`mutation {
+		upsertFeed(input:{feedId:"%s" userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s}) {
+		  id
+		  name
+		  createdAt
+		  updatedAt
+		  deletedAt
+		  filterDataExpression
+		  subSources {
+			id
+		  }
+		  subscribers {
+			  id
+		  }
+		  posts{
+			  id
+		  }
+		}
+	  }
+	  `, feed.Id, feed.CreatorID, feed.Name, compactEscapedjson, subSourceIdsStr)
+
+	fmt.Println(query)
+
+	// here the escape will happen, so in resp, the FilterDataExpression is already escaped
+	client.MustPost(query, &resp)
+
+	createAt, _ := parseGQLTimeString(resp.UpsertFeed.CreatedAt)
+	updatedAt, _ := parseGQLTimeString(resp.UpsertFeed.UpdatedAt)
+
+	oldCreatedAt, _ := parseGQLTimeString(serializeGQLTime(feed.CreatedAt))
+	require.Truef(t, oldCreatedAt.Equal(createAt), "created time got changed, not expected")
+	require.Truef(t, feed.CreatedAt.Before(updatedAt), "updated time should after created time")
+	require.Equal(t, feed.Id, resp.UpsertFeed.Id)
+	require.Equal(t, feed.Name, resp.UpsertFeed.Name)
+
+	compactEscapedjson = strings.ReplaceAll(compactEscapedjson, `\`, ``)
+	// resp.UpsertFeed.FilterDataExpression do not need to replace the `\`
+	// reason is:
+	// graphql needs to escape `"`, thus the client will always needs to escape strings
+	// once gqlgen gets a input string, it will do un-escape first
+	// when resolvers get a string field, it is already un-escaped
+	// so in DB the string is not escaped
+	// when we return from DB, gqlgen will automatically un-escape
+	// making FilterDataExpression a string without escape
+	jsonEqual, err := AreJSONsEqual(compactEscapedjson, resp.UpsertFeed.FilterDataExpression)
+	if err != nil {
+		fmt.Println(err)
+	}
+	require.Truef(t, jsonEqual, "data expression invalid")
+
+	var posts []string
+	for _, post := range resp.UpsertFeed.Posts {
+		posts = append(posts, post.Id)
+	}
+
+	return posts
 }
 
 // create source with name, do sanity checks and returns its Id

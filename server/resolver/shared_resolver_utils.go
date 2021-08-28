@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/Luismorlan/newsmux/model"
-	"github.com/Luismorlan/newsmux/publisher"
 	"github.com/Luismorlan/newsmux/utils"
 	"gorm.io/gorm"
 )
@@ -29,20 +28,17 @@ func rePublishPostsForFeed(db *gorm.DB, feed *model.Feed, input model.UpsertFeed
 	for {
 		var postsCandidates []model.Post
 		// 1. Read subsources' most recent posts
-		db.Debug().Model(&model.Post{}).
+		db.Model(&model.Post{}).
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ?", input.SubSourceIds, oldestCursor).
 			Order("cursor desc").
 			Limit(limit).
 			Find(&postsCandidates)
 
-		fmt.Println(postsCandidates)
-		fmt.Println(len(postsCandidates))
-
 		// 2. Try match postsCandidate with Feed
 		for _, post := range postsCandidates {
 			oldestCursor = int(post.Cursor)
-			matched, error := publisher.DataExpressionMatchPost(input.FilterDataExpression, post)
+			matched, error := utils.DataExpressionMatchPost(input.FilterDataExpression, post)
 			if error != nil {
 				continue
 			}

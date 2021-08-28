@@ -10,6 +10,7 @@ import (
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/stretchr/testify/require"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -433,4 +434,66 @@ func checkFeedTopPostsUpdateTimeChanged(t *testing.T, userId string, feedId stri
 	require.Equal(t, 1, len(resp.Feeds))
 	require.Equal(t, feedId, resp.Feeds[0].Id)
 	require.Equal(t, 7, len(resp.Feeds[0].Posts))
+}
+
+func TestUpSertFeeds(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	client := PrepareTestForGraphQLAPIs(db)
+
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "test_user_id", db, client)
+	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
+	subSourceIdOne := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "1111", sourceId, db, client)
+	subSourceIdTwo := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api_2", "2222", sourceId, db, client)
+	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", ``, []string{}, db, client)
+
+	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceIdOne, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceIdOne, feedIdOne, db, client)
+
+	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceIdTwo, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceIdTwo, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_2", subSourceIdTwo, feedIdOne, db, client)
+
+	var feed model.Feed
+	queryResult := db.Where("id = ?", feedIdOne).First(&feed)
+	require.Equal(t, int64(1), queryResult.RowsAffected)
+
+	// Re-publish when update subsource
+	var subSourceOne model.SubSource
+	db.Where("id = ?", subSourceIdOne).First(&subSourceOne)
+	require.Equal(t, int64(1), queryResult.RowsAffected)
+	feed.SubSources = []*model.SubSource{
+		&subSourceOne,
+	}
+	posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 2, len(posts))
+
+	// Re-publish when update to two subsources
+	var subSourceTwo model.SubSource
+	db.Where("id = ?", subSourceIdTwo).First(&subSourceTwo)
+	require.Equal(t, int64(1), queryResult.RowsAffected)
+	feed.SubSources = []*model.SubSource{
+		&subSourceOne,
+		&subSourceTwo,
+	}
+	posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 5, len(posts))
+
+	// Re-publish when update data expression
+	feed.FilterDataExpression = datatypes.JSON(
+		`{
+		"dataExpression":{
+		   "id":"1",
+		   "expr":{
+			"pred":{
+			   "type":"LITERAL",
+			   "param":{
+				  "text":"test_content_0"
+			   }
+			}
+		 }
+		}
+	 }`)
+	posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 2, len(posts))
 }

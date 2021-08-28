@@ -1,4 +1,4 @@
-package publisher
+package utils
 
 import (
 	"encoding/json"
