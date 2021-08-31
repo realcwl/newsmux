@@ -106,12 +106,8 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 
 		// Update subsources
 		var subSources []model.SubSource
-		fmt.Println("===============================22222222222222222222222 ")
-		fmt.Println(input.SubSourceIds)
 		r.DB.Where("id IN ?", input.SubSourceIds).Find(&subSources)
-		fmt.Println(subSources)
 		if e := r.DB.Model(&feed).Association("SubSources").Replace(subSources); e != nil {
-			fmt.Println("FAILED", e)
 			return e
 		}
 		return nil

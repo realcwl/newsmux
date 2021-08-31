@@ -242,11 +242,6 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 
 	createTime, _ := parseGQLTimeString(resp.UpsertFeed.CreatedAt)
 
-	fmt.Println("=========================")
-	fmt.Println(subSourceIds)
-	fmt.Println(resp.UpsertFeed.SubSources)
-	fmt.Println(resp)
-
 	require.NotEmpty(t, resp.UpsertFeed.Id)
 	require.Equal(t, name, resp.UpsertFeed.Name)
 	require.Equal(t, len(subSourceIds), len(resp.UpsertFeed.SubSources))
