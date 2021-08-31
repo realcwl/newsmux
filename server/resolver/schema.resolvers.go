@@ -158,6 +158,13 @@ func (r *mutationResolver) DeleteFeed(ctx context.Context, input model.DeleteFee
 		return nil, err
 	}
 
+	// Feed deletion updates seed state.
+	ss, err := getSeedStateById(r.DB, input.UserID)
+	if err != nil {
+		return nil, err
+	}
+	go func() { r.SeedStateChans.PushSeedStateToUser(ss, input.UserID) }()
+
 	return &feed, nil
 }
 
