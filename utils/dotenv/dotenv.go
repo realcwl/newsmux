@@ -1,7 +1,6 @@
 package dotenv
 
 import (
-	"fmt"
 	"os"
 	"regexp"
 
@@ -37,7 +36,6 @@ func LoadDotEnvsInTests() error {
 	re := regexp.MustCompile(`^(.*newsmux)`)
 	cwd, _ := os.Getwd()
 	rootPath := re.Find([]byte(cwd))
-	fmt.Println("I am here", string(rootPath))
 
 	loadDotEnvs(string(rootPath) + "/")
 	return nil
