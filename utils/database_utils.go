@@ -39,6 +39,7 @@ func GetDBConnection() (*gorm.DB, error) {
 
 func GetCustomizedConnection(dbname string) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), dbname, os.Getenv("DB_PORT"))
+	fmt.Println("I am there", dsn)
 	return getDB(dsn)
 }
 

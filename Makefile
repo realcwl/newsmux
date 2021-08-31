@@ -7,11 +7,11 @@ install_deps:
 
 run_devserver:
 	$(info ******************** running development server ********************)
-	NEWSMUX_ENV=dev go run ./cmd/server/main.go -dev=true 
+	NEWSMUX_ENV=dev go run ./cmd/server/main.go -dev=true -no_auth 
 
 run_prodserver:
 	$(info ******************** running production server ********************)
-	NEWSMUX_ENV=prod go run ./cmd/server/main.go -dev=false 
+	NEWSMUX_ENV=prod go run ./cmd/server/main.go -dev=false -no_auth 
 
 fmt:
 	$(info ******************** checking formatting ********************)
