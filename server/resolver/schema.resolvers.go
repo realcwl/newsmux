@@ -22,7 +22,7 @@ import (
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error) {
 	var user model.User
 	res := r.DB.Model(&model.User{}).Where("id = ?", input.ID).First(&user)
-	if res.RowsAffected != 1 {
+	if res.RowsAffected == 0 {
 		// if the user doesn't exist, create the user.
 		t := model.User{
 			Id:              input.ID,
@@ -106,18 +106,23 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 
 		// Update subsources
 		var subSources []model.SubSource
+		fmt.Println("===============================22222222222222222222222 ")
+		fmt.Println(input.SubSourceIds)
 		r.DB.Where("id IN ?", input.SubSourceIds).Find(&subSources)
+		fmt.Println(subSources)
 		if e := r.DB.Model(&feed).Association("SubSources").Replace(subSources); e != nil {
+			fmt.Println("FAILED", e)
 			return e
 		}
 		return nil
 	})
 	if err != nil {
+		fmt.Println("FAILED", err)
 		return nil, err
 	}
 
 	var updatedFeed model.Feed
-	r.DB.First(&updatedFeed, "id = ?", feed.Id)
+	r.DB.Preload(clause.Associations).First(&updatedFeed, "id = ?", feed.Id)
 
 	// If no data expression or subsources changed, skip, otherwise re-publish
 	if !needRePublish {

@@ -2,8 +2,6 @@ package publisher
 
 import (
 	b64 "encoding/base64"
-	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/99designs/gqlgen/client"
@@ -105,20 +103,14 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	db, _ := CreateTempDB(t)
 	client := PrepareTestDBClient(db)
 
-	jsonStr := DataExpressionJsonForTest
-	var dataExpressionWrap model.DataExpressionWrap
-	json.Unmarshal([]byte(jsonStr), &dataExpressionWrap)
-	bytes, _ := json.Marshal(dataExpressionWrap)
-	dataExpression := strings.ReplaceAll(string(bytes), `"`, `\"`)
-
 	uid := TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	sourceId2 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, db, client)
 	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId2, db, client)
 
-	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", dataExpression, []string{subSourceId1}, db, client)
-	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", dataExpression, []string{subSourceId1, subSourceId2}, db, client)
+	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", DataExpressionJsonForTest, []string{subSourceId1, subSourceId2}, db, client)
 	TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	TestUserSubscribeFeedAndValidate(t, uid, feedId2, db, client)
 

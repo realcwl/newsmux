@@ -19,59 +19,57 @@ const (
 	// please also change this in order to keep unit test still alive
 	DataExpressionJsonForTest = `
 	{
-		"dataExpression":{
-		   "id":"1",
-		   "expr":{
-			  "allOf":[
-				 {
+		"id":"1",
+		"expr":{
+			"allOf":[
+				{
 					"id":"1.1",
 					"expr":{
-					   "anyOf":[
-						  {
-							 "id":"1.1.1",
-							 "expr":{
+					"anyOf":[
+						{
+							"id":"1.1.1",
+							"expr":{
 								"pred":{
-								   "type":"LITERAL",
-								   "param":{
-									  "text":"bitcoin"
-								   }
-								}
-							 }
-						  },
-						  {
-							 "id":"1.1.2",
-							 "expr":{
-								"pred":{
-								   "type":"LITERAL",
-								   "param":{
-									  "text":"以太坊"
-								   }
-								}
-							 }
-						  }
-					   ]
-					}
-				 },
-				 {
-					"id":"1.2",
-					"expr":{
-					   "notTrue":{
-						  "id":"1.2.1",
-						  "expr":{
-							 "pred":{
 								"type":"LITERAL",
 								"param":{
-								   "text":"马斯克"
+									"text":"bitcoin"
 								}
-							 }
-						  }
-					   }
+								}
+							}
+						},
+						{
+							"id":"1.1.2",
+							"expr":{
+								"pred":{
+								"type":"LITERAL",
+								"param":{
+									"text":"以太坊"
+								}
+								}
+							}
+						}
+					]
 					}
-				 }
-			  ]
-		   }
+				},
+				{
+					"id":"1.2",
+					"expr":{
+					"notTrue":{
+						"id":"1.2.1",
+						"expr":{
+							"pred":{
+								"type":"LITERAL",
+								"param":{
+								"text":"马斯克"
+								}
+							}
+						}
+					}
+					}
+				}
+			]
 		}
-	 }
+	}
 	`
 
 	EmptyExpressionJson = `
@@ -217,6 +215,10 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	}
 
 	subSourceIdsStr, _ := json.MarshalIndent(subSourceIds, "", "  ")
+	compactedBuffer := new(bytes.Buffer)
+	// json needs to be compact into one line in order to comply with graphql
+	json.Compact(compactedBuffer, []byte(filterDataExpression))
+	compactEscapedjson := strings.ReplaceAll(compactedBuffer.String(), `"`, `\"`)
 
 	query := fmt.Sprintf(`mutation {
 		upsertFeed(input:{userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s}) {
@@ -231,7 +233,7 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 		  }
 		}
 	  }
-	  `, userId, name, filterDataExpression, subSourceIdsStr)
+	  `, userId, name, compactEscapedjson, subSourceIdsStr)
 
 	fmt.Println(query)
 
@@ -240,11 +242,22 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 
 	createTime, _ := parseGQLTimeString(resp.UpsertFeed.CreatedAt)
 
+	fmt.Println("=========================")
+	fmt.Println(subSourceIds)
+	fmt.Println(resp.UpsertFeed.SubSources)
+	fmt.Println(resp)
+
 	require.NotEmpty(t, resp.UpsertFeed.Id)
 	require.Equal(t, name, resp.UpsertFeed.Name)
 	require.Equal(t, len(subSourceIds), len(resp.UpsertFeed.SubSources))
-	// original expression after escape == received and parsed expression
-	require.Equal(t, strings.ReplaceAll(filterDataExpression, `\`, ""), resp.UpsertFeed.FilterDataExpression)
+	// for more detail see comments in TestUpdateFeedAndReturnPosts
+	compactEscapedjson = strings.ReplaceAll(compactEscapedjson, `\`, ``)
+	jsonEqual, err := AreJSONsEqual(compactEscapedjson, resp.UpsertFeed.FilterDataExpression)
+	if err != nil {
+		fmt.Println(err)
+	}
+	require.Truef(t, jsonEqual, "data expression invalid")
+
 	require.Truef(t, time.Now().UnixNano() > createTime.UnixNano(), "time created wrong")
 	require.Equal(t, "", resp.UpsertFeed.DeletedAt)
 

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/Luismorlan/newsmux/model"
@@ -19,10 +20,12 @@ func TestDataExpressionUnmarshal(t *testing.T) {
 		bytes, _ := json.Marshal(dataExpressionWrap)
 		var newDataExpressionWrap model.DataExpressionWrap
 
+		fmt.Println("1111111111111")
+		fmt.Println(newDataExpressionWrap)
 		json.Unmarshal(bytes, &newDataExpressionWrap)
-
+		fmt.Println("22222222222222222")
 		newBytes, _ := json.Marshal(newDataExpressionWrap)
-
+		fmt.Println("33333333333333")
 		require.True(t, cmp.Equal(dataExpressionWrap, newDataExpressionWrap))
 		require.Equal(t, bytes, newBytes)
 	})

@@ -482,18 +482,16 @@ func TestUpSertFeeds(t *testing.T) {
 	// Re-publish when update data expression
 	feed.FilterDataExpression = datatypes.JSON(
 		`{
-		"dataExpression":{
-		   "id":"1",
-		   "expr":{
-			"pred":{
-			   "type":"LITERAL",
-			   "param":{
-				  "text":"test_content_0"
-			   }
+			"id":"1",
+			"expr":{
+				"pred":{
+				"type":"LITERAL",
+				"param":{
+					"text":"test_content_0"
+				}
+				}
 			}
-		 }
-		}
-	 }`)
+	 	}`)
 	posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
 	require.Equal(t, 2, len(posts))
 }
