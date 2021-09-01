@@ -32,11 +32,17 @@ func randomTestDBName() string {
 	return TestDBPrefix + RandomAlphabetString(TestDBNameCharLength)
 }
 
-// getCustomizedConnection connect to customized database
+// GetDBConnection get a connection to the database specified by env
 func GetDBConnection() (*gorm.DB, error) {
 	return GetCustomizedConnection(os.Getenv("DB_NAME"))
 }
 
+// GetDefaultDBConnection connect to database "postgres" to manage all dbs
+func GetDefaultDBConnection() (*gorm.DB, error) {
+	return GetCustomizedConnection("postgres")
+}
+
+// GetCustomizedConnection connect to any db
 func GetCustomizedConnection(dbname string) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), dbname, os.Getenv("DB_PORT"))
 	return getDB(dsn)
@@ -55,7 +61,7 @@ func GetCustomizedConnection(dbname string) (*gorm.DB, error) {
 func CreateTempDB(t *testing.T) (*gorm.DB, string) {
 	t.Helper()
 
-	db, err := GetDBConnection()
+	db, err := GetCustomizedConnection("postgres")
 
 	if err != nil {
 		log.Fatalln("cannot connect to DB")
@@ -105,9 +111,11 @@ func dropTempDB(curDB *gorm.DB, dbName string) {
 	if err != nil {
 		log.Fatalln("cannot get the current SQL DB")
 	}
-	sqlDB.Close()
+	if err := sqlDB.Close(); err != nil {
+		log.Fatalln("cannot close DB", err)
+	}
 
-	db, err := GetDBConnection()
+	db, err := GetCustomizedConnection("postgres")
 
 	if err != nil {
 		log.Fatalln("cannot connect to DB")
@@ -157,7 +165,7 @@ func DatabaseSetupAndMigration(db *gorm.DB) {
 
 // IsDatabaseExist returns true on DB exist, returns false on not exist or error
 func IsDatabaseExist(dbName string) (bool, error) {
-	db, err := GetCustomizedConnection(dbName)
+	db, err := GetDefaultDBConnection()
 	if err != nil {
 		return false, err
 	}
