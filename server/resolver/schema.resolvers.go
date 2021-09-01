@@ -163,6 +163,7 @@ func (r *mutationResolver) DeleteFeed(ctx context.Context, input model.DeleteFee
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(r.SeedStateChans)
 	go func() { r.SeedStateChans.PushSeedStateToUser(ss, input.UserID) }()
 
 	return &feed, nil
