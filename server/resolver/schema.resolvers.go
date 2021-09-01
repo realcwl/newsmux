@@ -7,11 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
+	"github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
@@ -69,7 +69,7 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 		for _, subsource := range feed.SubSources {
 			subsourceIds = append(subsourceIds, subsource.Id)
 		}
-		if feed.FilterDataExpression.String() != input.FilterDataExpression || !reflect.DeepEqual(subsourceIds, input.SubSourceIds) {
+		if feed.FilterDataExpression.String() != input.FilterDataExpression || !utils.StringSlicesContainSameElements(subsourceIds, input.SubSourceIds) {
 			needRePublish = true
 		}
 
