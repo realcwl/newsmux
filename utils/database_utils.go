@@ -43,8 +43,8 @@ func GetDefaultDBConnection() (*gorm.DB, error) {
 }
 
 // GetCustomizedConnection connect to any db
-func GetCustomizedConnection(dbname string) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), dbname, os.Getenv("DB_PORT"))
+func GetCustomizedConnection(dbName string) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), dbName, os.Getenv("DB_PORT"))
 	return getDB(dsn)
 }
 
@@ -61,7 +61,7 @@ func GetCustomizedConnection(dbname string) (*gorm.DB, error) {
 func CreateTempDB(t *testing.T) (*gorm.DB, string) {
 	t.Helper()
 
-	db, err := GetCustomizedConnection("postgres")
+	db, err := GetDefaultDBConnection()
 
 	if err != nil {
 		log.Fatalln("cannot connect to DB")
@@ -112,7 +112,7 @@ func dropTempDB(curDB *gorm.DB, dbName string) {
 		log.Fatalln("cannot get the current SQL DB")
 	}
 	if err := sqlDB.Close(); err != nil {
-		log.Fatalln("cannot close DB", err)
+		log.Println("cannot close DB", err)
 	}
 
 	db, err := GetCustomizedConnection("postgres")
