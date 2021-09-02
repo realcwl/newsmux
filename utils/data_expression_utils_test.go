@@ -1,4 +1,4 @@
-package publisher
+package utils
 
 import (
 	"encoding/json"
@@ -9,143 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	// develop based on this json structure, if there is any changes in json structure
-	// please also change this in order to keep unit test still alive
-	jsonStringForTest = `
-	{
-		"id":"1",
-		"expr":{
-		"allOf":[
-			{
-			"id":"1.1",
-			"expr":{
-					"anyOf":[
-					{
-						"id":"1.1.1",
-						"expr":{
-						"pred":{
-								"type":"LITERAL",
-								"param":{
-								"text":"bitcoin"
-								}
-						}
-						}
-					},
-					{
-						"id":"1.1.2",
-						"expr":{
-							"pred":{
-									"type":"LITERAL",
-									"param":{
-										"text":"以太坊"
-									}
-							}
-						}
-					}
-				]
-			}
-			},
-			{
-				"id":"1.2",
-				"expr":{
-						"notTrue":{
-							"id":"1.2.1",
-							"expr":{
-								"pred":{
-									"type":"LITERAL",
-									"param":{
-										"text":"马斯克"
-									}
-								}
-							}
-						}
-					}
-				}
-			]
-		}
-	}
-	`
-
-	jsonWithEmptyExpression = `
-	{
-		"id": "1"
-	}
-	`
-
-	jsonWithPureIdExpression = `
-	{
-		"id":"1",
-		"expr":{
-			"allOf":[
-				{
-					"id":"1.1",
-					"expr":{
-						"anyOf":[
-							{
-								"id":"1.1.1",
-								"expr":{
-									"pred":{
-										"type":"LITERAL",
-										"param":{
-											"text":"bitcoin"
-										}
-									}
-								}
-							},
-							{
-								"id":"1.1.2",
-								"expr":{
-									"pred":{
-										"type":"LITERAL",
-										"param":{
-											"text":"以太坊"
-										}
-									}
-								}
-							},
-							{
-								"id": "1.1.3",
-								"expr": {
-									"notTrue": {
-										"id": "1.1.3.1"
-									}
-								}
-							},
-							{
-								"id": "1.1.4"
-							}
-						]
-					}
-				},
-				{
-					"id":"1.2",
-					"expr":{
-						"notTrue":{
-							"id":"1.2.1",
-							"expr":{
-								"pred":{
-									"type":"LITERAL",
-									"param":{
-										"text":"马斯克"
-									}
-								}
-							}
-						}
-					}
-				}, 
-				{
-					"id": "1.3"
-				}
-			]
-		}
-	}
-	`
-)
-
 func TestDataExpressionUnmarshal(t *testing.T) {
 	t.Run("Test unmarshal 1", func(t *testing.T) {
-		jsonStr := jsonStringForTest
+		jsonStr := DataExpressionJsonForTest
 		// Check  marshal - unmarshal are consistent
 		var dataExpressionWrap model.DataExpressionWrap
 		json.Unmarshal([]byte(jsonStr), &dataExpressionWrap)
@@ -217,6 +83,7 @@ func TestDataExpressionMatch(t *testing.T) {
 		json.Unmarshal(bytes, &res)
 
 		matched, err := DataExpressionMatch(res, model.Post{Content: "马斯克做空以太坊"})
+
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
@@ -235,51 +102,51 @@ func TestDataExpressionMatch(t *testing.T) {
 
 	t.Run("Test matching from json string", func(t *testing.T) {
 
-		matched, err := DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "马斯克做空以太坊"})
+		matched, err := DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "老王做空以太坊"})
+		matched, err = DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "老王做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 
-		matched, err = DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "老王做空比特币"})
+		matched, err = DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "老王做空比特币"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(jsonStringForTest, model.Post{Content: "老王做空bitcoin"})
+		matched, err = DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "老王做空bitcoin"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 	})
 
 	t.Run("Test matching from json string with pure id expression", func(t *testing.T) {
-		matched, err := DataExpressionMatchPost(jsonWithPureIdExpression, model.Post{Content: "马斯克做空以太坊"})
+		matched, err := DataExpressionMatchPost(PureIdExpressionJson, model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(jsonWithPureIdExpression, model.Post{Content: "老王做空以太坊"})
+		matched, err = DataExpressionMatchPost(PureIdExpressionJson, model.Post{Content: "老王做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 
-		matched, err = DataExpressionMatchPost(jsonWithPureIdExpression, model.Post{Content: "老王做空比特币"})
+		matched, err = DataExpressionMatchPost(PureIdExpressionJson, model.Post{Content: "老王做空比特币"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(jsonWithPureIdExpression, model.Post{Content: "老王做空bitcoin"})
+		matched, err = DataExpressionMatchPost(PureIdExpressionJson, model.Post{Content: "老王做空bitcoin"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 	})
 
 	t.Run("Empty expression should match anything", func(t *testing.T) {
-		matched, err := DataExpressionMatchPost(jsonWithEmptyExpression, model.Post{Content: "马斯克做空以太坊"})
+		matched, err := DataExpressionMatchPost(EmptyExpressionJson, model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
 		require.True(t, matched)
 
-		matched, err = DataExpressionMatchPost(jsonWithEmptyExpression, model.Post{Content: "随便一个字符串"})
+		matched, err = DataExpressionMatchPost(EmptyExpressionJson, model.Post{Content: "随便一个字符串"})
 		require.Nil(t, err)
 		require.True(t, matched)
 
-		matched, err = DataExpressionMatchPost(jsonWithEmptyExpression, model.Post{Content: "马云马斯克马克扎克伯格"})
+		matched, err = DataExpressionMatchPost(EmptyExpressionJson, model.Post{Content: "马云马斯克马克扎克伯格"})
 		require.Nil(t, err)
 		require.True(t, matched)
 	})

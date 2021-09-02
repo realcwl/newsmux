@@ -6,10 +6,13 @@ package resolver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
+	"github.com/Luismorlan/newsmux/utils"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -19,7 +22,7 @@ import (
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error) {
 	var user model.User
 	res := r.DB.Model(&model.User{}).Where("id = ?", input.ID).First(&user)
-	if res.RowsAffected != 1 {
+	if res.RowsAffected == 0 {
 		// if the user doesn't exist, create the user.
 		t := model.User{
 			Id:              input.ID,
@@ -35,48 +38,100 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserIn
 	return &user, nil
 }
 
-func (r *mutationResolver) CreateFeed(ctx context.Context, input model.NewFeedInput) (*model.Feed, error) {
-	var user model.User
+func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFeedInput) (*model.Feed, error) {
+	// Upsert a feed
+	// return feed with updated posts
+	// this needs to run publish for all posts in the subsources and do a publish online
+	var (
+		user          model.User
+		feed          model.Feed
+		needRePublish = true
+	)
 
+	// get creator user
 	userID := input.UserID
-	uuid := uuid.New().String()
-
 	queryResult := r.DB.Where("id = ?", userID).First(&user)
 	if queryResult.RowsAffected != 1 {
 		return nil, errors.New("invalid user id")
 	}
 
-	feed := model.Feed{
-		Id:                   uuid,
-		Name:                 input.Name,
-		CreatedAt:            time.Now(),
-		Creator:              user,
-		FilterDataExpression: datatypes.JSON(input.FilterDataExpression),
-		Subscribers:          []*model.User{},
-		Posts:                []*model.Post{},
+	if input.FeedID != nil {
+		// If it is update:
+		// 1. read from DB
+		queryResult := r.DB.Debug().Where("id = ?", *input.FeedID).Preload("SubSources").Preload("Posts").First(&feed)
+		if queryResult.RowsAffected != 1 {
+			return nil, errors.New("invalid feed id")
+		}
+
+		// 2. check if re-publish is needed
+		needRePublish = false
+		var subsourceIds []string
+		for _, subsource := range feed.SubSources {
+			subsourceIds = append(subsourceIds, subsource.Id)
+		}
+		if feed.FilterDataExpression.String() != input.FilterDataExpression || !utils.StringSlicesContainSameElements(subsourceIds, input.SubSourceIds) {
+			needRePublish = true
+		}
+
+		// Update feed object
+		feed.Name = input.Name
+		feed.Creator = user
+		feed.FilterDataExpression = datatypes.JSON(input.FilterDataExpression)
+	} else {
+		// If it is insert, create feed object
+		feed = model.Feed{
+			Id:                   uuid.New().String(),
+			Name:                 input.Name,
+			Creator:              user,
+			FilterDataExpression: datatypes.JSON(input.FilterDataExpression),
+		}
 	}
 
-	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		r.DB.Create(&feed)
-		for _, subSourceId := range input.SubSourceIds {
-			var subSource model.SubSource
-			result := r.DB.Where("id = ?", subSourceId).First(&subSource)
-			if result.RowsAffected != 1 {
-				return errors.New("SubSource not found")
-			}
+	// One caveat on gorm: if we don't specify a createdAt
+	// gorm will automatically update its created time after Save is called
+	// even though DB is not udpated (this is a hell of debugging)
 
-			if e := r.DB.Model(&feed).Association("SubSources").Append(&subSource); e != nil {
-				return e
-			}
+	// Upsert DB
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		// Update all columns, except primary keys and subscribers, to new value on conflict
+		queryResult = r.DB.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			UpdateAll: false,
+			DoUpdates: clause.AssignmentColumns([]string{"name", "updated_at", "creator_id", "filter_data_expression"}),
+		}).Create(&feed)
+
+		if queryResult.RowsAffected != 1 {
+			return errors.New("can't upsert")
 		}
-		// return nil will commit the whole transaction
+
+		// Update subsources
+		var subSources []model.SubSource
+		r.DB.Where("id IN ?", input.SubSourceIds).Find(&subSources)
+		if e := r.DB.Model(&feed).Association("SubSources").Replace(subSources); e != nil {
+			return e
+		}
 		return nil
 	})
 	if err != nil {
+		fmt.Println("FAILED", err)
 		return nil, err
 	}
 
-	return &feed, nil
+	var updatedFeed model.Feed
+	r.DB.Preload(clause.Associations).First(&updatedFeed, "id = ?", feed.Id)
+
+	// If no data expression or subsources changed, skip, otherwise re-publish
+	if !needRePublish {
+		// get posts
+		Log.Info("update feed no re-publishing")
+		getOneFeedRefreshPosts(r.DB, &updatedFeed, -1, model.FeedRefreshDirectionNew, 20)
+		return &updatedFeed, nil
+	}
+
+	// Re Publish posts
+	Log.Info("update feed and need posts re-publishing")
+	rePublishPostsForFeed(r.DB, &updatedFeed, input, 20, 5)
+	return &updatedFeed, nil
 }
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error) {
@@ -142,7 +197,7 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 
 	result := r.DB.First(&user, "id = ?", userId)
 	if result.RowsAffected != 1 {
-		return nil, errors.New("no valid user found")
+		return nil, errors.New(fmt.Sprintf("no valid user found %s", userId))
 	}
 	if result.Error != nil {
 		return nil, result.Error
@@ -150,7 +205,7 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 
 	result = r.DB.First(&feed, "id = ?", feedId)
 	if result.RowsAffected != 1 {
-		return nil, errors.New("no valid feed found")
+		return nil, errors.New(fmt.Sprintf("no valid feed found %s", feedId))
 	}
 	if result.Error != nil {
 		return nil, result.Error
@@ -257,14 +312,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return users, result.Error
 }
 
-func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsForUserInput) ([]*model.Feed, error) {
-	// Each feed needs to specify cursor and direction
-	// Direction = TOP:    load feed new posts with cursor larger than A (default -1), from newest one, no more than LIMIT
-	// Direction = BOTTOM: load feed old posts with cursor smaller than B (default -1), from newest one, no more than LIMIT
-	//
-	// If not specified, use TOP as direction, -1 as cursor to give newest Posts
-	// How is cursor defined:
-	//      it is an auto-increament index Posts
+func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error) {
 	feedRefreshInputs := input.FeedRefreshInputs
 
 	if len(feedRefreshInputs) == 0 {

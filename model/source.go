@@ -33,7 +33,6 @@ type Source struct {
 	Name       string
 	Domain     string
 	SubSources []SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Feeds      []*Feed     `json:"feeds" gorm:"many2many:feed_sources;"`
 }
 
 func (Source) IsSourceSeedStateInterface() {}

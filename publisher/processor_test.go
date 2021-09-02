@@ -2,8 +2,6 @@ package publisher
 
 import (
 	b64 "encoding/base64"
-	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/99designs/gqlgen/client"
@@ -12,7 +10,6 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/Luismorlan/newsmux/server/resolver"
-	"github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
@@ -55,7 +52,7 @@ func NewTestMessageQueueReader(crawlerMsgs []*protocol.CrawlerMessage) *TestMess
 }
 
 func TestDecodeCrawlerMessage(t *testing.T) {
-	db, _ := utils.CreateTempDB(t)
+	db, _ := CreateTempDB(t)
 
 	origin := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
@@ -103,25 +100,19 @@ func PrepareTestDBClient(db *gorm.DB) *client.Client {
 }
 
 func TestProcessCrawlerMessage(t *testing.T) {
-	db, _ := utils.CreateTempDB(t)
+	db, _ := CreateTempDB(t)
 	client := PrepareTestDBClient(db)
 
-	jsonStr := jsonStringForTest
-	var dataExpressionWrap model.DataExpressionWrap
-	json.Unmarshal([]byte(jsonStr), &dataExpressionWrap)
-	bytes, _ := json.Marshal(dataExpressionWrap)
-	dataExpression := strings.ReplaceAll(string(bytes), `"`, `\"`)
+	uid := TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
+	sourceId2 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
+	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, db, client)
+	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId2, db, client)
 
-	uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
-	sourceId1 := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
-	sourceId2 := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
-	subSourceId1 := utils.TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, db, client)
-	subSourceId2 := utils.TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId2, db, client)
-
-	feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", dataExpression, []string{subSourceId1}, db, client)
-	feedId2 := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", dataExpression, []string{subSourceId1, subSourceId2}, db, client)
-	utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
-	utils.TestUserSubscribeFeedAndValidate(t, uid, feedId2, db, client)
+	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", DataExpressionJsonForTest, []string{subSourceId1, subSourceId2}, db, client)
+	TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
+	TestUserSubscribeFeedAndValidate(t, uid, feedId2, db, client)
 
 	msgToTwoFeeds := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{

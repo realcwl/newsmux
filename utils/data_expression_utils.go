@@ -1,4 +1,4 @@
-package publisher
+package utils
 
 import (
 	"encoding/json"
@@ -13,6 +13,9 @@ import (
 // parsing the jsonStr into data expression because such kind of parsing is
 // expensive.
 func DataExpressionMatchPost(jsonStr string, post model.Post) (bool, error) {
+	if len(jsonStr) == 0 {
+		return true, nil
+	}
 	var dataExpressionWrap model.DataExpressionWrap
 	json.Unmarshal([]byte(jsonStr), &dataExpressionWrap)
 	return DataExpressionMatch(dataExpressionWrap, post)
