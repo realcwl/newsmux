@@ -58,7 +58,7 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	if input.FeedID != nil {
 		// If it is update:
 		// 1. read from DB
-		queryResult := r.DB.Debug().Where("id = ?", *input.FeedID).Preload("SubSources").Preload("Posts").First(&feed)
+		queryResult := r.DB.Where("id = ?", *input.FeedID).Preload("SubSources").Preload("Posts").First(&feed)
 		if queryResult.RowsAffected != 1 {
 			return nil, errors.New("invalid feed id")
 		}
@@ -124,13 +124,15 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	if !needRePublish {
 		// get posts
 		Log.Info("update feed no re-publishing")
-		getOneFeedRefreshPosts(r.DB, &updatedFeed, -1, model.FeedRefreshDirectionNew, 20)
+		getFeedPostsOrRePublish(r.DB, &updatedFeed, -1, model.FeedRefreshDirectionNew, 20)
 		return &updatedFeed, nil
 	}
 
 	// Re Publish posts
-	Log.Info("update feed and need posts re-publishing")
-	rePublishPostsForFeed(r.DB, &updatedFeed, input, 20, 5)
+	Log.Info("changed feed remove all posts in it")
+	r.DB.Where("feed_id = ?", updatedFeed.Id).Delete(&model.PostFeedPublish{})
+	updatedFeed.Posts = []*model.Post{}
+
 	return &updatedFeed, nil
 }
 
@@ -314,7 +316,6 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error) {
 	feedRefreshInputs := input.FeedRefreshInputs
-
 	if len(feedRefreshInputs) == 0 {
 		feeds, err := getUserSubscriptions(r, input.UserID)
 		if err != nil {

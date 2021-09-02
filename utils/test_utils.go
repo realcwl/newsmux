@@ -245,7 +245,15 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	require.NotEmpty(t, resp.UpsertFeed.Id)
 	require.Equal(t, name, resp.UpsertFeed.Name)
 	require.Equal(t, len(subSourceIds), len(resp.UpsertFeed.SubSources))
-	// for more detail see comments in TestUpdateFeedAndReturnPosts
+
+	// resp.UpsertFeed.FilterDataExpression do not need to replace the `\`
+	// reason is:
+	// graphql needs to escape `"`, thus the client will always needs to escape strings
+	// once gqlgen gets a input string, it will do un-escape first
+	// when resolvers get a string field, it is already un-escaped
+	// so in DB the string is not escaped
+	// when we return from DB, gqlgen will automatically un-escape
+	// making FilterDataExpression a string without escape
 	compactEscapedjson = strings.ReplaceAll(compactEscapedjson, `\`, ``)
 	jsonEqual, err := AreJSONsEqual(compactEscapedjson, resp.UpsertFeed.FilterDataExpression)
 	if err != nil {
@@ -263,7 +271,7 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	return resp.UpsertFeed.Id, resp.UpsertFeed.UpdatedAt
 }
 
-func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, client *client.Client) (postIds []string) {
+func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, client *client.Client) (updatedAt string, postIds []string) {
 	var resp struct {
 		UpsertFeed struct {
 			Id                   string `json:"id"`
@@ -327,14 +335,15 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 	// here the escape will happen, so in resp, the FilterDataExpression is already escaped
 	client.MustPost(query, &resp)
 
-	createAt, _ := parseGQLTimeString(resp.UpsertFeed.CreatedAt)
-	updatedAt, _ := parseGQLTimeString(resp.UpsertFeed.UpdatedAt)
+	createTime, _ := parseGQLTimeString(resp.UpsertFeed.CreatedAt)
+	updatedTime, _ := parseGQLTimeString(resp.UpsertFeed.UpdatedAt)
 
 	oldCreatedAt, _ := parseGQLTimeString(serializeGQLTime(feed.CreatedAt))
-	require.Truef(t, oldCreatedAt.Equal(createAt), "created time got changed, not expected")
-	require.Truef(t, feed.CreatedAt.Before(updatedAt), "updated time should after created time")
+	require.Truef(t, oldCreatedAt.Equal(createTime), "created time got changed, not expected")
+	require.Truef(t, feed.CreatedAt.Before(updatedTime), "updated time should after created time")
 	require.Equal(t, feed.Id, resp.UpsertFeed.Id)
 	require.Equal(t, feed.Name, resp.UpsertFeed.Name)
+	require.Equal(t, len(feed.SubSources), len(resp.UpsertFeed.SubSources))
 
 	compactEscapedjson = strings.ReplaceAll(compactEscapedjson, `\`, ``)
 	// resp.UpsertFeed.FilterDataExpression do not need to replace the `\`
@@ -356,7 +365,7 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 		posts = append(posts, post.Id)
 	}
 
-	return posts
+	return resp.UpsertFeed.UpdatedAt, posts
 }
 
 // create source with name, do sanity checks and returns its Id

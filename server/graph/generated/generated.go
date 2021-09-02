@@ -928,7 +928,7 @@ type Query {
   # Caller can specify only 1 or more feeds
 
   # FeedID          string					Feed id to fetch posts
-  # Limit           int						Max amount of posts shall the API return
+  # Limit           int						Max amount of posts shall the API return, at most 30
   # Cursor          int						The cursor of the pivot post
   # Direction       FeedRefreshDirection	NEW or OLD description below
   # FeedUpdatedTime *time.Time				Time stamp used to represent feed version description below
@@ -940,7 +940,7 @@ type Query {
   # 	Direction = NEW:    load feed new posts with cursor larger than cursor A (default -1), from newest one, no more than Limit
   # 	Direction = OLD: load feed old posts with cursor smaller than cursor B (default -1), from newest one, no more than Limit
 
-  # 	If not specified, use TOP as direction, -1 as cursor to give newest Posts
+  # 	If not specified, use NEW as direction, -1 as cursor to give newest Posts
 
   # 	How is cursor defined:
   # 		it is an auto-increament index Posts

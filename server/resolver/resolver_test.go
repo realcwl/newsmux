@@ -137,18 +137,21 @@ func TestQueryFeeds(t *testing.T) {
 	utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", subSourceId, feedIdTwo, db, client)
 	utils.TestCreatePostAndValidate(t, "test_title_6", "test_content_6", subSourceId, feedIdTwo, db, client)
 
-	checkFeedTopPosts(t, userId, feedIdOne, midCursorFirst, updatedTimeOne, db, client)
-	checkFeedBottomPosts(t, userId, feedIdOne, midCursorFirst, updatedTimeOne, db, client)
+	checkFeedPosts(t, userId, feedIdOne, midCursorFirst, 2, updatedTimeOne, model.FeedRefreshDirectionNew,
+		[]string{"test_content_5", "test_content_6"}, db, client)
+
+	checkFeedPosts(t, userId, feedIdOne, midCursorSecond, 2, updatedTimeOne, model.FeedRefreshDirectionOld,
+		[]string{"test_content_2", "test_content_1"}, db, client)
 
 	checkFeedTopPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, updatedTimeOne, updatedTimeTwo, db, client)
 	checkFeedBottomPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, updatedTimeOne, updatedTimeTwo, db, client)
-
 	checkFeedTopPostsWithoutSpecifyFeed(t, userId, feedIdOne, feedIdTwo, db, client)
-
 	checkFeedTopPostsUpdateTimeChanged(t, userId, feedIdOne, midCursorFirst, "2021-08-24T21:57:15-07:00", db, client)
 }
 
-func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, updatedTimeOne string, db *gorm.DB, client *client.Client) {
+func checkFeedPosts(
+	t *testing.T, userId string, feedId string, cursor int, limit int, updatedTimeOne string,
+	direction model.FeedRefreshDirection, expectedPostsIds []string, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -180,58 +183,19 @@ func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, u
 		  }
 		}
 	  }
-	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionNew, updatedTimeOne), &resp)
+	`, userId, feedId, limit, cursor, direction, updatedTimeOne), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	require.Equal(t, 1, len(resp.Feeds))
 	require.Equal(t, feedId, resp.Feeds[0].Id)
-	require.Equal(t, 2, len(resp.Feeds[0].Posts))
-	require.Equal(t, "test_title_6", resp.Feeds[0].Posts[0].Title)
-	require.Equal(t, "test_title_5", resp.Feeds[0].Posts[1].Title)
-}
+	require.Equal(t, len(expectedPostsIds), len(resp.Feeds[0].Posts))
 
-func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int, updatedTimeOne string, db *gorm.DB, client *client.Client) {
-	var resp struct {
-		Feeds []struct {
-			Id        string `json:"id"`
-			UpdatedAt string `json:"updatedAt"`
-			Posts     []struct {
-				Id      string `json:"id"`
-				Title   string `json:"title"`
-				Content string `json:"content"`
-				Cursor  int    `json:"cursor"`
-			} `json:"posts"`
-		} `json:"feeds"`
+	var postIds []string
+	for _, post := range resp.Feeds[0].Posts {
+		postIds = append(postIds, post.Id)
 	}
-
-	client.MustPost(fmt.Sprintf(`
-	query{
-		feeds (input : {
-		  userId : "%s"
-		  feedRefreshInputs : [
-			{feedId: "%s", limit: %d, cursor: %d, direction: %s, feedUpdatedTime: "%s"}
-		  ]
-		}) {
-		  id
-		  updatedAt
-		  posts {
-			id
-			title 
-			content
-			cursor
-		  }
-		}
-	  }
-	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionOld, updatedTimeOne), &resp)
-
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
-
-	require.Equal(t, 1, len(resp.Feeds))
-	require.Equal(t, feedId, resp.Feeds[0].Id)
-	require.Equal(t, 2, len(resp.Feeds[0].Posts))
-	require.Equal(t, "test_title_2", resp.Feeds[0].Posts[0].Title)
-	require.Equal(t, "test_title_1", resp.Feeds[0].Posts[1].Title)
+	utils.StringSlicesContainSameElements(postIds, expectedPostsIds)
 }
 
 func checkFeedTopPostsMultipleFeeds(
@@ -445,14 +409,14 @@ func TestUpSertFeeds(t *testing.T) {
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceIdOne := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "1111", sourceId, db, client)
 	subSourceIdTwo := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api_2", "2222", sourceId, db, client)
-	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", ``, []string{}, db, client)
+	feedIdOne, updatedTimeOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", ``, []string{}, db, client)
 
-	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceIdOne, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceIdOne, feedIdOne, db, client)
+	postId1, _ := utils.TestCreatePostAndValidate(t, "test_title_1", "same_content_test", subSourceIdOne, feedIdOne, db, client)
+	postId2, _ := utils.TestCreatePostAndValidate(t, "test_title_2", "test_content_2", subSourceIdOne, feedIdOne, db, client)
 
-	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceIdTwo, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceIdTwo, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_2", subSourceIdTwo, feedIdOne, db, client)
+	postId3, _ := utils.TestCreatePostAndValidate(t, "test_title_3", "same_content_test", subSourceIdTwo, feedIdOne, db, client)
+	postId4, _ := utils.TestCreatePostAndValidate(t, "test_title_4", "test_content_4", subSourceIdTwo, feedIdOne, db, client)
+	postId5, cursor5 := utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", subSourceIdTwo, feedIdOne, db, client)
 
 	var feed model.Feed
 	queryResult := db.Where("id = ?", feedIdOne).First(&feed)
@@ -465,8 +429,11 @@ func TestUpSertFeeds(t *testing.T) {
 	feed.SubSources = []*model.SubSource{
 		&subSourceOne,
 	}
-	posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-	require.Equal(t, 2, len(posts))
+
+	_, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 0, len(posts))
+	checkFeedPosts(t, userId, feedIdOne, -1, 999, updatedTimeOne, model.FeedRefreshDirectionNew,
+		[]string{postId1, postId2}, db, client)
 
 	// Re-publish when update to two subsources
 	var subSourceTwo model.SubSource
@@ -476,8 +443,10 @@ func TestUpSertFeeds(t *testing.T) {
 		&subSourceOne,
 		&subSourceTwo,
 	}
-	posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-	require.Equal(t, 5, len(posts))
+	updatedAt, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 0, len(posts))
+	checkFeedPosts(t, userId, feedIdOne, -1, 999, updatedAt, model.FeedRefreshDirectionNew,
+		[]string{postId1, postId2, postId3, postId4, postId5}, db, client)
 
 	// Re-publish when update data expression
 	feed.FilterDataExpression = datatypes.JSON(
@@ -487,11 +456,31 @@ func TestUpSertFeeds(t *testing.T) {
 				"pred":{
 				"type":"LITERAL",
 				"param":{
-					"text":"test_content_0"
+					"text":"same_content_test"
 				}
 				}
 			}
 	 	}`)
-	posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-	require.Equal(t, 2, len(posts))
+	updatedAt, posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 0, len(posts))
+	checkFeedPosts(t, userId, feedIdOne, -1, 999, updatedAt, model.FeedRefreshDirectionNew,
+		[]string{postId1, postId3}, db, client)
+
+	// Re-publish when update data expression
+	feed.FilterDataExpression = datatypes.JSON(``)
+	updatedAt, posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 0, len(posts))
+	checkFeedPosts(t, userId, feedIdOne, -1, 1, updatedAt, model.FeedRefreshDirectionNew,
+		[]string{postId5}, db, client)
+	// check only 1 post is published
+	var count int64
+	db.Model(&model.PostFeedPublish{}).Where("feed_id = ?", feedIdOne).Count(&count)
+	require.Equal(t, int64(1), count)
+
+	// publish more
+	checkFeedPosts(t, userId, feedIdOne, cursor5, 2, updatedAt, model.FeedRefreshDirectionOld,
+		[]string{postId4, postId3}, db, client)
+	// check only 3 post is published now after republishing
+	db.Model(&model.PostFeedPublish{}).Where("feed_id = ?", feedIdOne).Count(&count)
+	require.Equal(t, int64(3), count)
 }
