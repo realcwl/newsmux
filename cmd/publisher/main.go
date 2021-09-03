@@ -16,7 +16,7 @@ const (
 
 func main() {
 	// TODO(jamie): check if env is dev or prod
-	db, err := GetDBDev()
+	db, err := GetDBConnection()
 	if err != nil {
 		// TODO(Jamie): check env and move to datadog if it is prod
 		panic("failed to connect database")

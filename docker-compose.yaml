@@ -1,0 +1,15 @@
+version: "3.1"
+services:
+  postgres:
+    restart: unless-stopped
+    image: postgres:12.5
+    container_name: newsdb
+    volumes:
+      - ./dump.sql:/usr/src/dump.sql
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=r1o2c3k4!
+      - POSTGRES_DB=postgres
+    shm_size: 1g
+    ports:
+      - "5432:5432"

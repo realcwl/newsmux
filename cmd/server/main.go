@@ -8,6 +8,7 @@ import (
 	"github.com/Luismorlan/newsmux/server"
 	"github.com/Luismorlan/newsmux/server/middlewares"
 	. "github.com/Luismorlan/newsmux/utils"
+	"github.com/Luismorlan/newsmux/utils/dotenv"
 	. "github.com/Luismorlan/newsmux/utils/flag"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gin-contrib/cors"
@@ -30,6 +31,10 @@ func cleanup() {
 
 func main() {
 	defer cleanup()
+
+	if err := dotenv.LoadDotEnvs(); err != nil {
+		panic(err)
+	}
 
 	// Default With the Logger and Recovery middleware already attached
 	router := gin.Default()
