@@ -41,11 +41,10 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserIn
 func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFeedInput) (*model.Feed, error) {
 	// Upsert a feed
 	// return feed with updated posts
-	// this needs to run publish for all posts in the subsources and do a publish online
 	var (
-		user          model.User
-		feed          model.Feed
-		needRePublish = true
+		user           model.User
+		feed           model.Feed
+		needClearPosts = true
 	)
 
 	// get creator user
@@ -63,14 +62,14 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 			return nil, errors.New("invalid feed id")
 		}
 
-		// 2. check if re-publish is needed
-		needRePublish = false
+		// 2. check if dropping posts is needed
+		needClearPosts = false
 		var subsourceIds []string
 		for _, subsource := range feed.SubSources {
 			subsourceIds = append(subsourceIds, subsource.Id)
 		}
 		if feed.FilterDataExpression.String() != input.FilterDataExpression || !utils.StringSlicesContainSameElements(subsourceIds, input.SubSourceIds) {
-			needRePublish = true
+			needClearPosts = true
 		}
 
 		// Update feed object
@@ -113,7 +112,6 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 		return nil
 	})
 	if err != nil {
-		fmt.Println("FAILED", err)
 		return nil, err
 	}
 
@@ -121,15 +119,14 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	r.DB.Preload(clause.Associations).First(&updatedFeed, "id = ?", feed.Id)
 
 	// If no data expression or subsources changed, skip, otherwise re-publish
-	if !needRePublish {
+	if !needClearPosts {
 		// get posts
-		Log.Info("update feed no re-publishing")
-		getFeedPostsOrRePublish(r.DB, &updatedFeed, -1, model.FeedRefreshDirectionNew, 20)
+		Log.Info("update feed metadata without clear published posts")
 		return &updatedFeed, nil
 	}
 
 	// Re Publish posts
-	Log.Info("changed feed remove all posts in it")
+	Log.Info("changed feed clear all posts published")
 	r.DB.Where("feed_id = ?", updatedFeed.Id).Delete(&model.PostFeedPublish{})
 	updatedFeed.Posts = []*model.Post{}
 

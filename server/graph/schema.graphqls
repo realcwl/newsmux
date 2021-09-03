@@ -15,6 +15,7 @@ type Query {
 
   # Feeds is the main API for newsfeed
   # WARNING: if you do not pass feedUpdatedTime, your curosr/direction will be ignored
+  # WARNING: please pass the cursor based on returned posts cursor, otherwise the republish will skip some posts
 
   # It is used to return posts for a feed
   # It can be called with a list of following queries, each query represent a feed
