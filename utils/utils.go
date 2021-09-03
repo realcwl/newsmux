@@ -1,7 +1,11 @@
 package utils
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/rand"
+	"reflect"
+	"sort"
 	"strings"
 	"time"
 )
@@ -34,4 +38,42 @@ func RandomAlphabetString(length int) string {
 		b.WriteRune(chars[rand.Intn(len(chars))])
 	}
 	return b.String()
+}
+
+// for testing
+func parseGQLTimeString(str string) (time.Time, error) {
+	return time.Parse(time.RFC3339, str)
+}
+
+func serializeGQLTime(t time.Time) string {
+	return t.Format(time.RFC3339)
+}
+
+func AreJSONsEqual(s1, s2 string) (bool, error) {
+
+	if len(s1) == 0 && len(s2) == 0 {
+		// both invalid json, return true
+		return true, nil
+	}
+
+	var o1 interface{}
+	var o2 interface{}
+
+	var err error
+	err = json.Unmarshal([]byte(s1), &o1)
+	if err != nil {
+		return false, fmt.Errorf("Error mashalling string 1 :: %s", err.Error())
+	}
+	err = json.Unmarshal([]byte(s2), &o2)
+	if err != nil {
+		return false, fmt.Errorf("Error mashalling string 2 :: %s", err.Error())
+	}
+
+	return reflect.DeepEqual(o1, o2), nil
+}
+
+func StringSlicesContainSameElements(s1, s2 []string) bool {
+	sort.Strings(s1)
+	sort.Strings(s2)
+	return reflect.DeepEqual(s1, s2)
 }

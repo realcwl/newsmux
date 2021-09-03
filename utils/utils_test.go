@@ -26,3 +26,11 @@ func TestRandomAlphabetString(t *testing.T) {
 		assert.NotEqual(t, first, second)
 	}
 }
+
+func TestStringSlicesContainSameElements(t *testing.T) {
+	assert.True(t, StringSlicesContainSameElements([]string{}, []string{}))
+	assert.True(t, StringSlicesContainSameElements([]string{"a", "b"}, []string{"a", "b"}))
+	assert.True(t, StringSlicesContainSameElements([]string{"a", "b"}, []string{"b", "a"}))
+	assert.False(t, StringSlicesContainSameElements([]string{"a", "b"}, []string{"b", "a", "c"}))
+	assert.False(t, StringSlicesContainSameElements([]string{"a", "b"}, []string{"b", "a", "a"}))
+}

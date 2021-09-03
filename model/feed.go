@@ -31,8 +31,8 @@ SubSources: All subsources this feed is listening to, "many-to-many" relationshi
 	Do not only rely on subsource to infer source, so that we can have Feed only subscribe to source
 */
 type Feed struct {
-	Id                   string `gorm:"primaryKey"`
-	CreatedAt            time.Time
+	Id                   string    `gorm:"primaryKey"`
+	CreatedAt            time.Time `gorm:"<-:create"`
 	UpdatedAt            time.Time
 	DeletedAt            gorm.DeletedAt
 	CreatorID            string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`

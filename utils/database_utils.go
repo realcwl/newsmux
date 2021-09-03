@@ -123,6 +123,7 @@ func dropTempDB(curDB *gorm.DB, dbName string) {
 	db.Exec("DROP DATABASE " + dbName)
 }
 
+
 func getDB(connectionString string) (db *gorm.DB, err error) {
 	return gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 }

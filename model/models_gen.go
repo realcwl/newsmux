@@ -37,16 +37,9 @@ type FeedSeedStateInput struct {
 	Name string `json:"name"`
 }
 
-type FeedsForUserInput struct {
+type FeedsGetPostsInput struct {
 	UserID            string              `json:"userId"`
 	FeedRefreshInputs []*FeedRefreshInput `json:"feedRefreshInputs"`
-}
-
-type NewFeedInput struct {
-	UserID               string   `json:"userId"`
-	Name                 string   `json:"name"`
-	FilterDataExpression string   `json:"filterDataExpression"`
-	SubSourceIds         []string `json:"subSourceIds"`
 }
 
 type NewPostInput struct {
@@ -88,6 +81,14 @@ type SeedStateInput struct {
 type SubscribeInput struct {
 	UserID string `json:"userId"`
 	FeedID string `json:"feedId"`
+}
+
+type UpsertFeedInput struct {
+	UserID               string   `json:"userId"`
+	FeedID               *string  `json:"feedId"`
+	Name                 string   `json:"name"`
+	FilterDataExpression string   `json:"filterDataExpression"`
+	SubSourceIds         []string `json:"subSourceIds"`
 }
 
 type UserSeedState struct {

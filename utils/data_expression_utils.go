@@ -1,4 +1,4 @@
-package publisher
+package utils
 
 import (
 	"encoding/json"
@@ -9,14 +9,24 @@ import (
 )
 
 // TODO(jamie): optimize by first parsing json and match later
+// TODO(jamie): should probably create a in-memory cache to avoid constant
+// parsing the jsonStr into data expression because such kind of parsing is
+// expensive.
 func DataExpressionMatchPost(jsonStr string, post model.Post) (bool, error) {
-	var res model.DataExpressionRoot
-	json.Unmarshal([]byte(jsonStr), &res)
-	return DataExpressionMatch(res.Root, post)
+	if len(jsonStr) == 0 {
+		return true, nil
+	}
+	var dataExpressionWrap model.DataExpressionWrap
+	json.Unmarshal([]byte(jsonStr), &dataExpressionWrap)
+	return DataExpressionMatch(dataExpressionWrap, post)
 }
 
-func DataExpressionMatch(node model.DataExpressionWrap, post model.Post) (bool, error) {
-	switch expr := node.Expr.(type) {
+func DataExpressionMatch(dataExpressionWrap model.DataExpressionWrap, post model.Post) (bool, error) {
+	// Empty data expression should match all post.
+	if dataExpressionWrap.IsEmpty() {
+		return true, nil
+	}
+	switch expr := dataExpressionWrap.Expr.(type) {
 	case model.AllOf:
 		if len(expr.AllOf) == 0 {
 			return true, nil
@@ -26,7 +36,7 @@ func DataExpressionMatch(node model.DataExpressionWrap, post model.Post) (bool, 
 			if err != nil {
 				return false, err
 			}
-			if match == false {
+			if !match {
 				return false, nil
 			}
 		}
@@ -40,7 +50,7 @@ func DataExpressionMatch(node model.DataExpressionWrap, post model.Post) (bool, 
 			if err != nil {
 				return false, err
 			}
-			if match == true {
+			if match {
 				return true, nil
 			}
 		}

@@ -12,6 +12,7 @@ import (
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/stretchr/testify/require"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -63,7 +64,7 @@ func TestCreateFeed(t *testing.T) {
 
 	t.Run("Test Feed Creation", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
-		feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		require.NotEmpty(t, feedId)
 	})
 }
@@ -106,7 +107,7 @@ func TestUserSubscribeFeed(t *testing.T) {
 
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
-		feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	})
 }
@@ -117,8 +118,8 @@ func TestQueryFeeds(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "test_user_id", db, client)
-	feedIdOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
-	feedIdTwo := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
+	feedIdOne, updatedTimeOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
+	feedIdTwo, updatedTimeTwo := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "123123213123", sourceId, db, client)
 	utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, db, client)
@@ -143,16 +144,18 @@ func TestQueryFeeds(t *testing.T) {
 	utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", subSourceId, feedIdTwo, db, client)
 	utils.TestCreatePostAndValidate(t, "test_title_6", "test_content_6", subSourceId, feedIdTwo, db, client)
 
-	checkFeedTopPosts(t, userId, feedIdOne, midCursorFirst, db, client)
-	checkFeedBottomPosts(t, userId, feedIdOne, midCursorFirst, db, client)
+	checkFeedTopPosts(t, userId, feedIdOne, midCursorFirst, updatedTimeOne, db, client)
+	checkFeedBottomPosts(t, userId, feedIdOne, midCursorFirst, updatedTimeOne, db, client)
 
-	checkFeedTopPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, db, client)
-	checkFeedBottomPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, db, client)
+	checkFeedTopPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, updatedTimeOne, updatedTimeTwo, db, client)
+	checkFeedBottomPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, updatedTimeOne, updatedTimeTwo, db, client)
 
 	checkFeedTopPostsWithoutSpecifyFeed(t, userId, feedIdOne, feedIdTwo, db, client)
+
+	checkFeedTopPostsUpdateTimeChanged(t, userId, feedIdOne, midCursorFirst, "2021-08-24T21:57:15-07:00", db, client)
 }
 
-func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, db *gorm.DB, client *client.Client) {
+func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, updatedTimeOne string, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -171,7 +174,7 @@ func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, d
 		feeds (input : {
 		  userId : "%s"
 		  feedRefreshInputs : [
-			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
+			{feedId: "%s", limit: %d, cursor: %d, direction: %s, feedUpdatedTime: "%s"}
 		  ]
 		}) {
 		  id
@@ -184,7 +187,7 @@ func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, d
 		  }
 		}
 	  }
-	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionNew), &resp)
+	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionNew, updatedTimeOne), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
@@ -195,7 +198,7 @@ func checkFeedTopPosts(t *testing.T, userId string, feedId string, cursor int, d
 	require.Equal(t, "test_title_5", resp.Feeds[0].Posts[1].Title)
 }
 
-func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int, db *gorm.DB, client *client.Client) {
+func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int, updatedTimeOne string, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -214,7 +217,7 @@ func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int
 		feeds (input : {
 		  userId : "%s"
 		  feedRefreshInputs : [
-			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
+			{feedId: "%s", limit: %d, cursor: %d, direction: %s, feedUpdatedTime: "%s"}
 		  ]
 		}) {
 		  id
@@ -227,7 +230,7 @@ func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int
 		  }
 		}
 	  }
-	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionOld), &resp)
+	`, userId, feedId, 2, cursor, model.FeedRefreshDirectionOld, updatedTimeOne), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
@@ -238,7 +241,10 @@ func checkFeedBottomPosts(t *testing.T, userId string, feedId string, cursor int
 	require.Equal(t, "test_title_1", resp.Feeds[0].Posts[1].Title)
 }
 
-func checkFeedTopPostsMultipleFeeds(t *testing.T, userId string, feedIdOne string, feedIdTwo string, cursorOne int, cursorTwo int, db *gorm.DB, client *client.Client) {
+func checkFeedTopPostsMultipleFeeds(
+	t *testing.T, userId string, feedIdOne string, feedIdTwo string,
+	cursorOne int, cursorTwo int, updatedTimeOne string, updatedTimeTwo string,
+	db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -257,8 +263,8 @@ func checkFeedTopPostsMultipleFeeds(t *testing.T, userId string, feedIdOne strin
 		feeds (input : {
 		  userId : "%s"
 		  feedRefreshInputs : [
-			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
-			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
+			{feedId: "%s", limit: %d, cursor: %d, direction: %s, feedUpdatedTime: "%s"}
+			{feedId: "%s", limit: %d, cursor: %d, direction: %s, feedUpdatedTime: "%s"}
 		  ]
 		}) {
 		  id
@@ -271,7 +277,8 @@ func checkFeedTopPostsMultipleFeeds(t *testing.T, userId string, feedIdOne strin
 		  }
 		}
 	  }
-	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionNew, feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionNew), &resp)
+	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionNew, updatedTimeOne,
+		feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionNew, updatedTimeTwo), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
@@ -287,7 +294,10 @@ func checkFeedTopPostsMultipleFeeds(t *testing.T, userId string, feedIdOne strin
 	require.Equal(t, "test_title_5", resp.Feeds[1].Posts[1].Title)
 }
 
-func checkFeedBottomPostsMultipleFeeds(t *testing.T, userId string, feedIdOne string, feedIdTwo string, cursorOne int, cursorTwo int, db *gorm.DB, client *client.Client) {
+func checkFeedBottomPostsMultipleFeeds(
+	t *testing.T, userId string, feedIdOne string, feedIdTwo string,
+	cursorOne int, cursorTwo int, updatedTimeOne string, updatedTimeTwo string,
+	db *gorm.DB, client *client.Client) {
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
@@ -306,8 +316,8 @@ func checkFeedBottomPostsMultipleFeeds(t *testing.T, userId string, feedIdOne st
 		feeds (input : {
 		  userId : "%s"
 		  feedRefreshInputs : [
-			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
-			{feedId: "%s", limit: %d, cursor: %d, direction: %s}
+			{feedId: "%s", limit: %d, cursor: %d, direction: %s, feedUpdatedTime: "%s"}
+			{feedId: "%s", limit: %d, cursor: %d, direction: %s, feedUpdatedTime: "%s"}
 		  ]
 		}) {
 		  id
@@ -320,7 +330,7 @@ func checkFeedBottomPostsMultipleFeeds(t *testing.T, userId string, feedIdOne st
 		  }
 		}
 	  }
-	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionOld, feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionOld), &resp)
+	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionOld, updatedTimeOne, feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionOld, updatedTimeTwo), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
@@ -390,4 +400,105 @@ func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne 
 	require.Equal(t, "test_title_2", resp.Feeds[1].Posts[4].Title)
 	require.Equal(t, "test_title_1", resp.Feeds[1].Posts[5].Title)
 	require.Equal(t, "test_title_0", resp.Feeds[1].Posts[6].Title)
+}
+
+func checkFeedTopPostsUpdateTimeChanged(t *testing.T, userId string, feedId string, cursor int, wrongUpdatedTime string, db *gorm.DB, client *client.Client) {
+	var resp struct {
+		Feeds []struct {
+			Id        string `json:"id"`
+			UpdatedAt string `json:"updatedAt"`
+			Posts     []struct {
+				Id      string `json:"id"`
+				Title   string `json:"title"`
+				Content string `json:"content"`
+				Cursor  int    `json:"cursor"`
+			} `json:"posts"`
+		} `json:"feeds"`
+	}
+
+	client.MustPost(fmt.Sprintf(`
+		query{
+			feeds (input : {
+			  userId : "%s"
+			  feedRefreshInputs : [
+				{feedId: "%s", limit: %d, cursor: %d, direction: %s, feedUpdatedTime: "%s"}
+			  ]
+			}) {
+			  id
+			  updatedAt
+			  posts {
+				id
+				title 
+				content
+				cursor
+			  }
+			}
+		  }
+		`, userId, feedId, 7, cursor, model.FeedRefreshDirectionNew, wrongUpdatedTime), &resp)
+
+	fmt.Printf("\nResponse from resolver: %+v\n", resp)
+
+	require.Equal(t, 1, len(resp.Feeds))
+	require.Equal(t, feedId, resp.Feeds[0].Id)
+	require.Equal(t, 7, len(resp.Feeds[0].Posts))
+}
+
+func TestUpSertFeeds(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	client := PrepareTestForGraphQLAPIs(db)
+
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "test_user_id", db, client)
+	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
+	subSourceIdOne := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "1111", sourceId, db, client)
+	subSourceIdTwo := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api_2", "2222", sourceId, db, client)
+	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", ``, []string{}, db, client)
+
+	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceIdOne, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceIdOne, feedIdOne, db, client)
+
+	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceIdTwo, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceIdTwo, feedIdOne, db, client)
+	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_2", subSourceIdTwo, feedIdOne, db, client)
+
+	var feed model.Feed
+	queryResult := db.Where("id = ?", feedIdOne).First(&feed)
+	require.Equal(t, int64(1), queryResult.RowsAffected)
+
+	// Re-publish when update subsource
+	var subSourceOne model.SubSource
+	db.Where("id = ?", subSourceIdOne).First(&subSourceOne)
+	require.Equal(t, int64(1), queryResult.RowsAffected)
+	feed.SubSources = []*model.SubSource{
+		&subSourceOne,
+	}
+	posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 2, len(posts))
+
+	// Re-publish when update to two subsources
+	var subSourceTwo model.SubSource
+	db.Where("id = ?", subSourceIdTwo).First(&subSourceTwo)
+	require.Equal(t, int64(1), queryResult.RowsAffected)
+	feed.SubSources = []*model.SubSource{
+		&subSourceOne,
+		&subSourceTwo,
+	}
+	posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 5, len(posts))
+
+	// Re-publish when update data expression
+	feed.FilterDataExpression = datatypes.JSON(
+		`{
+			"id":"1",
+			"expr":{
+				"pred":{
+				"type":"LITERAL",
+				"param":{
+					"text":"test_content_0"
+				}
+				}
+			}
+	 	}`)
+	posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+	require.Equal(t, 2, len(posts))
 }
