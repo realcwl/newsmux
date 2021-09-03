@@ -134,6 +134,41 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	return &updatedFeed, nil
 }
 
+func (r *mutationResolver) DeleteFeed(ctx context.Context, input model.DeleteFeedInput) (*model.Feed, error) {
+	userId := input.UserID
+	feedId := input.FeedID
+
+	var feed model.Feed
+
+	result := r.DB.First(&feed, "id = ?", feedId)
+	if result.RowsAffected != 1 {
+		return nil, errors.New("no valid feed found")
+	}
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Check ownership
+	if feed.CreatorID != userId {
+		return nil, errors.New("cannot delete a non-owned feed")
+	}
+
+	// Delete automatically cascade to join tables according to the schema.
+	if err := r.DB.Delete(&feed).Error; err != nil {
+		return nil, err
+	}
+
+	// Feed deletion updates seed state.
+	ss, err := getSeedStateById(r.DB, input.UserID)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(r.SeedStateChans)
+	go func() { r.SeedStateChans.PushSeedStateToUser(ss, input.UserID) }()
+
+	return &feed, nil
+}
+
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error) {
 	var (
 		subSource      model.SubSource

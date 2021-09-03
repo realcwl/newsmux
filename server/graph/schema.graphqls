@@ -15,7 +15,7 @@ type Query {
 
   # Feeds is the main API for newsfeed
   # WARNING: if you do not pass feedUpdatedTime, your curosr/direction will be ignored
-  
+
   # It is used to return posts for a feed
   # It can be called with a list of following queries, each query represent a feed
   # Caller can specify only 1 or more feeds
@@ -106,9 +106,15 @@ input FeedsGetPostsInput {
   feedRefreshInputs: [FeedRefreshInput!]!
 }
 
+input DeleteFeedInput {
+  userId: String!
+  feedId: String!
+}
+
 type Mutation {
   createUser(input: NewUserInput!): User!
   upsertFeed(input: UpsertFeedInput!): Feed!
+  deleteFeed(input: DeleteFeedInput!): Feed!
   # TODO: for testing purpose, real post is created by crawler and publisher
   createPost(input: NewPostInput!): Post!
   # TODO: what should be a better output

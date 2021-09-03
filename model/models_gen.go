@@ -17,6 +17,11 @@ type UserSeedStateInterface interface {
 	IsUserSeedStateInterface()
 }
 
+type DeleteFeedInput struct {
+	UserID string `json:"userId"`
+	FeedID string `json:"feedId"`
+}
+
 type FeedRefreshInput struct {
 	FeedID          string               `json:"feedId"`
 	Limit           int                  `json:"limit"`
