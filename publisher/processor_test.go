@@ -2,9 +2,7 @@ package publisher
 
 import (
 	b64 "encoding/base64"
-	"encoding/json"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/99designs/gqlgen/client"
