@@ -269,7 +269,6 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 			Name                 string `json:"name"`
 			CreatedAt            string `json:"createdAt"`
 			UpdatedAt            string `json:"updatedAt"`
-			DeletedAt            string `json:"deletedAt"`
 			FilterDataExpression string `json:"filterDataExpression"`
 			SubSources           []struct {
 				Id string `json:"id"`
@@ -306,7 +305,6 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 		  name
 		  createdAt
 		  updatedAt
-		  deletedAt
 		  filterDataExpression
 		  subSources {
 			id

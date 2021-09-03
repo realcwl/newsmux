@@ -118,14 +118,14 @@ func TestDeleteFeed(t *testing.T) {
 	t.Run("Test User delete Feed", func(t *testing.T) {
 		utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
-		feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 		utils.TestDeleteFeedAndValidate(t, uid, feedId, true, db, client)
 	})
 
 	t.Run("Test non owner delete Feed", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
-		feedId := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 		utils.TestDeleteFeedAndValidate(t, "non_owner", feedId, false, db, client)
 	})
