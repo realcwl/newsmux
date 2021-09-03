@@ -3,6 +3,7 @@ package resolver
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/utils"
@@ -109,7 +110,8 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 	limit = utils.Min(feedRefreshLimit, limit)
 
 	if fromCursor == -1 {
-		fromCursor = 2147483647
+		// cursor is int32 in Post type
+		fromCursor = math.MaxInt32
 	}
 
 	var subsourceIds []string
