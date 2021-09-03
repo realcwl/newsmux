@@ -449,13 +449,18 @@ func TestCreatePostAndValidate(t *testing.T, title string, content string, subSo
 		} `json:"createPost"`
 	}
 
+	publishFeedIds := `[]`
+	if publishFeedId != "" {
+		publishFeedIds = fmt.Sprintf(`["%s"]`, publishFeedId)
+	}
+
 	client.MustPost(fmt.Sprintf(`mutation {
 		createPost(
 			input: {
 				title: "%s"
 				content: "%s"
 				subSourceId: "%s"
-				feedsIdPublishTo: ["%s"]
+				feedsIdPublishTo: %s
 			}
 		) {
 		  id
@@ -466,7 +471,7 @@ func TestCreatePostAndValidate(t *testing.T, title string, content string, subSo
 		  deletedAt
 		}
 	  }
-	  `, title, content, subSourceId, publishFeedId), &resp)
+	  `, title, content, subSourceId, publishFeedIds), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 

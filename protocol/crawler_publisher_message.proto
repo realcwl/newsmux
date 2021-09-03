@@ -47,6 +47,9 @@ message CrawlerMessage {
     // origin_url is the url of crawled website
     // example: "http://companies.caixin.com/2021-04-10/101688620.html"
     string origin_url = 8;
+
+    // post which current post is shared from. For weibo share or retweet.
+    CrawledPost shared_from_crawled_post = 9;
   }
 
   // The post details that this message sends

@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TestMessageQueueReader struct {
@@ -218,5 +219,66 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		var post model.Post
 		processor.DB.Preload("PublishedFeeds").First(&post, "title = ?", msgDataExpressionUnMatched.Post.Title)
 		require.Equal(t, 0, len(post.PublishedFeeds))
+	})
+}
+
+func TestProcessCrawlerRetweetMessage(t *testing.T) {
+	db, _ := CreateTempDB(t)
+	client := PrepareTestDBClient(db)
+	uid := TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
+	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, db, client)
+	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+
+	msgToOneFeed := protocol.CrawlerMessage{
+		Post: &protocol.CrawlerMessage_CrawledPost{
+			SubSourceId:        subSourceId1,
+			Title:              "老王干得好", // This doesn't match data exp
+			Content:            "老王干得好",
+			ImageUrls:          []string{"1", "4"},
+			FilesUrls:          []string{"2", "3"},
+			OriginUrl:          "aaa",
+			ContentGeneratedAt: &timestamp.Timestamp{},
+			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
+				SubSourceId:        subSourceId1,
+				Title:              "老王做空以太坊", // This matches data exp
+				Content:            "老王做空以太坊详情",
+				ImageUrls:          []string{"1", "4"},
+				FilesUrls:          []string{"2", "3"},
+				OriginUrl:          "bbb",
+				ContentGeneratedAt: &timestamp.Timestamp{},
+			},
+		},
+		CrawledAt:      &timestamp.Timestamp{},
+		CrawlerIp:      "123",
+		CrawlerVersion: "vde",
+		IsTest:         false,
+	}
+	t.Run("Test Publish Post with retweet sharing", func(t *testing.T) {
+		// msgToTwoFeeds is from subsource 1 which in 2 feeds
+		reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
+			&msgToOneFeed,
+		})
+		msgs, _ := reader.ReceiveMessages(1)
+
+		// Processing
+		processor := NewPublisherMessageProcessor(reader, db)
+		err := processor.ProcessOneCralwerMessage(msgs[0])
+		require.Nil(t, err)
+
+		// Checking process result
+		var post model.Post
+		processor.DB.Preload(clause.Associations).First(&post, "title = ?", msgToOneFeed.Post.Title)
+		require.Equal(t, msgToOneFeed.Post.Title, post.Title)
+		require.Equal(t, msgToOneFeed.Post.Content, post.Content)
+		require.Equal(t, msgToOneFeed.Post.SubSourceId, post.SubSourceID)
+		require.Equal(t, 1, len(post.PublishedFeeds))
+		require.Equal(t, feedId, post.PublishedFeeds[0].Id)
+
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.Title, post.SharedFromPost.Title)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.Content, post.SharedFromPost.Content)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSourceId, post.SharedFromPost.SubSourceID)
+		require.Equal(t, true, post.SharedFromPost.InSharingChain)
+		require.Equal(t, 0, len(post.SharedFromPost.PublishedFeeds))
 	})
 }

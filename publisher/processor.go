@@ -102,10 +102,33 @@ func (processor *CrawlerpublisherMessageProcessor) prepareSubSource(id string) (
 	return nil, nil
 }
 
+func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(postInMsg *CrawlerMessage_CrawledPost, subSource *model.SubSource, isRoot bool) (post *model.Post, e error) {
+	post = &model.Post{
+		Id:             uuid.New().String(),
+		Title:          postInMsg.Title,
+		Content:        postInMsg.Content,
+		CreatedAt:      time.Now(),
+		SubSource:      *subSource,
+		SubSourceID:    postInMsg.SubSourceId,
+		SavedByUser:    []*model.User{},
+		PublishedFeeds: []*model.Feed{},
+		InSharingChain: !isRoot,
+	}
+	if postInMsg.SharedFromCrawledPost != nil {
+		sharedFromPost, e := processor.preparePostChainFromMessage(postInMsg.SharedFromCrawledPost, subSource, false)
+		if e != nil {
+			return nil, e
+		}
+		post.SharedFromPost = sharedFromPost
+		post.SharedFromPostID = &sharedFromPost.Id
+	}
+	return post, nil
+}
+
 // Process one cralwer-publisher message in following major steps:
 // Step1. decode into protobuf generated struct
 // Step2. deduplication
-// Step3. do publishing with new post
+// Step3. do publishing with new post, also handle recursive shared_from posts
 // Step4. if publishing succeeds, delete message in queue
 func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg *MessageQueueMessage) error {
 	Log.Info("process queued message")
@@ -117,6 +140,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	}
 
 	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
+	// TODO: use cralwer generated dedup_id for dedup (dedup_id is something like external identifier)
 	if duplicated, existingPost := processor.findDuplicatedPost(decodedMsg); duplicated == true {
 		return errors.New(fmt.Sprintf("message has already been processed, existing post_id: %s", existingPost.Id))
 	}
@@ -131,22 +155,19 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	feedCandidates := processor.prepareFeedCandidates(subSource)
 
 	// Create new post based on message
-	post := model.Post{
-		Id:             uuid.New().String(),
-		Title:          decodedMsg.Post.Title,
-		Content:        decodedMsg.Post.Content,
-		CreatedAt:      time.Now(),
-		SubSource:      *subSource,
-		SubSourceID:    decodedMsg.Post.SubSourceId,
-		SavedByUser:    []*model.User{},
-		PublishedFeeds: []*model.Feed{},
+	post, err := processor.preparePostChainFromMessage(decodedMsg.Post, subSource, true)
+	if err != nil {
+		return err
 	}
 
 	// Check each feed's source/subsource and data expression
 	feedsToPublish := []*model.Feed{}
 	for _, feed := range feedCandidates {
+		// since we will append pointer, we need to have a var each iteration
+		// otherwise feeds appended will be reused and all feeds in the slice are same
+		// feed := feedCandidates[ind]
 		// Once a message is matched to a feed, write the PostFeedPublish relation to DB
-		matched, err := DataExpressionMatchPost(feed.FilterDataExpression.String(), post)
+		matched, err := DataExpressionMatchPostChain(feed.FilterDataExpression.String(), post)
 		if err != nil {
 			return err
 		}
@@ -155,7 +176,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		}
 	}
 
-	// Write to DB
+	// Write to DB, post creation and publish is in a transaction
 	err = processor.DB.Transaction(func(tx *gorm.DB) error {
 		processor.DB.Create(&post)
 		processor.DB.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
