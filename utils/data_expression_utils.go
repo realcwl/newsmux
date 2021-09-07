@@ -2,10 +2,10 @@ package utils
 
 import (
 	"encoding/json"
-	"errors"
 	"strings"
 
 	"github.com/Luismorlan/newsmux/model"
+	"github.com/pkg/errors"
 )
 
 // TODO(jamie): optimize by first parsing json and match later
@@ -20,7 +20,7 @@ func DataExpressionMatchPostChain(jsonStr string, rootPost *model.Post) (bool, e
 	json.Unmarshal([]byte(jsonStr), &dataExpressionWrap)
 	matched, err := DataExpressionMatch(dataExpressionWrap, rootPost)
 	if err != nil {
-		return false, nil
+		return false, errors.Wrap(err, "data expression match failed")
 	}
 	if matched {
 		return true, nil

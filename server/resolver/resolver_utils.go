@@ -128,7 +128,7 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 		//    the shared post creation and publish is in one transaction, so the sharing can only happen
 		//    after the shared one is published.
 		//    however for re-publish,
-		db.Debug().Model(&model.Post{}).
+		db.Model(&model.Post{}).
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
 			Order("cursor desc").

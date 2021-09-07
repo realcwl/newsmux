@@ -54,7 +54,7 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(maxNum
 
 func (processor *CrawlerpublisherMessageProcessor) findDuplicatedPost(decodedMsg *CrawlerMessage) (bool, *model.Post) {
 	var post model.Post
-	queryResult := processor.DB.Debug().Where(
+	queryResult := processor.DB.Where(
 		"sub_source_id = ? AND title = ? AND content = ? ",
 		decodedMsg.Post.SubSourceId,
 		decodedMsg.Post.Title,
@@ -102,20 +102,20 @@ func (processor *CrawlerpublisherMessageProcessor) prepareSubSource(id string) (
 	return nil, nil
 }
 
-func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(postInMsg *CrawlerMessage_CrawledPost, subSource *model.SubSource, isRoot bool) (post *model.Post, e error) {
+func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(crawledPost *CrawlerMessage_CrawledPost, subSource *model.SubSource, isRoot bool) (post *model.Post, e error) {
 	post = &model.Post{
 		Id:             uuid.New().String(),
-		Title:          postInMsg.Title,
-		Content:        postInMsg.Content,
+		Title:          crawledPost.Title,
+		Content:        crawledPost.Content,
 		CreatedAt:      time.Now(),
 		SubSource:      *subSource,
-		SubSourceID:    postInMsg.SubSourceId,
+		SubSourceID:    crawledPost.SubSourceId,
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 		InSharingChain: !isRoot,
 	}
-	if postInMsg.SharedFromCrawledPost != nil {
-		sharedFromPost, e := processor.preparePostChainFromMessage(postInMsg.SharedFromCrawledPost, subSource, false)
+	if crawledPost.SharedFromCrawledPost != nil {
+		sharedFromPost, e := processor.preparePostChainFromMessage(crawledPost.SharedFromCrawledPost, subSource, false)
 		if e != nil {
 			return nil, e
 		}
