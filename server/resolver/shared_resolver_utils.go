@@ -23,8 +23,8 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 	results := []*model.Feed{}
 
 	//TODO: can be run in parallel
-	for ind, _ := range queries {
-		query := queries[ind]
+	for idx, _ := range queries {
+		query := queries[idx]
 		if query == nil {
 			// This is not expected since gqlgen guarantees it is not nil
 			continue
@@ -35,7 +35,7 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 		if queryResult.RowsAffected != 1 {
 			return []*model.Feed{}, fmt.Errorf("invalid feed id %s", query.FeedID)
 		}
-		sanitizeFeedsQueryInput(query, &feed)
+		sanitizeFeedRefreshInput(query, &feed)
 		if err := getFeedPostsOrRePublish(r.DB, &feed, query); err != nil {
 			return []*model.Feed{}, fmt.Errorf("failure when get posts for feed id %s", feed.Id)
 		}
@@ -86,14 +86,16 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 	} else {
 		// query OLD but can't satisfy the limit
 		lastCursor := query.Cursor
-		if len(posts) < query.Limit {
-			if len(posts) > 0 {
-				lastCursor = int(posts[len(posts)-1].Cursor)
-			}
-			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor)
-			// republish to fulfill the query limit
-			rePublishPostsFromCursor(db, feed, query.Limit-len(posts), lastCursor)
+		if len(posts) >= query.Limit {
+			return nil
 		}
+
+		if len(posts) > 0 {
+			lastCursor = int(posts[len(posts)-1].Cursor)
+		}
+		Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor)
+		// republish to fulfill the query limit
+		rePublishPostsFromCursor(db, feed, query.Limit-len(posts), lastCursor)
 	}
 	return nil
 }
@@ -119,10 +121,7 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 		subsourceIds = append(subsourceIds, subsource.Id)
 	}
 
-	for {
-		if len(postsToPublish) >= limit || batches > maxRepublishDBBatches {
-			break
-		}
+	for len(postsToPublish) < limit && batches <= maxRepublishDBBatches {
 		var postsCandidates []model.Post
 		// 1. Read subsources' most recent posts
 		db.Model(&model.Post{}).
@@ -133,8 +132,8 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 			Find(&postsCandidates)
 
 		// 2. Try match postsCandidate with Feed
-		for ind := range postsCandidates {
-			post := postsCandidates[ind]
+		for idx := range postsCandidates {
+			post := postsCandidates[idx]
 			fromCursor = int(post.Cursor)
 			matched, error := utils.DataExpressionMatchPost(string(feed.FilterDataExpression), post)
 			if error != nil {
@@ -165,7 +164,7 @@ func getUserSubscriptions(r *queryResolver, userID string) ([]*model.Feed, error
 	return user.SubscribedFeeds, nil
 }
 
-func sanitizeFeedsQueryInput(query *model.FeedRefreshInput, feed *model.Feed) {
+func sanitizeFeedRefreshInput(query *model.FeedRefreshInput, feed *model.Feed) {
 	// Check if requested cursors are out of sync from last feed update
 	// If out of sync, default to query latest posts
 	// Use unix() to avoid accuracy loss due to gqlgen serialization impacting matching
@@ -182,4 +181,21 @@ func sanitizeFeedsQueryInput(query *model.FeedRefreshInput, feed *model.Feed) {
 	if query.Limit < 0 || query.Limit > feedRefreshLimit {
 		query.Limit = feedRefreshLimit
 	}
+}
+
+func isClearPostsNeededForFeedsUpsert(feed *model.Feed, input *model.UpsertFeedInput) (bool, error) {
+	var subsourceIds []string
+	for _, subsource := range feed.SubSources {
+		subsourceIds = append(subsourceIds, subsource.Id)
+	}
+	dataExpressionMatched, err := utils.AreJSONsEqual(feed.FilterDataExpression.String(), input.FilterDataExpression)
+	if err != nil {
+		return false, err
+	}
+
+	if !dataExpressionMatched || !utils.StringSlicesContainSameElements(subsourceIds, input.SubSourceIds) {
+		return true, nil
+	}
+
+	return false, nil
 }

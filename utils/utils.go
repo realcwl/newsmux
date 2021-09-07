@@ -2,12 +2,13 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"reflect"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // ContainsString returns true iff the provided string slice hay contains string
@@ -54,6 +55,8 @@ func AreJSONsEqual(s1, s2 string) (bool, error) {
 	if len(s1) == 0 && len(s2) == 0 {
 		// both invalid json, return true
 		return true, nil
+	} else if len(s1) == 0 || len(s2) == 0 {
+		return false, nil
 	}
 
 	var o1 interface{}
@@ -62,11 +65,11 @@ func AreJSONsEqual(s1, s2 string) (bool, error) {
 	var err error
 	err = json.Unmarshal([]byte(s1), &o1)
 	if err != nil {
-		return false, fmt.Errorf("Error mashalling string 1 :: %s", err.Error())
+		return false, errors.Wrap(err, "Error mashalling string s1 in AreJSONsEqual()")
 	}
 	err = json.Unmarshal([]byte(s2), &o2)
 	if err != nil {
-		return false, fmt.Errorf("Error mashalling string 2 :: %s", err.Error())
+		return false, errors.Wrap(err, "Error mashalling string s2 in AreJSONsEqual()")
 	}
 
 	return reflect.DeepEqual(o1, o2), nil

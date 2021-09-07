@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Luismorlan/newsmux/model"
+	. "github.com/Luismorlan/newsmux/utils/log"
 )
 
 // TODO(jamie): optimize by first parsing json and match later
@@ -17,7 +18,12 @@ func DataExpressionMatchPost(jsonStr string, post model.Post) (bool, error) {
 		return true, nil
 	}
 	var dataExpressionWrap model.DataExpressionWrap
-	json.Unmarshal([]byte(jsonStr), &dataExpressionWrap)
+
+	if err := json.Unmarshal([]byte(jsonStr), &dataExpressionWrap); err != nil || &dataExpressionWrap == nil {
+		// TODO: unit test should not log into data dog
+		Log.Error("data expression can't be unmarshaled to dataExpressionWrap, error :", err)
+		return false, err
+	}
 	return DataExpressionMatch(dataExpressionWrap, post)
 }
 

@@ -150,4 +150,48 @@ func TestDataExpressionMatch(t *testing.T) {
 		require.Nil(t, err)
 		require.True(t, matched)
 	})
+
+	t.Run("Wrong format expression should match nothing and throw", func(t *testing.T) {
+		wrongJsonExpression := `
+		{
+			"id": "1"
+		
+		`
+		matched, err := DataExpressionMatchPost(wrongJsonExpression, model.Post{Content: "马斯克做空以太坊"})
+		require.NotNil(t, err)
+		require.False(t, matched)
+
+		rightJsonExpressionWrongStructure := `
+		{
+			"id":"1",
+			"expr":{
+				"notTrue":{
+					"id":"1.1",
+					"some_evil_field: "1",
+					"expr":{
+						"pred":{
+							"some_evil_field: "1",
+							"type":"LITERAL",
+							"param":{
+								"text":"马斯克"
+							}
+						}
+					}
+				}
+			}
+		}
+		`
+		matched, err = DataExpressionMatchPost(rightJsonExpressionWrongStructure, model.Post{Content: "马斯克做空以太坊"})
+		require.NotNil(t, err)
+		require.False(t, matched)
+
+		rightJsonExpressionWrongType := `
+		{
+			"id": 1,
+		}
+		`
+		matched, err = DataExpressionMatchPost(rightJsonExpressionWrongType, model.Post{Content: "马斯克做空以太坊"})
+		require.NotNil(t, err)
+		require.False(t, matched)
+	})
 }
