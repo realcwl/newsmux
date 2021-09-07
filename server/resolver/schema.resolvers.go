@@ -318,8 +318,8 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInp
 			feedRefreshInputs = append(feedRefreshInputs, &model.FeedRefreshInput{
 				FeedID:    feed.Id,
 				Limit:     feedRefreshLimit,
-				Cursor:    defaultCursor,
-				Direction: model.FeedRefreshDirectionNew,
+				Cursor:    defaultFeedsQueryCursor,
+				Direction: defaultFeedsQueryDirection,
 			})
 		}
 	}

@@ -1,20 +1,21 @@
 package resolver
 
 import (
-	"errors"
 	"fmt"
 	"math"
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
 const (
-	feedRefreshLimit      = 30
-	defaultCursor         = -1
-	maxRepublishDBBatches = 5
+	feedRefreshLimit           = 30
+	defaultFeedsQueryCursor    = math.MaxInt32
+	defaultFeedsQueryDirection = model.FeedRefreshDirectionOld
+	maxRepublishDBBatches      = 5
 )
 
 // Given a list of FeedRefreshInput, get posts for the requested feeds
@@ -35,9 +36,11 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 		if queryResult.RowsAffected != 1 {
 			return []*model.Feed{}, fmt.Errorf("invalid feed id %s", query.FeedID)
 		}
-		sanitizeFeedRefreshInput(query, &feed)
+		if err := sanitizeFeedRefreshInput(query, &feed); err != nil {
+			return []*model.Feed{}, errors.Wrap(err, fmt.Sprint("feed query invalid ", query))
+		}
 		if err := getFeedPostsOrRePublish(r.DB, &feed, query); err != nil {
-			return []*model.Feed{}, fmt.Errorf("failure when get posts for feed id %s", feed.Id)
+			return []*model.Feed{}, errors.Wrap(err, fmt.Sprint("failure when get posts for feed id ", feed.Id))
 		}
 		results = append(results, &feed)
 	}
@@ -71,7 +74,10 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 
 	// cases where we need republish first
 	if query.Direction == model.FeedRefreshDirectionNew {
-		// query NEW but publish table is empty
+		if len(posts) > 0 {
+			return nil
+		}
+		// check if query NEW but publish table is empty, republish in this case
 		var count int64
 		db.Model(&model.PostFeedPublish{}).
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
@@ -84,7 +90,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			fmt.Println("NOT REPUBLISHING", count)
 		}
 	} else {
-		// query OLD but can't satisfy the limit
+		// query OLD but can't satisfy the limit, republish in this case
 		lastCursor := query.Cursor
 		if len(posts) >= query.Limit {
 			return nil
@@ -110,11 +116,6 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 	)
 
 	limit = utils.Min(feedRefreshLimit, limit)
-
-	if fromCursor == -1 {
-		// cursor is int32 in Post type
-		fromCursor = math.MaxInt32
-	}
 
 	var subsourceIds []string
 	for _, subsource := range feed.SubSources {
@@ -164,7 +165,15 @@ func getUserSubscriptions(r *queryResolver, userID string) ([]*model.Feed, error
 	return user.SubscribedFeeds, nil
 }
 
-func sanitizeFeedRefreshInput(query *model.FeedRefreshInput, feed *model.Feed) {
+func sanitizeFeedRefreshInput(query *model.FeedRefreshInput, feed *model.Feed) error {
+	if query.Cursor < 0 {
+		return errors.New("query.Cursor should be >= 0")
+	}
+
+	if query.Limit < 0 {
+		return errors.New("query.Limit should be >= 0")
+	}
+
 	// Check if requested cursors are out of sync from last feed update
 	// If out of sync, default to query latest posts
 	// Use unix() to avoid accuracy loss due to gqlgen serialization impacting matching
@@ -173,14 +182,16 @@ func sanitizeFeedRefreshInput(query *model.FeedRefreshInput, feed *model.Feed) {
 			"requested with outdated feed updated time, feed_id=", feed.Id,
 			" query updated time=", query.FeedUpdatedTime,
 			" feed updated at=", feed.UpdatedAt)
-		query.Cursor = -1
-		query.Direction = model.FeedRefreshDirectionNew
+		query.Cursor = defaultFeedsQueryCursor
+		query.Direction = defaultFeedsQueryDirection
 	}
 
 	// Cap query limit
-	if query.Limit < 0 || query.Limit > feedRefreshLimit {
+	if query.Limit > feedRefreshLimit {
 		query.Limit = feedRefreshLimit
 	}
+
+	return nil
 }
 
 func isClearPostsNeededForFeedsUpsert(feed *model.Feed, input *model.UpsertFeedInput) (bool, error) {
