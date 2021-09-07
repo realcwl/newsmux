@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z0github.com/Luismorlan/newsmux/publisher/protocol',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1f\x63rawler_publisher_message.proto\x12\x08protocol\x1a\x1fgoogle/protobuf/timestamp.proto\"\x80\x03\n\x0e\x43rawlerMessage\x12\x32\n\x04post\x18\x01 \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPost\x12.\n\ncrawled_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncrawler_ip\x18\x03 \x01(\t\x12\x17\n\x0f\x63rawler_version\x18\x04 \x01(\t\x12\x0f\n\x07is_test\x18\x05 \x01(\x08\x1a\xcb\x01\n\x0b\x43rawledPost\x12\x0f\n\x07post_id\x18\x01 \x01(\t\x12\x15\n\rsub_source_id\x18\x02 \x01(\t\x12\r\n\x05title\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12\x12\n\nimage_urls\x18\x05 \x03(\t\x12\x12\n\nfiles_urls\x18\x06 \x03(\t\x12\x38\n\x14\x63ontent_generated_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\norigin_url\x18\x08 \x01(\tB2Z0github.com/Luismorlan/newsmux/publisher/protocolb\x06proto3'
+  serialized_pb=b'\n\x1f\x63rawler_publisher_message.proto\x12\x08protocol\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc8\x03\n\x0e\x43rawlerMessage\x12\x32\n\x04post\x18\x01 \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPost\x12.\n\ncrawled_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncrawler_ip\x18\x03 \x01(\t\x12\x17\n\x0f\x63rawler_version\x18\x04 \x01(\t\x12\x0f\n\x07is_test\x18\x05 \x01(\x08\x1a\x93\x02\n\x0b\x43rawledPost\x12\x0f\n\x07post_id\x18\x01 \x01(\t\x12\x15\n\rsub_source_id\x18\x02 \x01(\t\x12\r\n\x05title\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12\x12\n\nimage_urls\x18\x05 \x03(\t\x12\x12\n\nfiles_urls\x18\x06 \x03(\t\x12\x38\n\x14\x63ontent_generated_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\norigin_url\x18\x08 \x01(\t\x12\x46\n\x18shared_from_crawled_post\x18\t \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPostB2Z0github.com/Luismorlan/newsmux/publisher/protocolb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
@@ -91,6 +91,13 @@ _CRAWLERMESSAGE_CRAWLEDPOST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='shared_from_crawled_post', full_name='protocol.CrawlerMessage.CrawledPost.shared_from_crawled_post', index=8,
+      number=9, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -104,7 +111,7 @@ _CRAWLERMESSAGE_CRAWLEDPOST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=260,
-  serialized_end=463,
+  serialized_end=535,
 )
 
 _CRAWLERMESSAGE = _descriptor.Descriptor(
@@ -163,10 +170,11 @@ _CRAWLERMESSAGE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=79,
-  serialized_end=463,
+  serialized_end=535,
 )
 
 _CRAWLERMESSAGE_CRAWLEDPOST.fields_by_name['content_generated_at'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_CRAWLERMESSAGE_CRAWLEDPOST.fields_by_name['shared_from_crawled_post'].message_type = _CRAWLERMESSAGE_CRAWLEDPOST
 _CRAWLERMESSAGE_CRAWLEDPOST.containing_type = _CRAWLERMESSAGE
 _CRAWLERMESSAGE.fields_by_name['post'].message_type = _CRAWLERMESSAGE_CRAWLEDPOST
 _CRAWLERMESSAGE.fields_by_name['crawled_at'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
