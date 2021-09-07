@@ -66,7 +66,7 @@ type Post struct {
 	SharedFromPostID   *string
 	SharedFromPost     *Post
 	SavedByUser        []*User `json:"saved_by_user" gorm:"many2many;"`
-	PublishedFeeds     []*Feed `json:"published_feeds" gorm:"many2many;"`
+	PublishedFeeds     []*Feed `json:"published_feeds" gorm:"many2many;constraint:OnDelete:CASCADE;"`
 	Cursor             int32   `gorm:"autoIncrement"`
 	CrawledAt          time.Time
 	OriginUrl          string

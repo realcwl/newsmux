@@ -113,9 +113,15 @@ input FeedsGetPostsInput {
   feedRefreshInputs: [FeedRefreshInput!]!
 }
 
+input DeleteFeedInput {
+  userId: String!
+  feedId: String!
+}
+
 type Mutation {
   createUser(input: NewUserInput!): User!
   upsertFeed(input: UpsertFeedInput!): Feed!
+  deleteFeed(input: DeleteFeedInput!): Feed!
   # TODO: for testing purpose, real post is created by crawler and publisher
   createPost(input: NewPostInput!): Post!
   # TODO: what should be a better output

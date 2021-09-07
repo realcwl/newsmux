@@ -2,6 +2,7 @@ package publisher
 
 import (
 	b64 "encoding/base64"
+	"os"
 	"testing"
 
 	"github.com/99designs/gqlgen/client"
@@ -11,6 +12,7 @@ import (
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/Luismorlan/newsmux/server/resolver"
 	. "github.com/Luismorlan/newsmux/utils"
+	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -21,6 +23,11 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+func TestMain(m *testing.M) {
+	dotenv.LoadDotEnvsInTests()
+	os.Exit(m.Run())
+}
 
 type TestMessageQueueReader struct {
 	msgs []*MessageQueueMessage

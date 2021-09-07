@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"gorm.io/datatypes"
-	"gorm.io/gorm"
 )
 
 /*
@@ -15,7 +14,6 @@ Id: primary key, use to identify a feed
 CreatedAt: time when entity is created
 UpdatedAt: time when Feed is updated. This timestamp is used to determine whether
 this feed is unchanged.
-DeletedAt: time when entity is deleted
 CreatorID:
 Creator: user who added this source, "belongs-to" relation
 
@@ -34,13 +32,12 @@ type Feed struct {
 	Id                   string    `gorm:"primaryKey"`
 	CreatedAt            time.Time `gorm:"<-:create"`
 	UpdatedAt            time.Time
-	DeletedAt            gorm.DeletedAt
 	CreatorID            string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Creator              User   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Name                 string
-	Subscribers          []*User      `json:"subscribers" gorm:"many2many;"`
-	Posts                []*Post      `json:"posts" gorm:"many2many;"`
-	SubSources           []*SubSource `json:"subSources" gorm:"many2many:feed_subsources;"`
+	Subscribers          []*User      `json:"subscribers" gorm:"many2many;constraint:OnDelete:CASCADE;"`
+	Posts                []*Post      `json:"posts" gorm:"many2many;constraint:OnDelete:CASCADE;"`
+	SubSources           []*SubSource `json:"subSources" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
 	FilterDataExpression datatypes.JSON
 }
 

@@ -9,9 +9,11 @@ The complete design can be seen in the following notion page:
 [Notion Link](https://www.notion.so/Backend-296895971b4348aab7e3909063dfc4d2)
 
 # Project layout
+
 ```
 .
 ├── README.md
+├── Makefile
 ├── cmd
 │   ├── publisher (entry for news feed publisher)
 │   │   └── main.go
@@ -40,3 +42,7 @@ The complete design can be seen in the following notion page:
     └── utils_test.go
 
 ```
+
+# Commands
+
+`make server_dev` to run dev server

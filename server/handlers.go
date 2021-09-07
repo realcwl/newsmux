@@ -17,7 +17,7 @@ import (
 // client, by default it binds to a POST method.
 func GraphqlHandler() gin.HandlerFunc {
 	// TODO(jamie): check if env is dev or prod
-	db, err := utils.GetDBDev()
+	db, err := utils.GetDBConnection()
 	if err != nil {
 		// TODO(Jamie): check env and move to datadog if it is prod
 		panic("failed to connect database")
