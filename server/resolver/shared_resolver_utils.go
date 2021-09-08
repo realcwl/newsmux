@@ -60,6 +60,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Order("cursor desc").
 			Limit(query.Limit).
 			Find(&posts)
+		feed.Posts = posts
 	} else {
 		db.Model(&model.Post{}).
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
@@ -68,40 +69,16 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Order("cursor desc").
 			Limit(query.Limit).
 			Find(&posts)
-	}
-
-	feed.Posts = posts
-
-	// cases where we need republish first
-	if query.Direction == model.FeedRefreshDirectionNew {
-		if len(posts) > 0 {
-			return nil
+		feed.Posts = posts
+		if len(posts) < query.Limit {
+			// query OLD but can't satisfy the limit, republish in this case
+			lastCursor := query.Cursor
+			if len(posts) > 0 {
+				lastCursor = int(posts[len(posts)-1].Cursor)
+			}
+			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor)
+			rePublishPostsFromCursor(db, feed, query.Limit-len(posts), lastCursor)
 		}
-		// check if query NEW but publish table is empty, republish in this case
-		var count int64
-		db.Model(&model.PostFeedPublish{}).
-			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
-			Where("feed_id = ?", feed.Id).
-			Count(&count)
-		if count == 0 {
-			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API")
-			rePublishPostsFromCursor(db, feed, query.Limit, -1)
-		} else {
-			fmt.Println("NOT REPUBLISHING", count)
-		}
-	} else {
-		// query OLD but can't satisfy the limit, republish in this case
-		lastCursor := query.Cursor
-		if len(posts) >= query.Limit {
-			return nil
-		}
-
-		if len(posts) > 0 {
-			lastCursor = int(posts[len(posts)-1].Cursor)
-		}
-		Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor)
-		// republish to fulfill the query limit
-		rePublishPostsFromCursor(db, feed, query.Limit-len(posts), lastCursor)
 	}
 	return nil
 }
@@ -170,8 +147,8 @@ func sanitizeFeedRefreshInput(query *model.FeedRefreshInput, feed *model.Feed) e
 		return errors.New("query.Cursor should be >= 0")
 	}
 
-	if query.Limit < 0 {
-		return errors.New("query.Limit should be >= 0")
+	if query.Limit <= 0 {
+		return errors.New("query.Limit should be > 0")
 	}
 
 	// Check if requested cursors are out of sync from last feed update

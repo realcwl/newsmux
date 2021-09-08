@@ -170,7 +170,7 @@ func checkFeedPosts(
 		updatedTimeStr = fmt.Sprintf(`"%s"`, *updatedTime)
 	}
 
-	client.MustPost(fmt.Sprintf(`
+	query := fmt.Sprintf(`
 	query{
 		feeds (input : {
 		  userId : "%s"
@@ -188,7 +188,10 @@ func checkFeedPosts(
 		  }
 		}
 	  }
-	`, userId, feedId, limit, cursor, direction, updatedTimeStr), &resp)
+	`, userId, feedId, limit, cursor, direction, updatedTimeStr)
+	fmt.Println(query)
+
+	client.MustPost(query, &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
