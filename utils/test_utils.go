@@ -226,7 +226,6 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 		  name
 		  createdAt
 		  updatedAt
-		  deletedAt
 		  filterDataExpression
 		  subSources {
 			id
@@ -278,7 +277,6 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 			Name                 string `json:"name"`
 			CreatedAt            string `json:"createdAt"`
 			UpdatedAt            string `json:"updatedAt"`
-			DeletedAt            string `json:"deletedAt"`
 			FilterDataExpression string `json:"filterDataExpression"`
 			SubSources           []struct {
 				Id string `json:"id"`
@@ -315,7 +313,6 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 		  name
 		  createdAt
 		  updatedAt
-		  deletedAt
 		  filterDataExpression
 		  subSources {
 			id
@@ -509,4 +506,32 @@ func TestUserSubscribeFeedAndValidate(t *testing.T, userId string, feedId string
 // create user to feed subscription, do sanity checks
 func TestFeedLinkSource(t *testing.T, sourceId string, feedId string, db *gorm.DB, client *client.Client) {
 
+}
+
+func TestDeleteFeedAndValidate(t *testing.T, userId string, feedId string, owner bool, db *gorm.DB, client *client.Client) {
+	var resp struct {
+		DeleteFeed struct {
+			Id string `json:"id"`
+		} `json:"deleteFeed"`
+	}
+
+	err := client.Post(fmt.Sprintf(`mutation {
+		deleteFeed(
+			input: {
+				userId: "%s"
+				feedId: "%s"
+			}
+		) {
+		  id
+		}
+	  }
+	  `, userId, feedId), &resp)
+
+	fmt.Printf("\nResponse from resolver: %+v\n", resp)
+
+	if owner {
+		require.Equal(t, feedId, resp.DeleteFeed.Id)
+	} else {
+		require.NotNil(t, err)
+	}
 }

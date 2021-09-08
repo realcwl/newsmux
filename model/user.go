@@ -28,7 +28,7 @@ type User struct {
 	DeletedAt       gorm.DeletedAt
 	Name            string
 	AvatarUrl       string
-	SubscribedFeeds []*Feed `json:"subscribed_feeds" gorm:"many2many;"`
+	SubscribedFeeds []*Feed `json:"subscribed_feeds" gorm:"many2many;constraint:OnDelete:CASCADE;"`
 	SavedPosts      []*Post `json:"saved_posts" gorm:"many2many;"`
 }
 

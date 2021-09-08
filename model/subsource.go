@@ -33,7 +33,7 @@ type SubSource struct {
 	ExternalIdentifier string
 	SourceID           string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	IconUrl            string
-	Feeds              []*Feed `json:"feeds" gorm:"many2many:feed_subsources;"`
+	Feeds              []*Feed `json:"feeds" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
 }
 
 func (SubSource) IsSubSourceSeedStateInterface() {}

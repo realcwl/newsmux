@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/99designs/gqlgen/client"
@@ -9,15 +10,21 @@ import (
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/Luismorlan/newsmux/utils"
+	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/stretchr/testify/require"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
+func TestMain(m *testing.M) {
+	dotenv.LoadDotEnvsInTests()
+	os.Exit(m.Run())
+}
+
 func PrepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &Resolver{
 		DB:             db,
-		SeedStateChans: nil,
+		SeedStateChans: NewSeedStateChannels(),
 	}})))
 	return client
 }
@@ -102,6 +109,25 @@ func TestUserSubscribeFeed(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
 		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
+	})
+}
+
+func TestDeleteFeed(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+	client := PrepareTestForGraphQLAPIs(db)
+	t.Run("Test User delete Feed", func(t *testing.T) {
+		utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
+		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
+		utils.TestDeleteFeedAndValidate(t, uid, feedId, true, db, client)
+	})
+
+	t.Run("Test non owner delete Feed", func(t *testing.T) {
+		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
+		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
+		utils.TestDeleteFeedAndValidate(t, "non_owner", feedId, false, db, client)
 	})
 }
 

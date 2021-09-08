@@ -5,15 +5,10 @@ package resolver
 
 import (
 	"context"
-	"time"
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 )
-
-func (r *feedResolver) DeletedAt(ctx context.Context, obj *model.Feed) (*time.Time, error) {
-	return &obj.DeletedAt.Time, nil
-}
 
 func (r *feedResolver) FilterDataExpression(ctx context.Context, obj *model.Feed) (string, error) {
 	return string(obj.FilterDataExpression), nil
