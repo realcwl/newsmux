@@ -11,7 +11,6 @@ import (
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
-	"github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
@@ -41,11 +40,10 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserIn
 func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFeedInput) (*model.Feed, error) {
 	// Upsert a feed
 	// return feed with updated posts
-	// this needs to run publish for all posts in the subsources and do a publish online
 	var (
-		user          model.User
-		feed          model.Feed
-		needRePublish = true
+		user           model.User
+		feed           model.Feed
+		needClearPosts = true
 	)
 
 	// get creator user
@@ -58,19 +56,16 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	if input.FeedID != nil {
 		// If it is update:
 		// 1. read from DB
-		queryResult := r.DB.Debug().Where("id = ?", *input.FeedID).Preload("SubSources").Preload("Posts").First(&feed)
+		queryResult := r.DB.Where("id = ?", *input.FeedID).Preload("SubSources").Preload("Posts").First(&feed)
 		if queryResult.RowsAffected != 1 {
 			return nil, errors.New("invalid feed id")
 		}
 
-		// 2. check if re-publish is needed
-		needRePublish = false
-		var subsourceIds []string
-		for _, subsource := range feed.SubSources {
-			subsourceIds = append(subsourceIds, subsource.Id)
-		}
-		if feed.FilterDataExpression.String() != input.FilterDataExpression || !utils.StringSlicesContainSameElements(subsourceIds, input.SubSourceIds) {
-			needRePublish = true
+		// 2. check if dropping posts is needed
+		var err error
+		needClearPosts, err = isClearPostsNeededForFeedsUpsert(&feed, &input)
+		if err != nil {
+			return nil, err
 		}
 
 		// Update feed object
@@ -113,24 +108,24 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 		return nil
 	})
 	if err != nil {
-		fmt.Println("FAILED", err)
 		return nil, err
 	}
 
 	var updatedFeed model.Feed
 	r.DB.Preload(clause.Associations).First(&updatedFeed, "id = ?", feed.Id)
 
-	// If no data expression or subsources changed, skip, otherwise re-publish
-	if !needRePublish {
+	// If no data expression or subsources changed, skip, otherwise clear the feed's posts
+	if !needClearPosts {
 		// get posts
-		Log.Info("update feed no re-publishing")
-		getOneFeedRefreshPosts(r.DB, &updatedFeed, -1, model.FeedRefreshDirectionNew, 20)
+		Log.Info("update feed metadata without clear published posts")
 		return &updatedFeed, nil
 	}
 
-	// Re Publish posts
-	Log.Info("update feed and need posts re-publishing")
-	rePublishPostsForFeed(r.DB, &updatedFeed, input, 20, 5)
+	// Clear the feed's posts
+	Log.Info("changed feed clear all posts published")
+	r.DB.Where("feed_id = ?", updatedFeed.Id).Delete(&model.PostFeedPublish{})
+	updatedFeed.Posts = []*model.Post{}
+
 	return &updatedFeed, nil
 }
 
@@ -349,7 +344,6 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error) {
 	feedRefreshInputs := input.FeedRefreshInputs
-
 	if len(feedRefreshInputs) == 0 {
 		feeds, err := getUserSubscriptions(r, input.UserID)
 		if err != nil {
@@ -359,8 +353,8 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInp
 			feedRefreshInputs = append(feedRefreshInputs, &model.FeedRefreshInput{
 				FeedID:    feed.Id,
 				Limit:     feedRefreshLimit,
-				Cursor:    defaultCursor,
-				Direction: model.FeedRefreshDirectionNew,
+				Cursor:    defaultFeedsQueryCursor,
+				Direction: defaultFeedsQueryDirection,
 			})
 		}
 	}

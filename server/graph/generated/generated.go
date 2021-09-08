@@ -925,6 +925,7 @@ type Query {
 
   # Feeds is the main API for newsfeed
   # WARNING: if you do not pass feedUpdatedTime, your curosr/direction will be ignored
+  # WARNING: please pass the cursor based on returned posts cursor, otherwise the republish will skip some posts
 
   # It is used to return posts for a feed
   # It can be called with a list of following queries, each query represent a feed
@@ -959,6 +960,11 @@ type Query {
   # 	Front end can check if the N == Limit, if so, it indicate there is very likely to be more posts
   # 	need to be fetched. And frontend can send another {Feeds} request. It can also choose not
   # 	to fetch so many posts.
+
+  # What if the data expression filter or subsource are changed
+  # Chaging feed is on {upsertFeed}
+  # For {feeds} we will handle on-the-fly posts re-publish, in these conditions:
+  # 1. query OLD but can't satisfy the limit
 
   feeds(input: FeedsGetPostsInput): [Feed!]!
 }
