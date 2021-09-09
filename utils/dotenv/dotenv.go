@@ -37,6 +37,6 @@ func LoadDotEnvsInTests() error {
 	cwd, _ := os.Getwd()
 	rootPath := re.Find([]byte(cwd))
 
-	loadDotEnvs(string(rootPath) + "/")
+	godotenv.Load(string(rootPath) + "/" + ".env.test")
 	return nil
 }

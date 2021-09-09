@@ -70,6 +70,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Limit(query.Limit).
 			Find(&posts)
 		feed.Posts = posts
+
 		if len(posts) < query.Limit {
 			// query OLD but can't satisfy the limit, republish in this case
 			lastCursor := query.Cursor
@@ -100,11 +101,16 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 	}
 
 	for len(postsToPublish) < limit && batches <= maxRepublishDBBatches {
-		var postsCandidates []model.Post
+		var postsCandidates []*model.Post
 		// 1. Read subsources' most recent posts
+		// 2. skip if post is shared by another one, this used to handle case as retweet
+		// 	  this will also work, if in future we will support user generate comments on other user posts
+		//    the shared post creation and publish is in one transaction, so the sharing can only happen
+		//    after the shared one is published.
+		//    however for re-publish,
 		db.Model(&model.Post{}).
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
-			Where("sub_sources.id IN ? AND posts.cursor < ?", subsourceIds, fromCursor).
+			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
 			Order("cursor desc").
 			Limit(limit).
 			Find(&postsCandidates)
@@ -113,12 +119,12 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 		for idx := range postsCandidates {
 			post := postsCandidates[idx]
 			fromCursor = int(post.Cursor)
-			matched, error := utils.DataExpressionMatchPost(string(feed.FilterDataExpression), post)
+			matched, error := utils.DataExpressionMatchPostChain(string(feed.FilterDataExpression), post)
 			if error != nil {
 				continue
 			}
 			if matched {
-				postsToPublish = append(postsToPublish, &post)
+				postsToPublish = append(postsToPublish, post)
 				// to publish exact same number of posts queried
 				if len(postsToPublish) >= limit {
 					break

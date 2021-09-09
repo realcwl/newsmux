@@ -2,32 +2,42 @@ package utils
 
 import (
 	"encoding/json"
-	"errors"
 	"strings"
 
 	"github.com/Luismorlan/newsmux/model"
 	. "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/pkg/errors"
 )
 
 // TODO(jamie): optimize by first parsing json and match later
 // TODO(jamie): should probably create a in-memory cache to avoid constant
 // parsing the jsonStr into data expression because such kind of parsing is
 // expensive.
-func DataExpressionMatchPost(jsonStr string, post model.Post) (bool, error) {
+func DataExpressionMatchPostChain(jsonStr string, rootPost *model.Post) (bool, error) {
 	if len(jsonStr) == 0 {
 		return true, nil
 	}
-	var dataExpressionWrap model.DataExpressionWrap
 
-	if err := json.Unmarshal([]byte(jsonStr), &dataExpressionWrap); err != nil || &dataExpressionWrap == nil {
-		// TODO: unit test should not log into data dog
+	var dataExpressionWrap model.DataExpressionWrap
+	if err := json.Unmarshal([]byte(jsonStr), &dataExpressionWrap); err != nil {
 		Log.Error("data expression can't be unmarshaled to dataExpressionWrap, error :", err)
 		return false, err
 	}
-	return DataExpressionMatch(dataExpressionWrap, post)
+
+	matched, err := DataExpressionMatch(dataExpressionWrap, rootPost)
+	if err != nil {
+		return false, errors.Wrap(err, "data expression match failed")
+	}
+	if matched {
+		return true, nil
+	}
+	if rootPost.SharedFromPost != nil {
+		return DataExpressionMatchPostChain(jsonStr, rootPost.SharedFromPost)
+	}
+	return false, nil
 }
 
-func DataExpressionMatch(dataExpressionWrap model.DataExpressionWrap, post model.Post) (bool, error) {
+func DataExpressionMatch(dataExpressionWrap model.DataExpressionWrap, post *model.Post) (bool, error) {
 	// Empty data expression should match all post.
 	if dataExpressionWrap.IsEmpty() {
 		return true, nil

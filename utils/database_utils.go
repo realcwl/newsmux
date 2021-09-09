@@ -39,11 +39,15 @@ func GetDBConnection() (*gorm.DB, error) {
 
 // GetDefaultDBConnection connect to database "postgres" to manage all dbs
 func GetDefaultDBConnection() (*gorm.DB, error) {
-	return GetCustomizedConnection("postgres")
+	return GetCustomizedConnection(os.Getenv("DEFAULT_DB_NAME"))
 }
 
 // GetCustomizedConnection connect to any db
 func GetCustomizedConnection(dbName string) (*gorm.DB, error) {
+	if dbName == os.Getenv("DEFAULT_DB_NAME") {
+		dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DEFAULT_DB_USER"), os.Getenv("DEFAULT_DB_PASS"), dbName, os.Getenv("DB_PORT"))
+		return getDB(dsn)
+	}
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), dbName, os.Getenv("DB_PORT"))
 	return getDB(dsn)
 }
@@ -60,26 +64,20 @@ func GetCustomizedConnection(dbName string) (*gorm.DB, error) {
 // databases with prefix "testonlydb_".
 func CreateTempDB(t *testing.T) (*gorm.DB, string) {
 	t.Helper()
-
 	db, err := GetDefaultDBConnection()
-
 	if err != nil {
 		log.Fatalln("cannot connect to DB")
 	}
-
 	dbName := randomTestDBName()
-
 	err = db.Exec("CREATE DATABASE " + dbName).Error
 	if err != nil {
 		log.Fatalln("fail to create temp DB with name: ", dbName)
 	}
-
 	newDB, err := GetCustomizedConnection(dbName)
 	if err != nil {
 		log.Fatalln("fail to connect to newly created DB: ", dbName)
 	}
 	DatabaseSetupAndMigration(newDB)
-
 	t.Cleanup(func() {
 		dropTempDB(newDB, dbName)
 	})
@@ -115,14 +113,13 @@ func dropTempDB(curDB *gorm.DB, dbName string) {
 		log.Println("cannot close DB", err)
 	}
 
-	db, err := GetCustomizedConnection("postgres")
+	db, err := GetCustomizedConnection(os.Getenv("DEFAULT_DB_NAME"))
 
 	if err != nil {
 		log.Fatalln("cannot connect to DB")
 	}
 	db.Exec("DROP DATABASE " + dbName)
 }
-
 
 func getDB(connectionString string) (db *gorm.DB, err error) {
 	return gorm.Open(postgres.Open(connectionString), &gorm.Config{})

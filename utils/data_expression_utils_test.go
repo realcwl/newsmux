@@ -82,71 +82,71 @@ func TestDataExpressionMatch(t *testing.T) {
 		var res model.DataExpressionWrap
 		json.Unmarshal(bytes, &res)
 
-		matched, err := DataExpressionMatch(res, model.Post{Content: "马斯克做空以太坊"})
+		matched, err := DataExpressionMatch(res, &model.Post{Content: "马斯克做空以太坊"})
 
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatch(res, model.Post{Content: "老王做空以太坊"})
+		matched, err = DataExpressionMatch(res, &model.Post{Content: "老王做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 
-		matched, err = DataExpressionMatch(res, model.Post{Content: "老王做空比特币"})
+		matched, err = DataExpressionMatch(res, &model.Post{Content: "老王做空比特币"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatch(res, model.Post{Content: "老王做空bitcoin"})
+		matched, err = DataExpressionMatch(res, &model.Post{Content: "老王做空bitcoin"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 	})
 
 	t.Run("Test matching from json string", func(t *testing.T) {
 
-		matched, err := DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "马斯克做空以太坊"})
+		matched, err := DataExpressionMatchPostChain(DataExpressionJsonForTest, &model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "老王做空以太坊"})
+		matched, err = DataExpressionMatchPostChain(DataExpressionJsonForTest, &model.Post{Content: "老王做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 
-		matched, err = DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "老王做空比特币"})
+		matched, err = DataExpressionMatchPostChain(DataExpressionJsonForTest, &model.Post{Content: "老王做空比特币"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(DataExpressionJsonForTest, model.Post{Content: "老王做空bitcoin"})
+		matched, err = DataExpressionMatchPostChain(DataExpressionJsonForTest, &model.Post{Content: "老王做空bitcoin"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 	})
 
 	t.Run("Test matching from json string with pure id expression", func(t *testing.T) {
-		matched, err := DataExpressionMatchPost(PureIdExpressionJson, model.Post{Content: "马斯克做空以太坊"})
+		matched, err := DataExpressionMatchPostChain(PureIdExpressionJson, &model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(PureIdExpressionJson, model.Post{Content: "老王做空以太坊"})
+		matched, err = DataExpressionMatchPostChain(PureIdExpressionJson, &model.Post{Content: "老王做空以太坊"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 
-		matched, err = DataExpressionMatchPost(PureIdExpressionJson, model.Post{Content: "老王做空比特币"})
+		matched, err = DataExpressionMatchPostChain(PureIdExpressionJson, &model.Post{Content: "老王做空比特币"})
 		require.Nil(t, err)
 		require.Equal(t, false, matched)
 
-		matched, err = DataExpressionMatchPost(PureIdExpressionJson, model.Post{Content: "老王做空bitcoin"})
+		matched, err = DataExpressionMatchPostChain(PureIdExpressionJson, &model.Post{Content: "老王做空bitcoin"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 	})
 
 	t.Run("Empty expression should match anything", func(t *testing.T) {
-		matched, err := DataExpressionMatchPost(EmptyExpressionJson, model.Post{Content: "马斯克做空以太坊"})
+		matched, err := DataExpressionMatchPostChain(EmptyExpressionJson, &model.Post{Content: "马斯克做空以太坊"})
 		require.Nil(t, err)
 		require.True(t, matched)
 
-		matched, err = DataExpressionMatchPost(EmptyExpressionJson, model.Post{Content: "随便一个字符串"})
+		matched, err = DataExpressionMatchPostChain(EmptyExpressionJson, &model.Post{Content: "随便一个字符串"})
 		require.Nil(t, err)
 		require.True(t, matched)
 
-		matched, err = DataExpressionMatchPost(EmptyExpressionJson, model.Post{Content: "马云马斯克马克扎克伯格"})
+		matched, err = DataExpressionMatchPostChain(EmptyExpressionJson, &model.Post{Content: "马云马斯克马克扎克伯格"})
 		require.Nil(t, err)
 		require.True(t, matched)
 	})
@@ -157,7 +157,7 @@ func TestDataExpressionMatch(t *testing.T) {
 			"id": "1"
 		
 		`
-		matched, err := DataExpressionMatchPost(wrongJsonExpression, model.Post{Content: "马斯克做空以太坊"})
+		matched, err := DataExpressionMatchPostChain(wrongJsonExpression, &model.Post{Content: "马斯克做空以太坊"})
 		require.NotNil(t, err)
 		require.False(t, matched)
 
@@ -181,7 +181,7 @@ func TestDataExpressionMatch(t *testing.T) {
 			}
 		}
 		`
-		matched, err = DataExpressionMatchPost(rightJsonExpressionWrongStructure, model.Post{Content: "马斯克做空以太坊"})
+		matched, err = DataExpressionMatchPostChain(rightJsonExpressionWrongStructure, &model.Post{Content: "马斯克做空以太坊"})
 		require.NotNil(t, err)
 		require.False(t, matched)
 
@@ -190,7 +190,7 @@ func TestDataExpressionMatch(t *testing.T) {
 			"id": 1,
 		}
 		`
-		matched, err = DataExpressionMatchPost(rightJsonExpressionWrongType, model.Post{Content: "马斯克做空以太坊"})
+		matched, err = DataExpressionMatchPostChain(rightJsonExpressionWrongType, &model.Post{Content: "马斯克做空以太坊"})
 		require.NotNil(t, err)
 		require.False(t, matched)
 	})

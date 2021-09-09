@@ -434,7 +434,7 @@ func checkFeedTopPostsUpdateTimeChanged(t *testing.T, userId string, feedId stri
 	require.Equal(t, 7, len(resp.Feeds[0].Posts))
 }
 
-func TestUpSertFeeds(t *testing.T) {
+func TestUpSertFeedsAndRepublish(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
 	client := PrepareTestForGraphQLAPIs(db)
@@ -452,39 +452,54 @@ func TestUpSertFeeds(t *testing.T) {
 	postId4, _ := utils.TestCreatePostAndValidate(t, "test_title_4", "test_content_4", subSourceIdTwo, feedIdOne, db, client)
 	postId5, cursor5 := utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", subSourceIdTwo, feedIdOne, db, client)
 
-	var feed model.Feed
-	queryResult := db.Where("id = ?", feedIdOne).First(&feed)
-	require.Equal(t, int64(1), queryResult.RowsAffected)
+	t.Run("use {upsertFeed} to change subsource, should clear posts, re-publish when query {feeds}", func(t *testing.T) {
+		var (
+			feed         model.Feed
+			subSourceOne model.SubSource
+		)
+		queryResult := db.Preload("SubSources").Where("id = ?", feedIdOne).First(&feed)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
+		queryResult = db.Where("id = ?", subSourceIdOne).First(&subSourceOne)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
 
-	// Re-publish when update subsource
-	var subSourceOne model.SubSource
-	db.Where("id = ?", subSourceIdOne).First(&subSourceOne)
-	require.Equal(t, int64(1), queryResult.RowsAffected)
-	feed.SubSources = []*model.SubSource{
-		&subSourceOne,
-	}
+		feed.SubSources = []*model.SubSource{
+			&subSourceOne,
+		}
+		_, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+		require.Equal(t, 0, len(posts))
+		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
+			[]string{postId1, postId2}, db, client)
+	})
 
-	_, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-	require.Equal(t, 0, len(posts))
-	checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionOld,
-		[]string{postId1, postId2}, db, client)
+	t.Run("use {upsertFeed} to change subsource, should clear posts, re-publish when query {feeds}", func(t *testing.T) {
+		var (
+			feed         model.Feed
+			subSourceOne model.SubSource
+			subSourceTwo model.SubSource
+		)
+		queryResult := db.Preload("SubSources").Where("id = ?", feedIdOne).First(&feed)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
+		queryResult = db.Where("id = ?", subSourceIdOne).First(&subSourceOne)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
+		queryResult = db.Where("id = ?", subSourceIdTwo).First(&subSourceTwo)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
 
-	// Re-publish when update to two subsources
-	var subSourceTwo model.SubSource
-	db.Where("id = ?", subSourceIdTwo).First(&subSourceTwo)
-	require.Equal(t, int64(1), queryResult.RowsAffected)
-	feed.SubSources = []*model.SubSource{
-		&subSourceOne,
-		&subSourceTwo,
-	}
-	updatedAt, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-	require.Equal(t, 0, len(posts))
-	checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionOld,
-		[]string{postId1, postId2, postId3, postId4, postId5}, db, client)
+		feed.SubSources = []*model.SubSource{
+			&subSourceOne,
+			&subSourceTwo,
+		}
+		_, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+		require.Equal(t, 0, len(posts))
+		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
+			[]string{postId1, postId2, postId3, postId4, postId5}, db, client)
+	})
+	t.Run("update data expression for feed, should clear posts, re-publish when query {feeds}", func(t *testing.T) {
+		var feed model.Feed
+		queryResult := db.Preload("SubSources").Where("id = ?", feedIdOne).First(&feed)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
 
-	// Re-publish when update data expression
-	feed.FilterDataExpression = datatypes.JSON(
-		`{
+		feed.FilterDataExpression = datatypes.JSON(
+			`{
 			"id":"1",
 			"expr":{
 				"pred":{
@@ -495,26 +510,67 @@ func TestUpSertFeeds(t *testing.T) {
 				}
 			}
 	 	}`)
-	updatedAt, posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-	require.Equal(t, 0, len(posts))
-	checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionOld,
-		[]string{postId1, postId3}, db, client)
+		_, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+		require.Equal(t, 0, len(posts))
+		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
+			[]string{postId1, postId3}, db, client)
+	})
+	t.Run("update data expression for feed, should clear posts, re-publish when query {feeds} OLD and NEW", func(t *testing.T) {
+		var feed model.Feed
+		queryResult := db.Preload("SubSources").Where("id = ?", feedIdOne).First(&feed)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
+		feed.FilterDataExpression = datatypes.JSON(``)
 
-	// Re-publish when update data expression
-	feed.FilterDataExpression = datatypes.JSON(``)
-	updatedAt, posts = utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-	require.Equal(t, 0, len(posts))
-	checkFeedPosts(t, userId, feedIdOne, 0, 1, nil, model.FeedRefreshDirectionOld,
-		[]string{postId5}, db, client)
-	// check only 1 post is published
-	var count int64
-	db.Model(&model.PostFeedPublish{}).Where("feed_id = ?", feedIdOne).Count(&count)
-	require.Equal(t, int64(1), count)
+		// publish more by querying {feeds} with NEW
+		updatedAt, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+		require.Equal(t, 0, len(posts))
+		checkFeedPosts(t, userId, feedIdOne, 0, 1, nil, model.FeedRefreshDirectionNew,
+			[]string{postId5}, db, client)
 
-	// publish more
-	checkFeedPosts(t, userId, feedIdOne, cursor5, 2, &updatedAt, model.FeedRefreshDirectionOld,
-		[]string{postId4, postId3}, db, client)
-	// check only 3 post is published now after republishing
-	db.Model(&model.PostFeedPublish{}).Where("feed_id = ?", feedIdOne).Count(&count)
-	require.Equal(t, int64(3), count)
+		// check only 1 post is published
+		var count int64
+		db.Model(&model.PostFeedPublish{}).Where("feed_id = ?", feedIdOne).Count(&count)
+		require.Equal(t, int64(1), count)
+
+		// publish more by querying {feeds} with OLD
+		checkFeedPosts(t, userId, feedIdOne, cursor5, 2, &updatedAt, model.FeedRefreshDirectionOld,
+			[]string{postId4, postId3}, db, client)
+
+		// check only 3 post is published now after republishing
+		db.Model(&model.PostFeedPublish{}).Where("feed_id = ?", feedIdOne).Count(&count)
+		require.Equal(t, int64(3), count)
+	})
+	t.Run("update data expression for feed, should clear posts, should avoid republish retweeted posts", func(t *testing.T) {
+		var feed model.Feed
+		queryResult := db.Preload("SubSources").Where("id = ?", feedIdOne).First(&feed)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
+		feed.FilterDataExpression = datatypes.JSON(``)
+
+		subSourceWithNestedPostId := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api_3", "3333", sourceId, db, client)
+		var subSourceWithNestedPost model.SubSource
+		queryResult = db.Where("id = ?", subSourceWithNestedPostId).First(&subSourceWithNestedPost)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
+
+		var (
+			postOrigin, postCommnet model.Post
+		)
+		postOriginId, _ := utils.TestCreatePostAndValidate(t, "post origin", "test", subSourceWithNestedPostId, "", db, client)
+		db.Where("id = ?", postOriginId).First(&postOrigin)
+		postCommnetId, _ := utils.TestCreatePostAndValidate(t, "post comment", "test", subSourceWithNestedPostId, "", db, client)
+		db.Where("id = ?", postCommnetId).First(&postCommnet)
+
+		postOrigin.InSharingChain = true
+		db.Save(postOrigin)
+
+		postCommnet.SharedFromPost = &postOrigin
+		postCommnet.SharedFromPostID = &postOrigin.Id
+		db.Save(postCommnet)
+
+		feed.SubSources = []*model.SubSource{
+			&subSourceWithNestedPost,
+		}
+		utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
+			[]string{postCommnetId}, db, client)
+	})
 }
