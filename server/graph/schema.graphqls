@@ -54,8 +54,7 @@ type Query {
   # What if the data expression filter or subsource are changed
   # Chaging feed is on {upsertFeed}
   # For {feeds} we will handle on-the-fly posts re-publish, in these conditions:
-  # 1. query NEW but publish table is empty
-  # 2. query OLD but can't satisfy the limit
+  # 1. query OLD but can't satisfy the limit
 
   feeds(input: FeedsGetPostsInput): [Feed!]!
 }

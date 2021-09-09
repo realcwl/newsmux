@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Luismorlan/newsmux/model"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/pkg/errors"
 )
 
@@ -16,8 +17,13 @@ func DataExpressionMatchPostChain(jsonStr string, rootPost *model.Post) (bool, e
 	if len(jsonStr) == 0 {
 		return true, nil
 	}
+
 	var dataExpressionWrap model.DataExpressionWrap
-	json.Unmarshal([]byte(jsonStr), &dataExpressionWrap)
+	if err := json.Unmarshal([]byte(jsonStr), &dataExpressionWrap); err != nil {
+		Log.Error("data expression can't be unmarshaled to dataExpressionWrap, error :", err)
+		return false, err
+	}
+
 	matched, err := DataExpressionMatch(dataExpressionWrap, rootPost)
 	if err != nil {
 		return false, errors.Wrap(err, "data expression match failed")
