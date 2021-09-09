@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
@@ -17,11 +16,11 @@ func (r *postResolver) DeletedAt(ctx context.Context, obj *model.Post) (*time.Ti
 }
 
 func (r *postResolver) ImageUrls(ctx context.Context, obj *model.Post) ([]string, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.ImageUrls, nil
 }
 
 func (r *postResolver) FileUrls(ctx context.Context, obj *model.Post) ([]string, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.FileUrls, nil
 }
 
 // Post returns generated.PostResolver implementation.
