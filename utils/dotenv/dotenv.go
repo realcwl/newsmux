@@ -36,7 +36,6 @@ func LoadDotEnvsInTests() error {
 	re := regexp.MustCompile(`^(.*newsmux)`)
 	cwd, _ := os.Getwd()
 	rootPath := re.Find([]byte(cwd))
-
-	godotenv.Load(string(rootPath) + "/" + ".env.test")
+	loadDotEnvs(string(rootPath) + "/")
 	return nil
 }
