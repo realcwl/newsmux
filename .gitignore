@@ -2,3 +2,4 @@ server/graphql/schema.go
 tmp/
 *.local
 *.sql
+.env.*
