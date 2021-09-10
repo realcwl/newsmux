@@ -39,6 +39,7 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 		if err := sanitizeFeedRefreshInput(query, &feed); err != nil {
 			return []*model.Feed{}, errors.Wrap(err, fmt.Sprint("feed query invalid ", query))
 		}
+
 		if err := getFeedPostsOrRePublish(r.DB, &feed, query); err != nil {
 			return []*model.Feed{}, errors.Wrap(err, fmt.Sprint("failure when get posts for feed id ", feed.Id))
 		}
@@ -81,6 +82,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			}
 			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor)
 			rePublishPostsFromCursor(db, feed, query.Limit-len(posts), lastCursor)
+			Log.Info(feed.Posts[0].SubSource.Id)
 		}
 	}
 	return nil
@@ -111,6 +113,7 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 		//    after the shared one is published.
 		//    however for re-publish,
 		db.Model(&model.Post{}).
+			Preload("SubSource").
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
 			Order("cursor desc").
