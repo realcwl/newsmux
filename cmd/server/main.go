@@ -49,6 +49,8 @@ func main() {
 	router.POST("/graphql", handler)
 	router.GET("/subscription", handler)
 
+	router.GET("/healthcheck", server.HealthcheckHandler())
+
 	// Setup graphql playground for debugging
 	router.GET("/", func(c *gin.Context) {
 		playground.Handler("GraphQL", "/graphql").ServeHTTP(c.Writer, c.Request)

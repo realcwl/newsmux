@@ -13,6 +13,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// HealthCheckHandler returns 200 whenever server is up
+func HealthcheckHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "UP"})
+	}
+}
+
 // GraphqlHandler is the universal handler for all GraphQL queries issued from
 // client, by default it binds to a POST method.
 func GraphqlHandler() gin.HandlerFunc {

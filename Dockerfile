@@ -9,4 +9,4 @@ RUN go install -v ./...
 
 EXPOSE 8080
 
-CMD ["make" "run_prodserver"]
+RUN NEWSMUX_ENV=prod go run ./cmd/server/main.go -dev=false -no_auth 
