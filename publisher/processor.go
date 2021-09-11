@@ -8,6 +8,7 @@ import (
 
 	"github.com/Luismorlan/newsmux/model"
 	. "github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/server/resolver"
 	. "github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
@@ -56,7 +57,7 @@ func (processor *CrawlerpublisherMessageProcessor) findDuplicatedPost(decodedMsg
 	var post model.Post
 	queryResult := processor.DB.Where(
 		"sub_source_id = ? AND title = ? AND content = ? ",
-		decodedMsg.Post.SubSourceId,
+		decodedMsg.Post.SubSource.SubSourceId,
 		decodedMsg.Post.Title,
 		decodedMsg.Post.Content,
 	).First(&post)
@@ -90,32 +91,55 @@ func (processor *CrawlerpublisherMessageProcessor) prepareSource(id string) (*mo
 	}
 }
 
-func (processor *CrawlerpublisherMessageProcessor) prepareSubSource(id string) (*model.SubSource, error) {
-	var res model.SubSource
-	if len(id) > 0 {
-		result := processor.DB.Preload("Feeds").Where("id = ?", id).First(&res)
-		if result.RowsAffected != 1 {
-			return nil, errors.New(fmt.Sprintf("sub source not found: %s", id))
-		}
-		return &res, nil
+func (processor *CrawlerpublisherMessageProcessor) prepareSubSourceRecursive(post *CrawlerMessage_CrawledPost, isRoot bool) (*model.SubSource, error) {
+	var subSourceId *string
+	if len(post.SubSource.SubSourceId) > 0 {
+		subSourceId = &post.SubSource.SubSourceId
 	}
-	return nil, nil
+
+	subSource, err := resolver.UpsertSubsourceImpl(processor.DB, model.UpsertSubSourceInput{
+		SubSourceID:        subSourceId,
+		UserID:             "default_user_id", // TODO: set "publisher" user
+		Name:               post.SubSource.SubSourceName,
+		ExternalIdentifier: post.SubSource.SubSourceExternalId,
+		SourceID:           post.SubSource.SubSourceSourceId,
+		ProfileURL:         post.SubSource.SubSourceProfileUrl,
+		OriginURL:          post.SubSource.SubSourceOriginUrl,
+		IsFromSharedPost:   !isRoot,
+	})
+	if err != nil {
+		return nil, err
+	}
+	post.SubSource.SubSourceId = subSource.Id
+
+	if post.SharedFromCrawledPost != nil {
+		if _, err = processor.prepareSubSourceRecursive(post.SharedFromCrawledPost, false); err != nil {
+			return nil, err
+		}
+	}
+	return subSource, nil
 }
 
-func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(crawledPost *CrawlerMessage_CrawledPost, subSource *model.SubSource, isRoot bool) (post *model.Post, e error) {
+func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(crawledPost *CrawlerMessage_CrawledPost, isRoot bool) (post *model.Post, e error) {
+	var subSource model.SubSource
+	res := processor.DB.Where("id = ?", crawledPost.SubSource.SubSourceId).First(&subSource)
+	if res.RowsAffected == 0 {
+		return nil, errors.New("invalid subsource id " + crawledPost.SubSource.SubSourceId)
+	}
+
 	post = &model.Post{
 		Id:             uuid.New().String(),
 		Title:          crawledPost.Title,
 		Content:        crawledPost.Content,
 		CreatedAt:      time.Now(),
-		SubSource:      *subSource,
-		SubSourceID:    crawledPost.SubSourceId,
+		SubSource:      subSource,
+		SubSourceID:    crawledPost.SubSource.SubSourceId,
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 		InSharingChain: !isRoot,
 	}
 	if crawledPost.SharedFromCrawledPost != nil {
-		sharedFromPost, e := processor.preparePostChainFromMessage(crawledPost.SharedFromCrawledPost, subSource, false)
+		sharedFromPost, e := processor.preparePostChainFromMessage(crawledPost.SharedFromCrawledPost, false)
 		if e != nil {
 			return nil, e
 		}
@@ -127,6 +151,7 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(c
 
 // Process one cralwer-publisher message in following major steps:
 // Step1. decode into protobuf generated struct
+// Step2. update subsource
 // Step2. deduplication
 // Step3. do publishing with new post, also handle recursive shared_from posts
 // Step4. if publishing succeeds, delete message in queue
@@ -146,7 +171,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	}
 
 	// Prepare Post relations to Subsources (Sources can be inferred)
-	subSource, err := processor.prepareSubSource(decodedMsg.Post.SubSourceId)
+	subSource, err := processor.prepareSubSourceRecursive(decodedMsg.Post, false)
 	if err != nil {
 		return err
 	}
@@ -155,7 +180,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	feedCandidates := processor.prepareFeedCandidates(subSource)
 
 	// Create new post based on message
-	post, err := processor.preparePostChainFromMessage(decodedMsg.Post, subSource, true)
+	post, err := processor.preparePostChainFromMessage(decodedMsg.Post, true)
 	if err != nil {
 		return err
 	}

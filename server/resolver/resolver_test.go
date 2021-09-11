@@ -35,7 +35,7 @@ func TestCreateUser(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test User Creation", func(t *testing.T) {
-		utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+		utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 	})
 
 	// Test no double creation for the same id
@@ -50,10 +50,10 @@ func TestCreateUser(t *testing.T) {
 			id
 			name
 		}
-	}`, "test_user_name_new", "test_user_id"), &resp)
+	}`, "test_user_name_new", "default_user_id"), &resp)
 
 	require.NotEmpty(t, resp.CreateUser.Id)
-	require.Equal(t, resp.CreateUser.Id, "test_user_id")
+	require.Equal(t, resp.CreateUser.Id, "default_user_id")
 	require.Equal(t, resp.CreateUser.Name, "test_user_name")
 }
 
@@ -63,7 +63,7 @@ func TestCreateFeed(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test Feed Creation", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		require.NotEmpty(t, feedId)
 	})
@@ -75,7 +75,7 @@ func TestCreateSource(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test Source Creation", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 		sourceId := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 		require.NotEmpty(t, sourceId)
 
@@ -87,16 +87,26 @@ func TestCreateSource(t *testing.T) {
 	})
 }
 
-func TestCreateSubSource(t *testing.T) {
+func TestUpsertSubSource(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
 	client := PrepareTestForGraphQLAPIs(db)
 
-	t.Run("Test Source Creation", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+	t.Run("Test Source Upsert", func(t *testing.T) {
+		// Insert
+		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 		sourceId := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 		subSourceId := utils.TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId, db, client)
 		require.NotEmpty(t, subSourceId)
+
+		// Update
+		var subSource model.SubSource
+		queryResult := db.Where("id = ?", subSourceId).First(&subSource)
+		require.Equal(t, int64(1), queryResult.RowsAffected)
+		subSource.Name = "NewName"
+		subSource.ProfileUrl = "testing.com"
+		subSource.OriginUrl = ""
+		utils.TestUpdateSubSourceAndValidate(t, uid, &subSource, db, client)
 	})
 }
 
@@ -106,7 +116,7 @@ func TestUserSubscribeFeed(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	})
@@ -116,15 +126,15 @@ func TestDeleteFeed(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 	client := PrepareTestForGraphQLAPIs(db)
 	t.Run("Test User delete Feed", func(t *testing.T) {
-		utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+		utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
+		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 		utils.TestDeleteFeedAndValidate(t, uid, feedId, true, db, client)
 	})
 
 	t.Run("Test non owner delete Feed", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "test_user_id", db, client)
+		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 		utils.TestDeleteFeedAndValidate(t, "non_owner", feedId, false, db, client)
@@ -136,7 +146,7 @@ func TestQueryFeeds(t *testing.T) {
 
 	client := PrepareTestForGraphQLAPIs(db)
 
-	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "test_user_id", db, client)
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "default_user_id", db, client)
 	feedIdOne, updatedTimeOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 	feedIdTwo, updatedTimeTwo := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
@@ -439,7 +449,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 
 	client := PrepareTestForGraphQLAPIs(db)
 
-	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "test_user_id", db, client)
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "default_user_id", db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceIdOne := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "1111", sourceId, db, client)
 	subSourceIdTwo := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api_2", "2222", sourceId, db, client)

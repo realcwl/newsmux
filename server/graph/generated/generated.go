@@ -72,12 +72,12 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreatePost      func(childComplexity int, input model.NewPostInput) int
 		CreateSource    func(childComplexity int, input model.NewSourceInput) int
-		CreateSubSource func(childComplexity int, input model.NewSubSourceInput) int
 		CreateUser      func(childComplexity int, input model.NewUserInput) int
 		DeleteFeed      func(childComplexity int, input model.DeleteFeedInput) int
 		Subscribe       func(childComplexity int, input model.SubscribeInput) int
 		SyncUp          func(childComplexity int, input *model.SeedStateInput) int
 		UpsertFeed      func(childComplexity int, input model.UpsertFeedInput) int
+		UpsertSubSource func(childComplexity int, input model.UpsertSubSourceInput) int
 	}
 
 	Post struct {
@@ -133,9 +133,11 @@ type ComplexityRoot struct {
 		Creator            func(childComplexity int) int
 		DeletedAt          func(childComplexity int) int
 		ExternalIdentifier func(childComplexity int) int
-		IconUrl            func(childComplexity int) int
 		Id                 func(childComplexity int) int
+		IsFromSharedPost   func(childComplexity int) int
 		Name               func(childComplexity int) int
+		OriginUrl          func(childComplexity int) int
+		ProfileUrl         func(childComplexity int) int
 		Source             func(childComplexity int) int
 	}
 
@@ -170,7 +172,7 @@ type MutationResolver interface {
 	CreatePost(ctx context.Context, input model.NewPostInput) (*model.Post, error)
 	Subscribe(ctx context.Context, input model.SubscribeInput) (*model.User, error)
 	CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error)
-	CreateSubSource(ctx context.Context, input model.NewSubSourceInput) (*model.SubSource, error)
+	UpsertSubSource(ctx context.Context, input model.UpsertSubSourceInput) (*model.SubSource, error)
 	SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error)
 }
 type PostResolver interface {
@@ -318,18 +320,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateSource(childComplexity, args["input"].(model.NewSourceInput)), true
 
-	case "Mutation.createSubSource":
-		if e.complexity.Mutation.CreateSubSource == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createSubSource_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateSubSource(childComplexity, args["input"].(model.NewSubSourceInput)), true
-
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
 			break
@@ -389,6 +379,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpsertFeed(childComplexity, args["input"].(model.UpsertFeedInput)), true
+
+	case "Mutation.upsertSubSource":
+		if e.complexity.Mutation.UpsertSubSource == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_upsertSubSource_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpsertSubSource(childComplexity, args["input"].(model.UpsertSubSourceInput)), true
 
 	case "Post.content":
 		if e.complexity.Post.Content == nil {
@@ -654,13 +656,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SubSource.ExternalIdentifier(childComplexity), true
 
-	case "SubSource.iconUrl":
-		if e.complexity.SubSource.IconUrl == nil {
-			break
-		}
-
-		return e.complexity.SubSource.IconUrl(childComplexity), true
-
 	case "SubSource.id":
 		if e.complexity.SubSource.Id == nil {
 			break
@@ -668,12 +663,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SubSource.Id(childComplexity), true
 
+	case "SubSource.isFromSharedPost":
+		if e.complexity.SubSource.IsFromSharedPost == nil {
+			break
+		}
+
+		return e.complexity.SubSource.IsFromSharedPost(childComplexity), true
+
 	case "SubSource.name":
 		if e.complexity.SubSource.Name == nil {
 			break
 		}
 
 		return e.complexity.SubSource.Name(childComplexity), true
+
+	case "SubSource.originUrl":
+		if e.complexity.SubSource.OriginUrl == nil {
+			break
+		}
+
+		return e.complexity.SubSource.OriginUrl(childComplexity), true
+
+	case "SubSource.profileUrl":
+		if e.complexity.SubSource.ProfileUrl == nil {
+			break
+		}
+
+		return e.complexity.SubSource.ProfileUrl(childComplexity), true
 
 	case "SubSource.source":
 		if e.complexity.SubSource.Source == nil {
@@ -901,7 +917,6 @@ type PostInFeedOutput {
   savedByUser: [User!]!
   publishedFeeds: [Feed!]!
   cursor: Int!
-  
   # urls to resources
   imageUrls: [String!]!
   fileUrls: [String!]!
@@ -1013,11 +1028,18 @@ input NewSourceInput {
   domain: String!
 }
 
-input NewSubSourceInput {
+# isFromSharedPost = true means the subsource is not for cralwing
+# it is from a shared post
+# example: when subsource is an owner of a post in a retweet post
+input UpsertSubSourceInput {
+  subSourceId: String
   userId: String!
   name: String!
   externalIdentifier: String!
   sourceId: String!
+  profileUrl: String!
+  originUrl: String!
+  isFromSharedPost: Boolean!
 }
 
 input FeedRefreshInput {
@@ -1048,7 +1070,7 @@ type Mutation {
   subscribe(input: SubscribeInput!): User!
 
   createSource(input: NewSourceInput!): Source!
-  createSubSource(input: NewSubSourceInput!): SubSource!
+  upsertSubSource(input: UpsertSubSourceInput!): SubSource!
   syncUp(input: SeedStateInput): SeedState
 }
 
@@ -1084,9 +1106,11 @@ input SeedStateInput {
   deletedAt: Time
   creator: User
   name: String!
-  externalIdentifier: String
+  externalIdentifier: String!
   source: Source!
-  iconUrl: String
+  profileUrl: String!
+  originUrl: String!
+  isFromSharedPost: Boolean!
 }
 `, BuiltIn: false},
 	{Name: "graph/user.graphqls", Input: `type User implements UserSeedStateInterface @goModel(model: "model.User") {
@@ -1146,21 +1170,6 @@ func (ec *executionContext) field_Mutation_createSource_args(ctx context.Context
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNNewSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewSourceInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_createSubSource_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.NewSubSourceInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewSubSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewSubSourceInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1236,6 +1245,21 @@ func (ec *executionContext) field_Mutation_upsertFeed_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNUpsertFeedInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUpsertFeedInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_upsertSubSource_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpsertSubSourceInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUpsertSubSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUpsertSubSourceInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1961,7 +1985,7 @@ func (ec *executionContext) _Mutation_createSource(ctx context.Context, field gr
 	return ec.marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createSubSource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_upsertSubSource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1978,7 +2002,7 @@ func (ec *executionContext) _Mutation_createSubSource(ctx context.Context, field
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createSubSource_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_upsertSubSource_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1986,7 +2010,7 @@ func (ec *executionContext) _Mutation_createSubSource(ctx context.Context, field
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateSubSource(rctx, args["input"].(model.NewSubSourceInput))
+		return ec.resolvers.Mutation().UpsertSubSource(rctx, args["input"].(model.UpsertSubSourceInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3427,11 +3451,14 @@ func (ec *executionContext) _SubSource_externalIdentifier(ctx context.Context, f
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SubSource_source(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
@@ -3469,7 +3496,7 @@ func (ec *executionContext) _SubSource_source(ctx context.Context, field graphql
 	return ec.marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _SubSource_iconUrl(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
+func (ec *executionContext) _SubSource_profileUrl(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3487,18 +3514,91 @@ func (ec *executionContext) _SubSource_iconUrl(ctx context.Context, field graphq
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.IconUrl, nil
+		return obj.ProfileUrl, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SubSource_originUrl(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubSource",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OriginUrl, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SubSource_isFromSharedPost(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubSource",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsFromSharedPost, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Subscription_syncDown(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
@@ -5208,50 +5308,6 @@ func (ec *executionContext) unmarshalInputNewSourceInput(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewSubSourceInput(ctx context.Context, obj interface{}) (model.NewSubSourceInput, error) {
-	var it model.NewSubSourceInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "userId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "externalIdentifier":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalIdentifier"))
-			it.ExternalIdentifier, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "sourceId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sourceId"))
-			it.SourceID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj interface{}) (model.NewUserInput, error) {
 	var it model.NewUserInput
 	var asMap = obj.(map[string]interface{})
@@ -5379,6 +5435,82 @@ func (ec *executionContext) unmarshalInputUpsertFeedInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subSourceIds"))
 			it.SubSourceIds, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpsertSubSourceInput(ctx context.Context, obj interface{}) (model.UpsertSubSourceInput, error) {
+	var it model.UpsertSubSourceInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "subSourceId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subSourceId"))
+			it.SubSourceID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "userId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "externalIdentifier":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalIdentifier"))
+			it.ExternalIdentifier, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "sourceId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sourceId"))
+			it.SourceID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "profileUrl":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("profileUrl"))
+			it.ProfileURL, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "originUrl":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originUrl"))
+			it.OriginURL, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "isFromSharedPost":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isFromSharedPost"))
+			it.IsFromSharedPost, err = ec.unmarshalNBoolean2bool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5628,8 +5760,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "createSubSource":
-			out.Values[i] = ec._Mutation_createSubSource(ctx, field)
+		case "upsertSubSource":
+			out.Values[i] = ec._Mutation_upsertSubSource(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6018,6 +6150,9 @@ func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet
 			}
 		case "externalIdentifier":
 			out.Values[i] = ec._SubSource_externalIdentifier(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "source":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -6032,8 +6167,21 @@ func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet
 				}
 				return res
 			})
-		case "iconUrl":
-			out.Values[i] = ec._SubSource_iconUrl(ctx, field, obj)
+		case "profileUrl":
+			out.Values[i] = ec._SubSource_profileUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "originUrl":
+			out.Values[i] = ec._SubSource_originUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "isFromSharedPost":
+			out.Values[i] = ec._SubSource_isFromSharedPost(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6627,11 +6775,6 @@ func (ec *executionContext) unmarshalNNewSourceInput2githubᚗcomᚋLuismorlan�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNNewSubSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewSubSourceInput(ctx context.Context, v interface{}) (model.NewSubSourceInput, error) {
-	res, err := ec.unmarshalInputNewSubSourceInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNNewUserInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewUserInput(ctx context.Context, v interface{}) (model.NewUserInput, error) {
 	res, err := ec.unmarshalInputNewUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -6871,6 +7014,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 
 func (ec *executionContext) unmarshalNUpsertFeedInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUpsertFeedInput(ctx context.Context, v interface{}) (model.UpsertFeedInput, error) {
 	res, err := ec.unmarshalInputUpsertFeedInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpsertSubSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUpsertSubSourceInput(ctx context.Context, v interface{}) (model.UpsertSubSourceInput, error) {
+	res, err := ec.unmarshalInputUpsertSubSourceInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

@@ -88,7 +88,7 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 
 	// Upsert DB
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		// Update all columns, except primary keys and subscribers, to new value on conflict
+		// Update all columns, except primary keys and subscribers to new value, on conflict
 		queryResult = r.DB.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
 			UpdateAll: false,
@@ -265,7 +265,7 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		r.DB.Create(&source)
 		// Create default sub source, this subsource have no creator, no external id
-		r.CreateSubSource(ctx, model.NewSubSourceInput{
+		r.UpsertSubSource(ctx, model.UpsertSubSourceInput{
 			UserID:             user.Id,
 			Name:               DefaultSubSourceName,
 			ExternalIdentifier: "",
@@ -277,23 +277,8 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 	return &source, err
 }
 
-func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewSubSourceInput) (*model.SubSource, error) {
-	uuid := uuid.New().String()
-
-	var user model.User
-	r.DB.Where("id = ?", input.UserID).First(&user)
-
-	t := model.SubSource{
-		Id:                 uuid,
-		Name:               input.Name,
-		ExternalIdentifier: input.ExternalIdentifier,
-		CreatedAt:          time.Now(),
-		SourceID:           input.SourceID,
-		Creator:            user,
-	}
-	r.DB.Create(&t)
-
-	return &t, nil
+func (r *mutationResolver) UpsertSubSource(ctx context.Context, input model.UpsertSubSourceInput) (*model.SubSource, error) {
+	return UpsertSubsourceImpl(r.DB, input)
 }
 
 func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {

@@ -92,11 +92,18 @@ input NewSourceInput {
   domain: String!
 }
 
-input NewSubSourceInput {
+# isFromSharedPost = true means the subsource is not for cralwing
+# it is from a shared post
+# example: when subsource is an owner of a post in a retweet post
+input UpsertSubSourceInput {
+  subSourceId: String
   userId: String!
   name: String!
   externalIdentifier: String!
   sourceId: String!
+  profileUrl: String!
+  originUrl: String!
+  isFromSharedPost: Boolean!
 }
 
 input FeedRefreshInput {
@@ -127,7 +134,7 @@ type Mutation {
   subscribe(input: SubscribeInput!): User!
 
   createSource(input: NewSourceInput!): Source!
-  createSubSource(input: NewSubSourceInput!): SubSource!
+  upsertSubSource(input: UpsertSubSourceInput!): SubSource!
   syncUp(input: SeedStateInput): SeedState
 }
 

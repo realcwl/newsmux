@@ -61,13 +61,6 @@ type NewSourceInput struct {
 	Domain string `json:"domain"`
 }
 
-type NewSubSourceInput struct {
-	UserID             string `json:"userId"`
-	Name               string `json:"name"`
-	ExternalIdentifier string `json:"externalIdentifier"`
-	SourceID           string `json:"sourceId"`
-}
-
 type NewUserInput struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -94,6 +87,17 @@ type UpsertFeedInput struct {
 	Name                 string   `json:"name"`
 	FilterDataExpression string   `json:"filterDataExpression"`
 	SubSourceIds         []string `json:"subSourceIds"`
+}
+
+type UpsertSubSourceInput struct {
+	SubSourceID        *string `json:"subSourceId"`
+	UserID             string  `json:"userId"`
+	Name               string  `json:"name"`
+	ExternalIdentifier string  `json:"externalIdentifier"`
+	SourceID           string  `json:"sourceId"`
+	ProfileURL         string  `json:"profileUrl"`
+	OriginURL          string  `json:"originUrl"`
+	IsFromSharedPost   bool    `json:"isFromSharedPost"`
 }
 
 type UserSeedState struct {
