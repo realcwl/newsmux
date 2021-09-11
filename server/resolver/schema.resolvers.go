@@ -24,8 +24,11 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserIn
 	if res.RowsAffected == 0 {
 		// if the user doesn't exist, create the user.
 		t := model.User{
-			Id:              input.ID,
-			Name:            input.Name,
+			Id:   input.ID,
+			Name: input.Name,
+			// TODO(chenweilunster): For now we set only default user avatar, later
+			// we'll allow user to customize their avatar in the frontend.
+			AvatarUrl:       "https://robohash.org/54a9068a8750731226a284514c01b0bb?set=set4&bgset=&size=400x400",
 			CreatedAt:       time.Now(),
 			SubscribedFeeds: []*model.Feed{},
 		}
