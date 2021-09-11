@@ -9,6 +9,7 @@ import (
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -54,7 +55,8 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 	Log.Info("read published post for feed: ", feed.Id, " query: ", query)
 	if query.Direction == model.FeedRefreshDirectionNew {
 		db.Model(&model.Post{}).
-			Preload("SubSource").
+			Preload(clause.Associations).
+			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor > ?", feed.Id, query.Cursor).
@@ -64,7 +66,8 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 		feed.Posts = posts
 	} else {
 		db.Model(&model.Post{}).
-			Preload("SubSource").
+			Preload(clause.Associations).
+			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor < ?", feed.Id, query.Cursor).
@@ -111,7 +114,8 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 		//    after the shared one is published.
 		//    however for re-publish,
 		db.Model(&model.Post{}).
-			Preload("SubSource").
+			Preload(clause.Associations).
+			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
 			Order("cursor desc").
