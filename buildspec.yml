@@ -18,8 +18,8 @@ phases:
       - echo Build started on `date`
       - echo IMAGE_TAG is $IMAGE_TAG
       - echo Build the Docker image...
-      - echo USER_PASS is $USER_PASS
-      - docker build -t $REPOSITORY_URL:$IMAGE_TAG --build-arg USER_PASS=$USER_PASS . # TODO: add build-args
+      - echo DB_PASS is $DB_PASS
+      - docker build -t $REPOSITORY_URL:$IMAGE_TAG --build-arg DB_PASS=$DB_PASS . # TODO: add build-args
   post_build:
     commands:
       - echo Build completed on `date`

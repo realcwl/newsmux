@@ -13,4 +13,4 @@ RUN go install -v ./...
 
 EXPOSE 8080
 
-RUN NEWSMUX_ENV=prod DB_PASS=$DB_PASS go run ./cmd/server/main.go -dev=false -no_auth 
+CMD ["NEWSMUX_ENV=prod", "DB_PASS=$DB_PASS", "go", "run", "./cmd/server/main.go", "-dev=false", "-no_auth"]
