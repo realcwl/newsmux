@@ -302,12 +302,6 @@ func (r *queryResolver) AllFeeds(ctx context.Context) ([]*model.Feed, error) {
 	return feeds, result.Error
 }
 
-func (r *queryResolver) Sources(ctx context.Context) ([]*model.Source, error) {
-	var sources []*model.Source
-	result := r.DB.Preload(clause.Associations).Find(&sources)
-	return sources, result.Error
-}
-
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 	var posts []*model.Post
 	result := r.DB.Preload(clause.Associations).Find(&posts)
@@ -344,6 +338,12 @@ func (r *queryResolver) SubSources(ctx context.Context, input *model.SubsourcesI
 	var subSources []*model.SubSource
 	result := r.DB.Debug().Preload(clause.Associations).Where("is_from_shared_post = ?", input.IsFromSharedPost).Order("created_at").Find(&subSources)
 	return subSources, result.Error
+}
+
+func (r *queryResolver) Sources(ctx context.Context, input *model.SourcesInput) ([]*model.Source, error) {
+	var sources []*model.Source
+	result := r.DB.Preload("SubSources", "is_from_shared_post = ?", input.SubSourceFromSharedPost).Find(&sources)
+	return sources, result.Error
 }
 
 func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {

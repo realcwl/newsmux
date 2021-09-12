@@ -108,7 +108,7 @@ type ComplexityRoot struct {
 		AllFeeds   func(childComplexity int) int
 		Feeds      func(childComplexity int, input *model.FeedsGetPostsInput) int
 		Posts      func(childComplexity int) int
-		Sources    func(childComplexity int) int
+		Sources    func(childComplexity int, input *model.SourcesInput) int
 		SubSources func(childComplexity int, input *model.SubsourcesInput) int
 		Users      func(childComplexity int) int
 	}
@@ -182,11 +182,11 @@ type PostResolver interface {
 }
 type QueryResolver interface {
 	AllFeeds(ctx context.Context) ([]*model.Feed, error)
-	Sources(ctx context.Context) ([]*model.Source, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error)
 	SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error)
+	Sources(ctx context.Context, input *model.SourcesInput) ([]*model.Source, error)
 }
 type SourceResolver interface {
 	DeletedAt(ctx context.Context, obj *model.Source) (*time.Time, error)
@@ -548,7 +548,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Sources(childComplexity), true
+		args, err := ec.field_Query_sources_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Sources(childComplexity, args["input"].(*model.SourcesInput)), true
 
 	case "Query.subSources":
 		if e.complexity.Query.SubSources == nil {
@@ -941,7 +946,6 @@ enum FeedRefreshDirection {
 # TODO(jamie): more documentations on all APIs
 type Query {
   allFeeds: [Feed!]
-  sources: [Source!]
   posts: [Post!]
   users: [User!]
 
@@ -990,6 +994,11 @@ type Query {
 
   feeds(input: FeedsGetPostsInput): [Feed!]!
   subSources(input: SubsourcesInput): [SubSource!]!
+  sources(input: SourcesInput): [Source!]
+}
+
+input SourcesInput {
+  subSourceFromSharedPost: Boolean!
 }
 
 input SubsourcesInput {
@@ -1289,6 +1298,21 @@ func (ec *executionContext) field_Query_feeds_args(ctx context.Context, rawArgs 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalOFeedsGetPostsInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedsGetPostsInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_sources_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.SourcesInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalOSourcesInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourcesInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2724,38 +2748,6 @@ func (ec *executionContext) _Query_allFeeds(ctx context.Context, field graphql.C
 	return ec.marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_sources(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Sources(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Source)
-	fc.Result = res
-	return ec.marshalOSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2902,6 +2894,45 @@ func (ec *executionContext) _Query_subSources(ctx context.Context, field graphql
 	res := resTmp.([]*model.SubSource)
 	fc.Result = res
 	return ec.marshalNSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_sources(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_sources_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Sources(rctx, args["input"].(*model.SourcesInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Source)
+	fc.Result = res
+	return ec.marshalOSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5356,6 +5387,26 @@ func (ec *executionContext) unmarshalInputSeedStateInput(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSourcesInput(ctx context.Context, obj interface{}) (model.SourcesInput, error) {
+	var it model.SourcesInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "subSourceFromSharedPost":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subSourceFromSharedPost"))
+			it.SubSourceFromSharedPost, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSubscribeInput(ctx context.Context, obj interface{}) (model.SubscribeInput, error) {
 	var it model.SubscribeInput
 	var asMap = obj.(map[string]interface{})
@@ -5951,17 +6002,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_allFeeds(ctx, field)
 				return res
 			})
-		case "sources":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_sources(ctx, field)
-				return res
-			})
 		case "posts":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -6010,6 +6050,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "sources":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_sources(ctx, field)
 				return res
 			})
 		case "__type":
@@ -7494,6 +7545,14 @@ func (ec *executionContext) marshalOSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnew
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) unmarshalOSourcesInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourcesInput(ctx context.Context, v interface{}) (*model.SourcesInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputSourcesInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

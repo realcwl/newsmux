@@ -76,6 +76,10 @@ type SeedStateInput struct {
 	FeedSeedState []*FeedSeedStateInput `json:"feedSeedState"`
 }
 
+type SourcesInput struct {
+	SubSourceFromSharedPost bool `json:"subSourceFromSharedPost"`
+}
+
 type SubscribeInput struct {
 	UserID string `json:"userId"`
 	FeedID string `json:"feedId"`
