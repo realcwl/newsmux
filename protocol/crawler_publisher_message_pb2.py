@@ -20,11 +20,78 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z0github.com/Luismorlan/newsmux/publisher/protocol',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1f\x63rawler_publisher_message.proto\x12\x08protocol\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc8\x03\n\x0e\x43rawlerMessage\x12\x32\n\x04post\x18\x01 \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPost\x12.\n\ncrawled_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncrawler_ip\x18\x03 \x01(\t\x12\x17\n\x0f\x63rawler_version\x18\x04 \x01(\t\x12\x0f\n\x07is_test\x18\x05 \x01(\x08\x1a\x93\x02\n\x0b\x43rawledPost\x12\x0f\n\x07post_id\x18\x01 \x01(\t\x12\x15\n\rsub_source_id\x18\x02 \x01(\t\x12\r\n\x05title\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12\x12\n\nimage_urls\x18\x05 \x03(\t\x12\x12\n\nfiles_urls\x18\x06 \x03(\t\x12\x38\n\x14\x63ontent_generated_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\norigin_url\x18\x08 \x01(\t\x12\x46\n\x18shared_from_crawled_post\x18\t \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPostB2Z0github.com/Luismorlan/newsmux/publisher/protocolb\x06proto3'
+  serialized_pb=b'\n\x1f\x63rawler_publisher_message.proto\x12\x08protocol\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbf\x01\n\x10\x43rawledSubSource\x12\x15\n\rsub_source_id\x18\x01 \x01(\t\x12\x17\n\x0fsub_source_name\x18\x02 \x01(\t\x12\x1e\n\x16sub_source_external_id\x18\x03 \x01(\t\x12\x1c\n\x14sub_source_source_id\x18\x04 \x01(\t\x12\x1e\n\x16sub_source_profile_url\x18\x05 \x01(\t\x12\x1d\n\x15sub_source_origin_url\x18\x06 \x01(\t\"\xe1\x03\n\x0e\x43rawlerMessage\x12\x32\n\x04post\x18\x01 \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPost\x12.\n\ncrawled_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncrawler_ip\x18\x03 \x01(\t\x12\x17\n\x0f\x63rawler_version\x18\x04 \x01(\t\x12\x0f\n\x07is_test\x18\x05 \x01(\x08\x1a\xac\x02\n\x0b\x43rawledPost\x12\x0f\n\x07post_id\x18\x01 \x01(\t\x12.\n\nsub_source\x18\x02 \x01(\x0b\x32\x1a.protocol.CrawledSubSource\x12\r\n\x05title\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12\x12\n\nimage_urls\x18\x05 \x03(\t\x12\x12\n\nfiles_urls\x18\x06 \x03(\t\x12\x38\n\x14\x63ontent_generated_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\norigin_url\x18\x08 \x01(\t\x12\x46\n\x18shared_from_crawled_post\x18\t \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPostB2Z0github.com/Luismorlan/newsmux/publisher/protocolb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
 
+
+
+_CRAWLEDSUBSOURCE = _descriptor.Descriptor(
+  name='CrawledSubSource',
+  full_name='protocol.CrawledSubSource',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='sub_source_id', full_name='protocol.CrawledSubSource.sub_source_id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='sub_source_name', full_name='protocol.CrawledSubSource.sub_source_name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='sub_source_external_id', full_name='protocol.CrawledSubSource.sub_source_external_id', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='sub_source_source_id', full_name='protocol.CrawledSubSource.sub_source_source_id', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='sub_source_profile_url', full_name='protocol.CrawledSubSource.sub_source_profile_url', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='sub_source_origin_url', full_name='protocol.CrawledSubSource.sub_source_origin_url', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=79,
+  serialized_end=270,
+)
 
 
 _CRAWLERMESSAGE_CRAWLEDPOST = _descriptor.Descriptor(
@@ -43,9 +110,9 @@ _CRAWLERMESSAGE_CRAWLEDPOST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='sub_source_id', full_name='protocol.CrawlerMessage.CrawledPost.sub_source_id', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      name='sub_source', full_name='protocol.CrawlerMessage.CrawledPost.sub_source', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -110,8 +177,8 @@ _CRAWLERMESSAGE_CRAWLEDPOST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=260,
-  serialized_end=535,
+  serialized_start=454,
+  serialized_end=754,
 )
 
 _CRAWLERMESSAGE = _descriptor.Descriptor(
@@ -169,17 +236,26 @@ _CRAWLERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=79,
-  serialized_end=535,
+  serialized_start=273,
+  serialized_end=754,
 )
 
+_CRAWLERMESSAGE_CRAWLEDPOST.fields_by_name['sub_source'].message_type = _CRAWLEDSUBSOURCE
 _CRAWLERMESSAGE_CRAWLEDPOST.fields_by_name['content_generated_at'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
 _CRAWLERMESSAGE_CRAWLEDPOST.fields_by_name['shared_from_crawled_post'].message_type = _CRAWLERMESSAGE_CRAWLEDPOST
 _CRAWLERMESSAGE_CRAWLEDPOST.containing_type = _CRAWLERMESSAGE
 _CRAWLERMESSAGE.fields_by_name['post'].message_type = _CRAWLERMESSAGE_CRAWLEDPOST
 _CRAWLERMESSAGE.fields_by_name['crawled_at'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+DESCRIPTOR.message_types_by_name['CrawledSubSource'] = _CRAWLEDSUBSOURCE
 DESCRIPTOR.message_types_by_name['CrawlerMessage'] = _CRAWLERMESSAGE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+CrawledSubSource = _reflection.GeneratedProtocolMessageType('CrawledSubSource', (_message.Message,), {
+  'DESCRIPTOR' : _CRAWLEDSUBSOURCE,
+  '__module__' : 'crawler_publisher_message_pb2'
+  # @@protoc_insertion_point(class_scope:protocol.CrawledSubSource)
+  })
+_sym_db.RegisterMessage(CrawledSubSource)
 
 CrawlerMessage = _reflection.GeneratedProtocolMessageType('CrawlerMessage', (_message.Message,), {
 

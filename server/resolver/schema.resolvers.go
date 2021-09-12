@@ -266,7 +266,6 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 		r.DB.Create(&source)
 		// Create default sub source, this subsource have no creator, no external id
 		r.UpsertSubSource(ctx, model.UpsertSubSourceInput{
-			UserID:             user.Id,
 			Name:               DefaultSubSourceName,
 			ExternalIdentifier: "",
 			SourceID:           source.Id,
@@ -309,12 +308,6 @@ func (r *queryResolver) Sources(ctx context.Context) ([]*model.Source, error) {
 	return sources, result.Error
 }
 
-func (r *queryResolver) SubSources(ctx context.Context) ([]*model.SubSource, error) {
-	var subSources []*model.SubSource
-	result := r.DB.Preload(clause.Associations).Find(&subSources)
-	return subSources, result.Error
-}
-
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 	var posts []*model.Post
 	result := r.DB.Preload(clause.Associations).Find(&posts)
@@ -345,6 +338,12 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInp
 	}
 
 	return getRefreshPosts(r, feedRefreshInputs)
+}
+
+func (r *queryResolver) SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error) {
+	var subSources []*model.SubSource
+	result := r.DB.Debug().Preload(clause.Associations).Where("is_from_shared_post = ?", input.IsFromSharedPost).Order("created_at").Find(&subSources)
+	return subSources, result.Error
 }
 
 func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {

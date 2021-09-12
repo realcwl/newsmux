@@ -117,8 +117,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	sourceId2 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
-	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, db, client)
-	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId2, db, client)
+	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, false, db, client)
+	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId2, false, db, client)
 
 	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
 	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", DataExpressionJsonForTest, []string{subSourceId1, subSourceId2}, db, client)
@@ -241,7 +241,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 	client := PrepareTestDBClient(db)
 	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
-	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, db, client)
+	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, false, db, client)
 	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
 
 	msgToOneFeed := protocol.CrawlerMessage{
@@ -304,13 +304,18 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		require.Equal(t, true, post.SharedFromPost.InSharingChain)
 		require.Equal(t, 0, len(post.SharedFromPost.PublishedFeeds))
 
+		// Check isFromSharedPost mark is set correctly
+		var subScourceOrigin model.SubSource
+		processor.DB.Preload(clause.Associations).Where("id=?", post.SubSourceID).First(&subScourceOrigin)
+		require.False(t, subScourceOrigin.IsFromSharedPost)
+
 		// Check new subsource is created
-		var subScource model.SubSource
-		processor.DB.Preload(clause.Associations).Where("id=?", post.SharedFromPost.SubSourceID).First(&subScource)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceName, subScource.Name)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceExternalId, subScource.ExternalIdentifier)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceOriginUrl, subScource.OriginUrl)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceProfileUrl, subScource.ProfileUrl)
-		require.True(t, subScource.IsFromSharedPost)
+		var subScourceShared model.SubSource
+		processor.DB.Preload(clause.Associations).Where("id=?", post.SharedFromPost.SubSourceID).First(&subScourceShared)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceName, subScourceShared.Name)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceExternalId, subScourceShared.ExternalIdentifier)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceOriginUrl, subScourceShared.OriginUrl)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceProfileUrl, subScourceShared.AvatarUrl)
+		require.True(t, subScourceShared.IsFromSharedPost)
 	})
 }

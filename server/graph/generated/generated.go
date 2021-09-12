@@ -109,7 +109,7 @@ type ComplexityRoot struct {
 		Feeds      func(childComplexity int, input *model.FeedsGetPostsInput) int
 		Posts      func(childComplexity int) int
 		Sources    func(childComplexity int) int
-		SubSources func(childComplexity int) int
+		SubSources func(childComplexity int, input *model.SubsourcesInput) int
 		Users      func(childComplexity int) int
 	}
 
@@ -129,15 +129,14 @@ type ComplexityRoot struct {
 	}
 
 	SubSource struct {
+		AvatarUrl          func(childComplexity int) int
 		CreatedAt          func(childComplexity int) int
-		Creator            func(childComplexity int) int
 		DeletedAt          func(childComplexity int) int
 		ExternalIdentifier func(childComplexity int) int
 		Id                 func(childComplexity int) int
 		IsFromSharedPost   func(childComplexity int) int
 		Name               func(childComplexity int) int
 		OriginUrl          func(childComplexity int) int
-		ProfileUrl         func(childComplexity int) int
 		Source             func(childComplexity int) int
 	}
 
@@ -184,10 +183,10 @@ type PostResolver interface {
 type QueryResolver interface {
 	AllFeeds(ctx context.Context) ([]*model.Feed, error)
 	Sources(ctx context.Context) ([]*model.Source, error)
-	SubSources(ctx context.Context) ([]*model.SubSource, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error)
+	SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error)
 }
 type SourceResolver interface {
 	DeletedAt(ctx context.Context, obj *model.Source) (*time.Time, error)
@@ -556,7 +555,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.SubSources(childComplexity), true
+		args, err := ec.field_Query_subSources_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SubSources(childComplexity, args["input"].(*model.SubsourcesInput)), true
 
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
@@ -628,19 +632,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Source.SubSources(childComplexity), true
 
+	case "SubSource.avatarUrl":
+		if e.complexity.SubSource.AvatarUrl == nil {
+			break
+		}
+
+		return e.complexity.SubSource.AvatarUrl(childComplexity), true
+
 	case "SubSource.createdAt":
 		if e.complexity.SubSource.CreatedAt == nil {
 			break
 		}
 
 		return e.complexity.SubSource.CreatedAt(childComplexity), true
-
-	case "SubSource.creator":
-		if e.complexity.SubSource.Creator == nil {
-			break
-		}
-
-		return e.complexity.SubSource.Creator(childComplexity), true
 
 	case "SubSource.deletedAt":
 		if e.complexity.SubSource.DeletedAt == nil {
@@ -683,13 +687,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SubSource.OriginUrl(childComplexity), true
-
-	case "SubSource.profileUrl":
-		if e.complexity.SubSource.ProfileUrl == nil {
-			break
-		}
-
-		return e.complexity.SubSource.ProfileUrl(childComplexity), true
 
 	case "SubSource.source":
 		if e.complexity.SubSource.Source == nil {
@@ -945,7 +942,6 @@ enum FeedRefreshDirection {
 type Query {
   allFeeds: [Feed!]
   sources: [Source!]
-  subSources: [SubSource!]
   posts: [Post!]
   users: [User!]
 
@@ -993,6 +989,11 @@ type Query {
   # 1. query OLD but can't satisfy the limit
 
   feeds(input: FeedsGetPostsInput): [Feed!]!
+  subSources(input: SubsourcesInput): [SubSource!]!
+}
+
+input SubsourcesInput {
+  isFromSharedPost: Boolean!
 }
 
 input NewUserInput {
@@ -1033,11 +1034,10 @@ input NewSourceInput {
 # example: when subsource is an owner of a post in a retweet post
 input UpsertSubSourceInput {
   subSourceId: String
-  userId: String!
   name: String!
   externalIdentifier: String!
   sourceId: String!
-  profileUrl: String!
+  avatarUrl: String!
   originUrl: String!
   isFromSharedPost: Boolean!
 }
@@ -1104,11 +1104,10 @@ input SeedStateInput {
   id: String!
   createdAt: Time!
   deletedAt: Time
-  creator: User
   name: String!
   externalIdentifier: String!
   source: Source!
-  profileUrl: String!
+  avatarUrl: String!
   originUrl: String!
   isFromSharedPost: Boolean!
 }
@@ -1290,6 +1289,21 @@ func (ec *executionContext) field_Query_feeds_args(ctx context.Context, rawArgs 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalOFeedsGetPostsInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedsGetPostsInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_subSources_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.SubsourcesInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalOSubsourcesInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubsourcesInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2742,38 +2756,6 @@ func (ec *executionContext) _Query_sources(ctx context.Context, field graphql.Co
 	return ec.marshalOSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_subSources(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().SubSources(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.SubSource)
-	fc.Result = res
-	return ec.marshalOSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2878,6 +2860,48 @@ func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.Coll
 	res := resTmp.([]*model.Feed)
 	fc.Result = res
 	return ec.marshalNFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_subSources(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_subSources_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().SubSources(rctx, args["input"].(*model.SubsourcesInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.SubSource)
+	fc.Result = res
+	return ec.marshalNSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3359,38 +3383,6 @@ func (ec *executionContext) _SubSource_deletedAt(ctx context.Context, field grap
 	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _SubSource_creator(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "SubSource",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Creator, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(model.User)
-	fc.Result = res
-	return ec.marshalOUser2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUser(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _SubSource_name(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3496,7 +3488,7 @@ func (ec *executionContext) _SubSource_source(ctx context.Context, field graphql
 	return ec.marshalNSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _SubSource_profileUrl(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
+func (ec *executionContext) _SubSource_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3514,7 +3506,7 @@ func (ec *executionContext) _SubSource_profileUrl(ctx context.Context, field gra
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ProfileUrl, nil
+		return obj.AvatarUrl, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5392,6 +5384,26 @@ func (ec *executionContext) unmarshalInputSubscribeInput(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSubsourcesInput(ctx context.Context, obj interface{}) (model.SubsourcesInput, error) {
+	var it model.SubsourcesInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "isFromSharedPost":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isFromSharedPost"))
+			it.IsFromSharedPost, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpsertFeedInput(ctx context.Context, obj interface{}) (model.UpsertFeedInput, error) {
 	var it model.UpsertFeedInput
 	var asMap = obj.(map[string]interface{})
@@ -5458,14 +5470,6 @@ func (ec *executionContext) unmarshalInputUpsertSubSourceInput(ctx context.Conte
 			if err != nil {
 				return it, err
 			}
-		case "userId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "name":
 			var err error
 
@@ -5490,11 +5494,11 @@ func (ec *executionContext) unmarshalInputUpsertSubSourceInput(ctx context.Conte
 			if err != nil {
 				return it, err
 			}
-		case "profileUrl":
+		case "avatarUrl":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("profileUrl"))
-			it.ProfileURL, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatarUrl"))
+			it.AvatarURL, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5958,17 +5962,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_sources(ctx, field)
 				return res
 			})
-		case "subSources":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_subSources(ctx, field)
-				return res
-			})
 		case "posts":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -6000,6 +5993,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_feeds(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "subSources":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_subSources(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -6141,8 +6148,6 @@ func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet
 				res = ec._SubSource_deletedAt(ctx, field, obj)
 				return res
 			})
-		case "creator":
-			out.Values[i] = ec._SubSource_creator(ctx, field, obj)
 		case "name":
 			out.Values[i] = ec._SubSource_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -6167,8 +6172,8 @@ func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet
 				}
 				return res
 			})
-		case "profileUrl":
-			out.Values[i] = ec._SubSource_profileUrl(ctx, field, obj)
+		case "avatarUrl":
+			out.Values[i] = ec._SubSource_avatarUrl(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -7551,44 +7556,12 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return graphql.MarshalString(*v)
 }
 
-func (ec *executionContext) marshalOSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SubSource) graphql.Marshaler {
+func (ec *executionContext) unmarshalOSubsourcesInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubsourcesInput(ctx context.Context, v interface{}) (*model.SubsourcesInput, error) {
 	if v == nil {
-		return graphql.Null
+		return nil, nil
 	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
+	res, err := ec.unmarshalInputSubsourcesInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {

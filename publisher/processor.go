@@ -99,11 +99,10 @@ func (processor *CrawlerpublisherMessageProcessor) prepareSubSourceRecursive(pos
 
 	subSource, err := resolver.UpsertSubsourceImpl(processor.DB, model.UpsertSubSourceInput{
 		SubSourceID:        subSourceId,
-		UserID:             "default_user_id", // TODO: set "publisher" user
 		Name:               post.SubSource.SubSourceName,
 		ExternalIdentifier: post.SubSource.SubSourceExternalId,
 		SourceID:           post.SubSource.SubSourceSourceId,
-		ProfileURL:         post.SubSource.SubSourceProfileUrl,
+		AvatarURL:          post.SubSource.SubSourceProfileUrl,
 		OriginURL:          post.SubSource.SubSourceOriginUrl,
 		IsFromSharedPost:   !isRoot,
 	})
@@ -171,7 +170,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	}
 
 	// Prepare Post relations to Subsources (Sources can be inferred)
-	subSource, err := processor.prepareSubSourceRecursive(decodedMsg.Post, false)
+	subSource, err := processor.prepareSubSourceRecursive(decodedMsg.Post /*isRoot*/, true)
 	if err != nil {
 		return err
 	}
@@ -180,7 +179,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	feedCandidates := processor.prepareFeedCandidates(subSource)
 
 	// Create new post based on message
-	post, err := processor.preparePostChainFromMessage(decodedMsg.Post, true)
+	post, err := processor.preparePostChainFromMessage(decodedMsg.Post /*isRoot*/, true)
 	if err != nil {
 		return err
 	}

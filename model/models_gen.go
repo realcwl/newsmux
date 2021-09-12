@@ -81,6 +81,10 @@ type SubscribeInput struct {
 	FeedID string `json:"feedId"`
 }
 
+type SubsourcesInput struct {
+	IsFromSharedPost bool `json:"isFromSharedPost"`
+}
+
 type UpsertFeedInput struct {
 	UserID               string   `json:"userId"`
 	FeedID               *string  `json:"feedId"`
@@ -91,11 +95,10 @@ type UpsertFeedInput struct {
 
 type UpsertSubSourceInput struct {
 	SubSourceID        *string `json:"subSourceId"`
-	UserID             string  `json:"userId"`
 	Name               string  `json:"name"`
 	ExternalIdentifier string  `json:"externalIdentifier"`
 	SourceID           string  `json:"sourceId"`
-	ProfileURL         string  `json:"profileUrl"`
+	AvatarURL          string  `json:"avatarUrl"`
 	OriginURL          string  `json:"originUrl"`
 	IsFromSharedPost   bool    `json:"isFromSharedPost"`
 }

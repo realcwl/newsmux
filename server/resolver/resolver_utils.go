@@ -199,15 +199,7 @@ func isClearPostsNeededForFeedsUpsert(feed *model.Feed, input *model.UpsertFeedI
 }
 
 func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.SubSource, error) {
-	var (
-		subSource model.SubSource
-		user      model.User
-	)
-
-	queryResult := db.Where("id = ?", input.UserID).First(&user)
-	if queryResult.RowsAffected != 1 {
-		return nil, errors.New("invalid user id")
-	}
+	var subSource model.SubSource
 
 	if input.SubSourceID != nil {
 		queryResult := db.Preload("Feeds").Where("id = ?", *input.SubSourceID).First(&subSource)
@@ -217,8 +209,7 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 
 		subSource.Name = input.Name
 		subSource.ExternalIdentifier = input.ExternalIdentifier
-		subSource.Creator = user
-		subSource.ProfileUrl = input.ProfileURL
+		subSource.AvatarUrl = input.AvatarURL
 		subSource.OriginUrl = input.OriginURL
 		// udpate won't udpate IsFromShare, to prevent an already needed subsource got shared, and become isFromShare
 		db.Save(&subSource)
@@ -228,8 +219,7 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 			Name:               input.Name,
 			ExternalIdentifier: input.ExternalIdentifier,
 			SourceID:           input.SourceID,
-			Creator:            user,
-			ProfileUrl:         input.ProfileURL,
+			AvatarUrl:          input.AvatarURL,
 			OriginUrl:          input.OriginURL,
 			IsFromSharedPost:   input.IsFromSharedPost,
 		}
