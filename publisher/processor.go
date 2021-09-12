@@ -102,7 +102,7 @@ func (processor *CrawlerpublisherMessageProcessor) prepareSubSourceRecursive(pos
 		Name:               post.SubSource.SubSourceName,
 		ExternalIdentifier: post.SubSource.SubSourceExternalId,
 		SourceID:           post.SubSource.SubSourceSourceId,
-		AvatarURL:          post.SubSource.SubSourceProfileUrl,
+		AvatarURL:          post.SubSource.SubSourceAvatarUrl,
 		OriginURL:          post.SubSource.SubSourceOriginUrl,
 		IsFromSharedPost:   !isRoot,
 	})
