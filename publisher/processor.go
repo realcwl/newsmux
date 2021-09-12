@@ -92,17 +92,17 @@ func (processor *CrawlerpublisherMessageProcessor) prepareSource(id string) (*mo
 
 func (processor *CrawlerpublisherMessageProcessor) prepareSubSourceRecursive(post *CrawlerMessage_CrawledPost, isRoot bool) (*model.SubSource, error) {
 	subSource, err := resolver.UpsertSubsourceImpl(processor.DB, model.UpsertSubSourceInput{
-		Name:               post.SubSource.SubSourceName,
-		ExternalIdentifier: post.SubSource.SubSourceExternalId,
-		SourceID:           post.SubSource.SubSourceSourceId,
-		AvatarURL:          post.SubSource.SubSourceProfileUrl,
-		OriginURL:          post.SubSource.SubSourceOriginUrl,
+		Name:               post.SubSource.Name,
+		ExternalIdentifier: post.SubSource.ExternalId,
+		SourceID:           post.SubSource.SourceId,
+		AvatarURL:          post.SubSource.AvatarUrl,
+		OriginURL:          post.SubSource.OriginUrl,
 		IsFromSharedPost:   !isRoot,
 	})
 	if err != nil {
 		return nil, err
 	}
-	post.SubSource.SubSourceId = subSource.Id
+	post.SubSource.Id = subSource.Id
 
 	if post.SharedFromCrawledPost != nil {
 		if _, err = processor.prepareSubSourceRecursive(post.SharedFromCrawledPost, false); err != nil {
@@ -114,9 +114,9 @@ func (processor *CrawlerpublisherMessageProcessor) prepareSubSourceRecursive(pos
 
 func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(crawledPost *CrawlerMessage_CrawledPost, isRoot bool) (post *model.Post, e error) {
 	var subSource model.SubSource
-	res := processor.DB.Where("id = ?", crawledPost.SubSource.SubSourceId).First(&subSource)
+	res := processor.DB.Where("id = ?", crawledPost.SubSource.Id).First(&subSource)
 	if res.RowsAffected == 0 {
-		return nil, errors.New("invalid subsource id " + crawledPost.SubSource.SubSourceId)
+		return nil, errors.New("invalid subsource id " + crawledPost.SubSource.Id)
 	}
 
 	post = &model.Post{
@@ -125,7 +125,7 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(c
 		Content:        crawledPost.Content,
 		CreatedAt:      time.Now(),
 		SubSource:      subSource,
-		SubSourceID:    crawledPost.SubSource.SubSourceId,
+		SubSourceID:    crawledPost.SubSource.Id,
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 		InSharingChain: !isRoot,

@@ -65,7 +65,7 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 	origin := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceId: "2",
+				Id: "2",
 			},
 			Title:              "hello",
 			Content:            "hello world!",
@@ -129,8 +129,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			DeduplicateId: "1",
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceName:     "test_subsource_for_feeds_api",
-				SubSourceSourceId: sourceId1,
+				Name:     "test_subsource_for_feeds_api",
+				SourceId: sourceId1,
 			},
 			Title:              "msgToTwoFeeds",
 			Content:            "老王做空以太坊",
@@ -149,8 +149,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			DeduplicateId: "2",
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceName:     "test_subsource_for_feeds_api_2",
-				SubSourceSourceId: sourceId2,
+				Name: "test_subsource_for_feeds_api_2",
+				Id:   sourceId2,
 			},
 			Title:              "msgToOneFeed",
 			Content:            "老王做空以太坊_2",
@@ -253,11 +253,11 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			SubSource: &protocol.CrawledSubSource{
 				// New subsource to be created and mark as isFromSharedPost
-				SubSourceName:       "test_subsource_1",
-				SubSourceSourceId:   sourceId1,
-				SubSourceExternalId: "a",
-				SubSourceProfileUrl: "a",
-				SubSourceOriginUrl:  "a",
+				Name:       "test_subsource_1",
+				SourceId:   sourceId1,
+				ExternalId: "a",
+				AvatarUrl:  "a",
+				OriginUrl:  "a",
 			},
 			Title:              "老王干得好", // This doesn't match data exp
 			Content:            "老王干得好",
@@ -268,11 +268,11 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
 				SubSource: &protocol.CrawledSubSource{
 					// New subsource to be created and mark as isFromSharedPost
-					SubSourceName:       "test_subsource_2",
-					SubSourceSourceId:   sourceId1,
-					SubSourceExternalId: "a",
-					SubSourceProfileUrl: "a",
-					SubSourceOriginUrl:  "a",
+					Name:       "test_subsource_2",
+					SourceId:   sourceId1,
+					ExternalId: "a",
+					AvatarUrl:  "a",
+					OriginUrl:  "a",
 				},
 				Title:              "老王做空以太坊", // This matches data exp
 				Content:            "老王做空以太坊详情",
@@ -321,10 +321,10 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		// Check new subsource is created
 		var subScourceShared model.SubSource
 		processor.DB.Preload(clause.Associations).Where("id=?", post.SharedFromPost.SubSourceID).First(&subScourceShared)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceName, subScourceShared.Name)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceExternalId, subScourceShared.ExternalIdentifier)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceOriginUrl, subScourceShared.OriginUrl)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceProfileUrl, subScourceShared.AvatarUrl)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.Name, subScourceShared.Name)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.ExternalId, subScourceShared.ExternalIdentifier)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.OriginUrl, subScourceShared.OriginUrl)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.AvatarUrl, subScourceShared.AvatarUrl)
 		require.True(t, subScourceShared.IsFromSharedPost)
 	})
 }
