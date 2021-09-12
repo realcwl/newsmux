@@ -80,3 +80,10 @@ func StringSlicesContainSameElements(s1, s2 []string) bool {
 	sort.Strings(s2)
 	return reflect.DeepEqual(s1, s2)
 }
+
+func StringifyBoolean(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
+}

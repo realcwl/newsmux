@@ -401,36 +401,74 @@ func TestCreateSourceAndValidate(t *testing.T, userId string, name string, domai
 }
 
 // create subsource with name, do sanity checks and returns its Id
-func TestCreateSubSourceAndValidate(t *testing.T, userId string, name string, externalIdentifier string, sourceId string, db *gorm.DB, client *client.Client) (id string) {
+func TestCreateSubSourceAndValidate(t *testing.T, userId string, name string, externalIdentifier string, sourceId string, isFromSharedPost bool, db *gorm.DB, client *client.Client) (id string) {
 	var resp struct {
-		CreateSubSource struct {
+		UpsertSubSource struct {
 			Id        string `json:"id"`
 			Name      string `json:"name"`
 			CreatedAt string `json:"createdAt"`
 			DeletedAt string `json:"deletedAt"`
-		} `json:"createSubSource"`
+		} `json:"upsertSubSource"`
 	}
 
 	client.MustPost(fmt.Sprintf(`mutation {
-		createSubSource(input:{userId:"%s" name:"%s" externalIdentifier:"%s" sourceId:"%s"}) {
+		upsertSubSource(input:{name:"%s" externalIdentifier:"%s" sourceId:"%s" originUrl:"" avatarUrl:"", isFromSharedPost:%s}) {
 		  id
 		  name
 		  createdAt
 		  deletedAt
 		}
 	  }
-	  `, userId, name, externalIdentifier, sourceId), &resp)
+	  `, name, externalIdentifier, sourceId, StringifyBoolean(isFromSharedPost)), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
-	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.CreateSubSource.CreatedAt)
+	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.UpsertSubSource.CreatedAt)
 
-	require.NotEmpty(t, resp.CreateSubSource.Id)
-	require.Equal(t, name, resp.CreateSubSource.Name)
+	require.NotEmpty(t, resp.UpsertSubSource.Id)
+	require.Equal(t, name, resp.UpsertSubSource.Name)
 	require.Truef(t, time.Now().UnixNano() > createTime.UnixNano(), "time created wrong")
-	require.Equal(t, "", resp.CreateSubSource.DeletedAt)
+	require.Equal(t, "", resp.UpsertSubSource.DeletedAt)
 
-	return resp.CreateSubSource.Id
+	return resp.UpsertSubSource.Id
+}
+
+// create subsource with name, do sanity checks and returns its Id
+func TestUpdateSubSourceAndValidate(t *testing.T, userId string, subSource *model.SubSource, db *gorm.DB, client *client.Client) (id string) {
+	var resp struct {
+		UpsertSubSource struct {
+			Id        string `json:"id"`
+			Name      string `json:"name"`
+			OriginUrl string `json:"originUrl"`
+			AvatarUrl string `json:"avatarUrl"`
+			CreatedAt string `json:"createdAt"`
+			DeletedAt string `json:"deletedAt"`
+		} `json:"upsertSubSource"`
+	}
+
+	client.MustPost(fmt.Sprintf(`mutation {
+		upsertSubSource(input:{subSourceId:"%s" name:"%s" externalIdentifier:"%s" sourceId:"%s" originUrl:"%s" avatarUrl:"%s", isFromSharedPost:false}) {
+		  id
+		  name
+		  originUrl
+		  avatarUrl
+		  createdAt
+		  deletedAt
+		}
+	  }
+	  `, subSource.Id, subSource.Name, subSource.ExternalIdentifier, subSource.SourceID, subSource.OriginUrl, subSource.AvatarUrl), &resp)
+
+	fmt.Printf("\nResponse from resolver: %+v\n", resp)
+
+	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.UpsertSubSource.CreatedAt)
+	require.NotEmpty(t, resp.UpsertSubSource.Id)
+	require.Equal(t, subSource.Name, resp.UpsertSubSource.Name)
+	require.Equal(t, subSource.OriginUrl, resp.UpsertSubSource.OriginUrl)
+	require.Equal(t, subSource.AvatarUrl, resp.UpsertSubSource.AvatarUrl)
+	require.Truef(t, time.Now().UnixNano() > createTime.UnixNano(), "time created wrong")
+	require.Equal(t, "", resp.UpsertSubSource.DeletedAt)
+
+	return resp.UpsertSubSource.Id
 }
 
 // create subsource with title,content, do sanity checks and returns its Id
@@ -539,4 +577,30 @@ func TestDeleteFeedAndValidate(t *testing.T, userId string, feedId string, owner
 	} else {
 		require.NotNil(t, err)
 	}
+}
+
+func TestQuerySubSources(t *testing.T, isFromSharedPost bool, db *gorm.DB, client *client.Client) []model.SubSource {
+	var resp struct {
+		SubSources []model.SubSource `json:"subSources"`
+	}
+	query := fmt.Sprintf(`
+	query {
+		subSources(
+		  input: {
+			isFromSharedPost: %s
+		  }
+		) {
+		  id
+		  name
+		  externalIdentifier
+		  avatarUrl
+		  originUrl
+		  isFromSharedPost
+		}
+	}
+	  `, StringifyBoolean(isFromSharedPost))
+
+	fmt.Println(query)
+	client.MustPost(query, &resp)
+	return resp.SubSources
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -199,4 +200,35 @@ func isClearPostsNeededForFeedsUpsert(feed *model.Feed, input *model.UpsertFeedI
 	}
 
 	return false, nil
+}
+
+func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.SubSource, error) {
+	var subSource model.SubSource
+
+	if input.SubSourceID != nil {
+		queryResult := db.Preload("Feeds").Where("id = ?", *input.SubSourceID).First(&subSource)
+		if queryResult.RowsAffected != 1 {
+			return nil, errors.New("invalid subsource id")
+		}
+
+		subSource.Name = input.Name
+		subSource.ExternalIdentifier = input.ExternalIdentifier
+		subSource.AvatarUrl = input.AvatarURL
+		subSource.OriginUrl = input.OriginURL
+		// udpate won't udpate IsFromShare, to prevent an already needed subsource got shared, and become isFromShare
+		db.Save(&subSource)
+	} else {
+		subSource = model.SubSource{
+			Id:                 uuid.New().String(),
+			Name:               input.Name,
+			ExternalIdentifier: input.ExternalIdentifier,
+			SourceID:           input.SourceID,
+			AvatarUrl:          input.AvatarURL,
+			OriginUrl:          input.OriginURL,
+			IsFromSharedPost:   input.IsFromSharedPost,
+		}
+
+		db.Create(&subSource)
+	}
+	return &subSource, nil
 }

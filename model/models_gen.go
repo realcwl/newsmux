@@ -61,13 +61,6 @@ type NewSourceInput struct {
 	Domain string `json:"domain"`
 }
 
-type NewSubSourceInput struct {
-	UserID             string `json:"userId"`
-	Name               string `json:"name"`
-	ExternalIdentifier string `json:"externalIdentifier"`
-	SourceID           string `json:"sourceId"`
-}
-
 type NewUserInput struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -83,9 +76,17 @@ type SeedStateInput struct {
 	FeedSeedState []*FeedSeedStateInput `json:"feedSeedState"`
 }
 
+type SourcesInput struct {
+	SubSourceFromSharedPost bool `json:"subSourceFromSharedPost"`
+}
+
 type SubscribeInput struct {
 	UserID string `json:"userId"`
 	FeedID string `json:"feedId"`
+}
+
+type SubsourcesInput struct {
+	IsFromSharedPost bool `json:"isFromSharedPost"`
 }
 
 type UpsertFeedInput struct {
@@ -94,6 +95,16 @@ type UpsertFeedInput struct {
 	Name                 string   `json:"name"`
 	FilterDataExpression string   `json:"filterDataExpression"`
 	SubSourceIds         []string `json:"subSourceIds"`
+}
+
+type UpsertSubSourceInput struct {
+	SubSourceID        *string `json:"subSourceId"`
+	Name               string  `json:"name"`
+	ExternalIdentifier string  `json:"externalIdentifier"`
+	SourceID           string  `json:"sourceId"`
+	AvatarURL          string  `json:"avatarUrl"`
+	OriginURL          string  `json:"originUrl"`
+	IsFromSharedPost   bool    `json:"isFromSharedPost"`
 }
 
 type UserSeedState struct {

@@ -91,7 +91,7 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 
 	// Upsert DB
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		// Update all columns, except primary keys and subscribers, to new value on conflict
+		// Update all columns, except primary keys and subscribers to new value, on conflict
 		queryResult = r.DB.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
 			UpdateAll: false,
@@ -268,8 +268,7 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		r.DB.Create(&source)
 		// Create default sub source, this subsource have no creator, no external id
-		r.CreateSubSource(ctx, model.NewSubSourceInput{
-			UserID:             user.Id,
+		r.UpsertSubSource(ctx, model.UpsertSubSourceInput{
 			Name:               DefaultSubSourceName,
 			ExternalIdentifier: "",
 			SourceID:           source.Id,
@@ -280,23 +279,8 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 	return &source, err
 }
 
-func (r *mutationResolver) CreateSubSource(ctx context.Context, input model.NewSubSourceInput) (*model.SubSource, error) {
-	uuid := uuid.New().String()
-
-	var user model.User
-	r.DB.Where("id = ?", input.UserID).First(&user)
-
-	t := model.SubSource{
-		Id:                 uuid,
-		Name:               input.Name,
-		ExternalIdentifier: input.ExternalIdentifier,
-		CreatedAt:          time.Now(),
-		SourceID:           input.SourceID,
-		Creator:            user,
-	}
-	r.DB.Create(&t)
-
-	return &t, nil
+func (r *mutationResolver) UpsertSubSource(ctx context.Context, input model.UpsertSubSourceInput) (*model.SubSource, error) {
+	return UpsertSubsourceImpl(r.DB, input)
 }
 
 func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {
@@ -319,18 +303,6 @@ func (r *queryResolver) AllFeeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
 	result := r.DB.Preload(clause.Associations).Find(&feeds)
 	return feeds, result.Error
-}
-
-func (r *queryResolver) Sources(ctx context.Context) ([]*model.Source, error) {
-	var sources []*model.Source
-	result := r.DB.Preload(clause.Associations).Find(&sources)
-	return sources, result.Error
-}
-
-func (r *queryResolver) SubSources(ctx context.Context) ([]*model.SubSource, error) {
-	var subSources []*model.SubSource
-	result := r.DB.Preload(clause.Associations).Find(&subSources)
-	return subSources, result.Error
 }
 
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
@@ -363,6 +335,18 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInp
 	}
 
 	return getRefreshPosts(r, feedRefreshInputs)
+}
+
+func (r *queryResolver) SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error) {
+	var subSources []*model.SubSource
+	result := r.DB.Debug().Preload(clause.Associations).Where("is_from_shared_post = ?", input.IsFromSharedPost).Order("created_at").Find(&subSources)
+	return subSources, result.Error
+}
+
+func (r *queryResolver) Sources(ctx context.Context, input *model.SourcesInput) ([]*model.Source, error) {
+	var sources []*model.Source
+	result := r.DB.Preload("SubSources", "is_from_shared_post = ?", input.SubSourceFromSharedPost).Find(&sources)
+	return sources, result.Error
 }
 
 func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {
