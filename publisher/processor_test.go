@@ -127,6 +127,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 
 	msgToTwoFeeds := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
+			DeduplicateId: "1",
 			SubSource: &protocol.CrawledSubSource{
 				SubSourceName:     "test_subsource_for_feeds_api",
 				SubSourceSourceId: sourceId1,
@@ -146,6 +147,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
+			DeduplicateId: "2",
 			SubSource: &protocol.CrawledSubSource{
 				SubSourceName:     "test_subsource_for_feeds_api_2",
 				SubSourceSourceId: sourceId2,
@@ -167,6 +169,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	copier.Copy(&msgDataExpressionUnMatched, &msgToOneFeed)
 	msgDataExpressionUnMatched.Post.Title = "msgDataExpressionUnMatched"
 	msgDataExpressionUnMatched.Post.Content = "马斯克做空以太坊"
+	msgDataExpressionUnMatched.Post.DeduplicateId = "3"
 
 	t.Run("Test Publish Post to Feed based on subsource", func(t *testing.T) {
 		// msgToTwoFeeds is from subsource 1 which in 2 feeds

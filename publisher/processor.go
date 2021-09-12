@@ -57,8 +57,8 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(maxNum
 func (processor *CrawlerpublisherMessageProcessor) findDuplicatedPost(decodedMsg *CrawlerMessage) (bool, *model.Post) {
 	var post model.Post
 	queryResult := processor.DB.Where(
-		"content = ? ",
-		decodedMsg.Post.Content,
+		"deduplicate_id = ? ",
+		decodedMsg.Post.DeduplicateId,
 	).First(&post)
 
 	return queryResult.RowsAffected != 0, &post
@@ -129,6 +129,7 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(c
 		SavedByUser:    []*model.User{},
 		PublishedFeeds: []*model.Feed{},
 		InSharingChain: !isRoot,
+		DeduplicateId:  crawledPost.DeduplicateId,
 	}
 	if crawledPost.SharedFromCrawledPost != nil {
 		sharedFromPost, e := processor.preparePostChainFromMessage(crawledPost.SharedFromCrawledPost, false)

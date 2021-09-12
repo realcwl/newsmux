@@ -28,7 +28,7 @@ message CrawlerMessage {
     // Original post id that associated with this post in the crawled website.
     // This is for deduplication purpose both in SNS and in Publisher, to make
     // sure we're not inserting the same post twice.
-    string post_id = 1;
+    string deduplicate_id = 1;
 
     // sub_source is the sub_source information
     // publisher will use this to upsert table "sub_sources"
