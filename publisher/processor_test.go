@@ -149,8 +149,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			DeduplicateId: "2",
 			SubSource: &protocol.CrawledSubSource{
-				Name: "test_subsource_for_feeds_api_2",
-				Id:   sourceId2,
+				Name:     "test_subsource_for_feeds_api_2",
+				SourceId: sourceId2,
 			},
 			Title:              "msgToOneFeed",
 			Content:            "老王做空以太坊_2",
