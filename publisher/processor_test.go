@@ -118,7 +118,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	sourceId2 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, false, db, client)
-	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId2, false, db, client)
+	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api_2", "test_externalid", sourceId2, false, db, client)
 
 	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
 	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", DataExpressionJsonForTest, []string{subSourceId1, subSourceId2}, db, client)
@@ -128,7 +128,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	msgToTwoFeeds := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceId: subSourceId1,
+				SubSourceName:     "test_subsource_for_feeds_api",
+				SubSourceSourceId: sourceId1,
 			},
 			Title:              "msgToTwoFeeds",
 			Content:            "老王做空以太坊",
@@ -146,10 +147,11 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceId: subSourceId2,
+				SubSourceName:     "test_subsource_for_feeds_api_2",
+				SubSourceSourceId: sourceId2,
 			},
 			Title:              "msgToOneFeed",
-			Content:            "老王做空以太坊",
+			Content:            "老王做空以太坊_2",
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
@@ -206,7 +208,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	})
 
 	t.Run("Test Post deduplication", func(t *testing.T) {
-		// msgToOneFeed is from source 1 which in 1 feed
+		// send message again, should rasie error
 		reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
 			&msgToOneFeed,
 		})
@@ -241,13 +243,18 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 	client := PrepareTestDBClient(db)
 	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
-	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, false, db, client)
+	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_1", "test_externalid", sourceId1, false, db, client)
 	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
 
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceId: subSourceId1,
+				// New subsource to be created and mark as isFromSharedPost
+				SubSourceName:       "test_subsource_1",
+				SubSourceSourceId:   sourceId1,
+				SubSourceExternalId: "a",
+				SubSourceProfileUrl: "a",
+				SubSourceOriginUrl:  "a",
 			},
 			Title:              "老王干得好", // This doesn't match data exp
 			Content:            "老王干得好",
@@ -258,8 +265,8 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
 				SubSource: &protocol.CrawledSubSource{
 					// New subsource to be created and mark as isFromSharedPost
+					SubSourceName:       "test_subsource_2",
 					SubSourceSourceId:   sourceId1,
-					SubSourceName:       "a",
 					SubSourceExternalId: "a",
 					SubSourceProfileUrl: "a",
 					SubSourceOriginUrl:  "a",
@@ -295,7 +302,6 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 
 		require.Equal(t, msgToOneFeed.Post.Title, post.Title)
 		require.Equal(t, msgToOneFeed.Post.Content, post.Content)
-		require.Equal(t, msgToOneFeed.Post.SubSource.SubSourceId, post.SubSourceID)
 		require.Equal(t, 1, len(post.PublishedFeeds))
 		require.Equal(t, feedId, post.PublishedFeeds[0].Id)
 

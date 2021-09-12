@@ -1042,7 +1042,8 @@ input NewSourceInput {
 # it is from a shared post
 # example: when subsource is an owner of a post in a retweet post
 input UpsertSubSourceInput {
-  subSourceId: String
+  # disable subsource id, use name + source id to identify
+  # subSourceId: String
   name: String!
   externalIdentifier: String!
   sourceId: String!
@@ -5513,14 +5514,6 @@ func (ec *executionContext) unmarshalInputUpsertSubSourceInput(ctx context.Conte
 
 	for k, v := range asMap {
 		switch k {
-		case "subSourceId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subSourceId"))
-			it.SubSourceID, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "name":
 			var err error
 

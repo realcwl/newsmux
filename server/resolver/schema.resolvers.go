@@ -336,7 +336,7 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInp
 
 func (r *queryResolver) SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error) {
 	var subSources []*model.SubSource
-	result := r.DB.Debug().Preload(clause.Associations).Where("is_from_shared_post = ?", input.IsFromSharedPost).Order("created_at").Find(&subSources)
+	result := r.DB.Preload(clause.Associations).Where("is_from_shared_post = ?", input.IsFromSharedPost).Order("created_at").Find(&subSources)
 	return subSources, result.Error
 }
 
