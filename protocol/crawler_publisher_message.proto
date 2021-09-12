@@ -16,7 +16,7 @@ message CrawledSubSource {
   string sub_source_name = 2;
   string sub_source_external_id = 3;
   string sub_source_source_id = 4;
-  string sub_source_profile_url = 5;
+  string sub_source_avatar_url = 5;
   string sub_source_origin_url = 6;
 }
 

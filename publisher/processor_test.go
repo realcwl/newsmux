@@ -261,7 +261,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 					SubSourceSourceId:   sourceId1,
 					SubSourceName:       "a",
 					SubSourceExternalId: "a",
-					SubSourceProfileUrl: "a",
+					SubSourceAvatarUrl:  "a",
 					SubSourceOriginUrl:  "a",
 				},
 				Title:              "老王做空以太坊", // This matches data exp
@@ -315,7 +315,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceName, subScourceShared.Name)
 		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceExternalId, subScourceShared.ExternalIdentifier)
 		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceOriginUrl, subScourceShared.OriginUrl)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceProfileUrl, subScourceShared.AvatarUrl)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceAvatarUrl, subScourceShared.AvatarUrl)
 		require.True(t, subScourceShared.IsFromSharedPost)
 	})
 }
