@@ -7,8 +7,10 @@ import (
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -54,7 +56,8 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 	Log.Info("read published post for feed: ", feed.Id, " query: ", query)
 	if query.Direction == model.FeedRefreshDirectionNew {
 		db.Model(&model.Post{}).
-			Preload("SubSource").
+			Preload(clause.Associations).
+			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor > ?", feed.Id, query.Cursor).
@@ -64,7 +67,8 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 		feed.Posts = posts
 	} else {
 		db.Model(&model.Post{}).
-			Preload("SubSource").
+			Preload(clause.Associations).
+			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor < ?", feed.Id, query.Cursor).
@@ -111,7 +115,8 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 		//    after the shared one is published.
 		//    however for re-publish,
 		db.Model(&model.Post{}).
-			Preload("SubSource").
+			Preload(clause.Associations).
+			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
 			Order("cursor desc").
@@ -195,4 +200,34 @@ func isClearPostsNeededForFeedsUpsert(feed *model.Feed, input *model.UpsertFeedI
 	}
 
 	return false, nil
+}
+
+func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.SubSource, error) {
+	var subSource model.SubSource
+	queryResult := db.Preload("Feeds").
+		Where("name = ? AND source_id = ?", input.Name, input.SourceID).
+		First(&subSource)
+	if queryResult.RowsAffected == 0 {
+		// Create new SubSource
+		subSource = model.SubSource{
+			Id:                 uuid.New().String(),
+			Name:               input.Name,
+			ExternalIdentifier: input.ExternalIdentifier,
+			SourceID:           input.SourceID,
+			AvatarUrl:          input.AvatarURL,
+			OriginUrl:          input.OriginURL,
+			IsFromSharedPost:   input.IsFromSharedPost,
+		}
+		db.Create(&subSource)
+		return &subSource, nil
+	}
+	// Update existing SubSource
+	subSource.ExternalIdentifier = input.ExternalIdentifier
+	subSource.AvatarUrl = input.AvatarURL
+	subSource.OriginUrl = input.OriginURL
+	// udpate won't udpate IsFromShare,
+	// to prevent an already needed subsource got shared, and become IsFromSharedPost = true
+	db.Save(&subSource)
+
+	return &subSource, nil
 }

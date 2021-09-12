@@ -8,8 +8,6 @@ enum FeedRefreshDirection {
 # TODO(jamie): more documentations on all APIs
 type Query {
   allFeeds: [Feed!]
-  sources: [Source!]
-  subSources: [SubSource!]
   posts: [Post!]
   users: [User!]
 
@@ -57,6 +55,16 @@ type Query {
   # 1. query OLD but can't satisfy the limit
 
   feeds(input: FeedsGetPostsInput): [Feed!]!
+  subSources(input: SubsourcesInput): [SubSource!]!
+  sources(input: SourcesInput): [Source!]
+}
+
+input SourcesInput {
+  subSourceFromSharedPost: Boolean!
+}
+
+input SubsourcesInput {
+  isFromSharedPost: Boolean!
 }
 
 input NewUserInput {
@@ -92,11 +100,18 @@ input NewSourceInput {
   domain: String!
 }
 
-input NewSubSourceInput {
-  userId: String!
+# isFromSharedPost = true means the subsource is not for cralwing
+# it is from a shared post
+# example: when subsource is an owner of a post in a retweet post
+input UpsertSubSourceInput {
+  # disable subsource id, use name + source id to identify
+  # subSourceId: String
   name: String!
   externalIdentifier: String!
   sourceId: String!
+  avatarUrl: String!
+  originUrl: String!
+  isFromSharedPost: Boolean!
 }
 
 input FeedRefreshInput {
@@ -127,7 +142,7 @@ type Mutation {
   subscribe(input: SubscribeInput!): User!
 
   createSource(input: NewSourceInput!): Source!
-  createSubSource(input: NewSubSourceInput!): SubSource!
+  upsertSubSource(input: UpsertSubSourceInput!): SubSource!
   syncUp(input: SeedStateInput): SeedState
 }
 

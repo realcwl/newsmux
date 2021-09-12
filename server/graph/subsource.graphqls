@@ -2,9 +2,10 @@ type SubSource @goModel(model: "model.SubSource") {
   id: String!
   createdAt: Time!
   deletedAt: Time
-  creator: User
   name: String!
-  externalIdentifier: String
+  externalIdentifier: String!
   source: Source!
-  iconUrl: String
+  avatarUrl: String!
+  originUrl: String!
+  isFromSharedPost: Boolean!
 }
