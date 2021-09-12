@@ -98,13 +98,12 @@ type UpsertFeedInput struct {
 }
 
 type UpsertSubSourceInput struct {
-	SubSourceID        *string `json:"subSourceId"`
-	Name               string  `json:"name"`
-	ExternalIdentifier string  `json:"externalIdentifier"`
-	SourceID           string  `json:"sourceId"`
-	AvatarURL          string  `json:"avatarUrl"`
-	OriginURL          string  `json:"originUrl"`
-	IsFromSharedPost   bool    `json:"isFromSharedPost"`
+	Name               string `json:"name"`
+	ExternalIdentifier string `json:"externalIdentifier"`
+	SourceID           string `json:"sourceId"`
+	AvatarURL          string `json:"avatarUrl"`
+	OriginURL          string `json:"originUrl"`
+	IsFromSharedPost   bool   `json:"isFromSharedPost"`
 }
 
 type UserSeedState struct {

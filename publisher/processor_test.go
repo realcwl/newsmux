@@ -65,7 +65,7 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 	origin := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceId: "2",
+				Id: "2",
 			},
 			Title:              "hello",
 			Content:            "hello world!",
@@ -118,7 +118,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	sourceId2 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, false, db, client)
-	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId2, false, db, client)
+	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api_2", "test_externalid", sourceId2, false, db, client)
 
 	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
 	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", DataExpressionJsonForTest, []string{subSourceId1, subSourceId2}, db, client)
@@ -127,8 +127,10 @@ func TestProcessCrawlerMessage(t *testing.T) {
 
 	msgToTwoFeeds := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
+			DeduplicateId: "1",
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceId: subSourceId1,
+				Name:     "test_subsource_for_feeds_api",
+				SourceId: sourceId1,
 			},
 			Title:              "msgToTwoFeeds",
 			Content:            "老王做空以太坊",
@@ -145,11 +147,13 @@ func TestProcessCrawlerMessage(t *testing.T) {
 
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
+			DeduplicateId: "2",
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceId: subSourceId2,
+				Name:     "test_subsource_for_feeds_api_2",
+				SourceId: sourceId2,
 			},
 			Title:              "msgToOneFeed",
-			Content:            "老王做空以太坊",
+			Content:            "老王做空以太坊_2",
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
@@ -165,6 +169,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	copier.Copy(&msgDataExpressionUnMatched, &msgToOneFeed)
 	msgDataExpressionUnMatched.Post.Title = "msgDataExpressionUnMatched"
 	msgDataExpressionUnMatched.Post.Content = "马斯克做空以太坊"
+	msgDataExpressionUnMatched.Post.DeduplicateId = "3"
 
 	t.Run("Test Publish Post to Feed based on subsource", func(t *testing.T) {
 		// msgToTwoFeeds is from subsource 1 which in 2 feeds
@@ -206,7 +211,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	})
 
 	t.Run("Test Post deduplication", func(t *testing.T) {
-		// msgToOneFeed is from source 1 which in 1 feed
+		// send message again, should rasie error
 		reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
 			&msgToOneFeed,
 		})
@@ -241,13 +246,18 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 	client := PrepareTestDBClient(db)
 	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
-	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, false, db, client)
+	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_1", "test_externalid", sourceId1, false, db, client)
 	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
 
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			SubSource: &protocol.CrawledSubSource{
-				SubSourceId: subSourceId1,
+				// New subsource to be created and mark as isFromSharedPost
+				Name:       "test_subsource_1",
+				SourceId:   sourceId1,
+				ExternalId: "a",
+				AvatarUrl:  "a",
+				OriginUrl:  "a",
 			},
 			Title:              "老王干得好", // This doesn't match data exp
 			Content:            "老王干得好",
@@ -258,11 +268,11 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
 				SubSource: &protocol.CrawledSubSource{
 					// New subsource to be created and mark as isFromSharedPost
-					SubSourceSourceId:   sourceId1,
-					SubSourceName:       "a",
-					SubSourceExternalId: "a",
-					SubSourceAvatarUrl:  "a",
-					SubSourceOriginUrl:  "a",
+					Name:       "test_subsource_2",
+					SourceId:   sourceId1,
+					ExternalId: "a",
+					AvatarUrl:  "a",
+					OriginUrl:  "a",
 				},
 				Title:              "老王做空以太坊", // This matches data exp
 				Content:            "老王做空以太坊详情",
@@ -295,7 +305,6 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 
 		require.Equal(t, msgToOneFeed.Post.Title, post.Title)
 		require.Equal(t, msgToOneFeed.Post.Content, post.Content)
-		require.Equal(t, msgToOneFeed.Post.SubSource.SubSourceId, post.SubSourceID)
 		require.Equal(t, 1, len(post.PublishedFeeds))
 		require.Equal(t, feedId, post.PublishedFeeds[0].Id)
 
@@ -312,10 +321,10 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		// Check new subsource is created
 		var subScourceShared model.SubSource
 		processor.DB.Preload(clause.Associations).Where("id=?", post.SharedFromPost.SubSourceID).First(&subScourceShared)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceName, subScourceShared.Name)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceExternalId, subScourceShared.ExternalIdentifier)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceOriginUrl, subScourceShared.OriginUrl)
-		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.SubSourceAvatarUrl, subScourceShared.AvatarUrl)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.Name, subScourceShared.Name)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.ExternalId, subScourceShared.ExternalIdentifier)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.OriginUrl, subScourceShared.OriginUrl)
+		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.AvatarUrl, subScourceShared.AvatarUrl)
 		require.True(t, subScourceShared.IsFromSharedPost)
 	})
 }

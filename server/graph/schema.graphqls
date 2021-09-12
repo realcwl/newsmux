@@ -104,7 +104,8 @@ input NewSourceInput {
 # it is from a shared post
 # example: when subsource is an owner of a post in a retweet post
 input UpsertSubSourceInput {
-  subSourceId: String
+  # disable subsource id, use name + source id to identify
+  # subSourceId: String
   name: String!
   externalIdentifier: String!
   sourceId: String!

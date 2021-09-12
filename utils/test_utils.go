@@ -447,7 +447,7 @@ func TestUpdateSubSourceAndValidate(t *testing.T, userId string, subSource *mode
 	}
 
 	client.MustPost(fmt.Sprintf(`mutation {
-		upsertSubSource(input:{subSourceId:"%s" name:"%s" externalIdentifier:"%s" sourceId:"%s" originUrl:"%s" avatarUrl:"%s", isFromSharedPost:false}) {
+		upsertSubSource(input:{name:"%s" externalIdentifier:"%s" sourceId:"%s" originUrl:"%s" avatarUrl:"%s", isFromSharedPost:false}) {
 		  id
 		  name
 		  originUrl
@@ -456,7 +456,7 @@ func TestUpdateSubSourceAndValidate(t *testing.T, userId string, subSource *mode
 		  deletedAt
 		}
 	  }
-	  `, subSource.Id, subSource.Name, subSource.ExternalIdentifier, subSource.SourceID, subSource.OriginUrl, subSource.AvatarUrl), &resp)
+	  `, subSource.Name, subSource.ExternalIdentifier, subSource.SourceID, subSource.OriginUrl, subSource.AvatarUrl), &resp)
 
 	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
