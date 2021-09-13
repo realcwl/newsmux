@@ -112,27 +112,29 @@ func (processor *CrawlerpublisherMessageProcessor) prepareSubSourceRecursive(pos
 	return subSource, nil
 }
 
-func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(crawledPost *CrawlerMessage_CrawledPost, isRoot bool) (post *model.Post, e error) {
+func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(msg *CrawlerMessage, currentPost *CrawlerMessage_CrawledPost, isRoot bool) (post *model.Post, e error) {
 	var subSource model.SubSource
-	res := processor.DB.Where("id = ?", crawledPost.SubSource.Id).First(&subSource)
+	res := processor.DB.Where("id = ?", currentPost.SubSource.Id).First(&subSource)
 	if res.RowsAffected == 0 {
-		return nil, errors.New("invalid subsource id " + crawledPost.SubSource.Id)
+		return nil, errors.New("invalid subsource id " + currentPost.SubSource.Id)
 	}
 
 	post = &model.Post{
-		Id:             uuid.New().String(),
-		Title:          crawledPost.Title,
-		Content:        crawledPost.Content,
-		CreatedAt:      time.Now(),
-		SubSource:      subSource,
-		SubSourceID:    crawledPost.SubSource.Id,
-		SavedByUser:    []*model.User{},
-		PublishedFeeds: []*model.Feed{},
-		InSharingChain: !isRoot,
-		DeduplicateId:  crawledPost.DeduplicateId,
+		Id:                 uuid.New().String(),
+		Title:              currentPost.Title,
+		Content:            currentPost.Content,
+		CreatedAt:          time.Now(),
+		SubSource:          subSource,
+		SubSourceID:        currentPost.SubSource.Id,
+		SavedByUser:        []*model.User{},
+		PublishedFeeds:     []*model.Feed{},
+		InSharingChain:     !isRoot,
+		DeduplicateId:      currentPost.DeduplicateId,
+		CrawledAt:          msg.CrawledAt.AsTime(),
+		ContentGeneratedAt: currentPost.ContentGeneratedAt.AsTime(),
 	}
-	if crawledPost.SharedFromCrawledPost != nil {
-		sharedFromPost, e := processor.preparePostChainFromMessage(crawledPost.SharedFromCrawledPost, false)
+	if currentPost.SharedFromCrawledPost != nil {
+		sharedFromPost, e := processor.preparePostChainFromMessage(msg, currentPost.SharedFromCrawledPost, false)
 		if e != nil {
 			return nil, e
 		}
@@ -156,6 +158,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		processor.Reader.DeleteMessage(msg)
 		return err
 	}
+	fmt.Println(decodedMsg)
 
 	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
 	// TODO: use cralwer generated dedup_id for dedup (dedup_id is something like external identifier)
@@ -173,7 +176,11 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	feedCandidates := processor.prepareFeedCandidates(subSource)
 
 	// Create new post based on message
-	post, err := processor.preparePostChainFromMessage(decodedMsg.Post /*isRoot*/, true)
+	post, err := processor.preparePostChainFromMessage(
+		decodedMsg,
+		decodedMsg.Post,
+		/*isRoot*/ true,
+	)
 	if err != nil {
 		return err
 	}
