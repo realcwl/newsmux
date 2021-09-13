@@ -163,6 +163,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
 	// TODO: use cralwer generated dedup_id for dedup (dedup_id is something like external identifier)
 	if duplicated, existingPost := processor.findDuplicatedPost(decodedMsg); duplicated == true {
+		processor.Reader.DeleteMessage(msg)
 		return errors.New(fmt.Sprintf("message has already been processed, existing post_id: %s", existingPost.Id))
 	}
 
@@ -203,9 +204,9 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 
 	// Write to DB, post creation and publish is in a transaction
 	err = processor.DB.Transaction(func(tx *gorm.DB) error {
-		processor.DB.Create(&post)
-		processor.DB.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
-		return nil
+		processor.DB.Debug().Create(&post)
+		err := processor.DB.Debug().Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
+		return err
 	})
 	if err != nil {
 		return err
