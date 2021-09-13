@@ -213,6 +213,10 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		processor.DB.Preload("PublishedFeeds").First(&post, "title = ?", msgToOneFeed.Post.Title)
 		require.Equal(t, 1, len(post.PublishedFeeds))
 		require.Equal(t, post.PublishedFeeds[0].Id, feedId2)
+		require.Equal(t, 2, len(post.ImageUrls))
+		require.Equal(t, "1", post.ImageUrls[0])
+		require.Equal(t, 2, len(post.FileUrls))
+		require.Equal(t, "aaa", post.OriginUrl)
 	})
 
 	t.Run("Test Post deduplication", func(t *testing.T) {
