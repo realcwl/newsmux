@@ -17,6 +17,10 @@ run_publisher:
 	$(info ******************** running publisher server ********************)
 	NEWSMUX_ENV=prod go run ./cmd/publisher/main.go -service=feed_publisher
 
+run_dev_publisher:
+	$(info ******************** running publisher server ********************)
+	NEWSMUX_ENV=dev go run ./cmd/publisher/main.go -service=feed_publisher
+
 fmt:
 	$(info ******************** checking formatting ********************)
 	@test -z $(shell gofmt -l $(SRC)) || (gofmt -d $(SRC); exit 1)

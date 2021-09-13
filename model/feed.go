@@ -36,7 +36,7 @@ type Feed struct {
 	Creator              User   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Name                 string
 	Subscribers          []*User      `json:"subscribers" gorm:"many2many;constraint:OnDelete:CASCADE;"`
-	Posts                []*Post      `json:"posts" gorm:"many2many;constraint:OnDelete:CASCADE;"`
+	Posts                []*Post      `json:"posts" gorm:"many2many:post_feed_publishes;constraint:OnDelete:CASCADE;"`
 	SubSources           []*SubSource `json:"subSources" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
 	FilterDataExpression datatypes.JSON
 }
