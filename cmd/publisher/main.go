@@ -5,6 +5,7 @@ import (
 
 	. "github.com/Luismorlan/newsmux/publisher"
 	. "github.com/Luismorlan/newsmux/utils"
+	"github.com/Luismorlan/newsmux/utils/dotenv"
 	. "github.com/Luismorlan/newsmux/utils/log"
 )
 
@@ -15,10 +16,12 @@ const (
 )
 
 func main() {
-	// TODO(jamie): check if env is dev or prod
+	if err := dotenv.LoadDotEnvs(); err != nil {
+		Log.Fatal("fail to load env : ", err)
+	}
+
 	db, err := GetDBConnection()
 	if err != nil {
-		// TODO(Jamie): check env and move to datadog if it is prod
 		Log.Fatal("fail to connect database : ", err)
 	}
 
