@@ -132,6 +132,8 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(m
 		DeduplicateId:      currentPost.DeduplicateId,
 		CrawledAt:          msg.CrawledAt.AsTime(),
 		ContentGeneratedAt: currentPost.ContentGeneratedAt.AsTime(),
+		ImageUrls:          currentPost.ImageUrls,
+		FileUrls:           currentPost.FilesUrls,
 	}
 	if currentPost.SharedFromCrawledPost != nil {
 		sharedFromPost, e := processor.preparePostChainFromMessage(msg, currentPost.SharedFromCrawledPost, false)
