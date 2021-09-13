@@ -19,7 +19,7 @@ func main() {
 	db, err := GetDBConnection()
 	if err != nil {
 		// TODO(Jamie): check env and move to datadog if it is prod
-		panic("failed to connect database")
+		Log.Fatal("fail to connect database : ", err)
 	}
 
 	reader, err := NewSQSMessageQueueReader(crawlerPublisherQueueName, 20)
