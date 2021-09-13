@@ -216,6 +216,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		require.Equal(t, 2, len(post.ImageUrls))
 		require.Equal(t, "1", post.ImageUrls[0])
 		require.Equal(t, 2, len(post.FileUrls))
+		require.Equal(t, "aaa", post.OriginUrl)
 	})
 
 	t.Run("Test Post deduplication", func(t *testing.T) {
