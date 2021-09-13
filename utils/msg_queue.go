@@ -3,10 +3,12 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 
@@ -46,12 +48,14 @@ func NewSQSMessageQueueReader(queueName string, readingTimeout int64) (*SQSMessa
 		return nil, errors.New("readingTimeout should be >= 0 and <= 20")
 	}
 
-	// Initialize a session that the SDK will use to load
-	// credentials from the shared credentials file. (~/.aws/credentials).
-	// TODO: Move to .env
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
+	sess, _ := session.NewSession(&aws.Config{
+		Region: aws.String("us-west-1"),
+		Credentials: credentials.NewStaticCredentials(
+			os.Getenv("AWS_ACCESS_KEY_ID"),
+			os.Getenv("AWS_SECRET_ACCESS_KEY"),
+			"",
+		),
+	})
 
 	client := sqs.New(sess)
 
