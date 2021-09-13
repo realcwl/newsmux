@@ -1,0 +1,32 @@
+# buildspec is used by aws codepipeline
+# https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+  pre_build:
+    commands:
+      - echo Logging into Amazon ECR
+      - $(aws ecr get-login --no-include-email --region us-west-1)
+      - REPOSITORY_URL=213288384225.dkr.ecr.us-west-1.amazonaws.com/backend
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=latest
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo IMAGE_TAG is $IMAGE_TAG
+      - echo Build the Docker image...
+      - echo DB_PASS is $DB_PASS
+      - docker build -t $REPOSITORY_URL:$IMAGE_TAG --build-arg DB_PASS=$DB_PASS . # TODO: add build-args
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $REPOSITORY_URL:$IMAGE_TAG
+      - echo Writing image definition file
+      - printf '[{"name":"backend","imageUri":"%s"}]' $REPOSITORY_URL:$IMAGE_TAG > imagedef.json
+artifacts:
+  files:
+    - imagedef.json
