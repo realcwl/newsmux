@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -125,6 +126,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	TestUserSubscribeFeedAndValidate(t, uid, feedId2, db, client)
 
+	testTimeStamp := timestamppb.Now()
+
 	msgToTwoFeeds := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			DeduplicateId: "1",
@@ -137,9 +140,9 @@ func TestProcessCrawlerMessage(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: testTimeStamp,
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      testTimeStamp,
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -157,9 +160,9 @@ func TestProcessCrawlerMessage(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: testTimeStamp,
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      testTimeStamp,
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -189,6 +192,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		require.Equal(t, 2, len(post.PublishedFeeds))
 		require.Equal(t, feedId, post.PublishedFeeds[0].Id)
 		require.Equal(t, feedId2, post.PublishedFeeds[1].Id)
+		require.Equal(t, testTimeStamp.Seconds, post.ContentGeneratedAt.Unix())
+		require.Equal(t, testTimeStamp.Seconds, post.CrawledAt.Unix())
 	})
 
 	t.Run("Test Publish Post to Feed based on source", func(t *testing.T) {
