@@ -17,7 +17,7 @@ const (
 	feedRefreshLimit           = 30
 	defaultFeedsQueryCursor    = math.MaxInt32
 	defaultFeedsQueryDirection = model.FeedRefreshDirectionOld
-	maxRepublishDBBatches      = 5
+	maxRepublishDBBatches      = 10
 )
 
 // Given a list of FeedRefreshInput, get posts for the requested feeds
@@ -61,7 +61,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor > ?", feed.Id, query.Cursor).
-			Order("cursor desc").
+			Order("content_generated_at desc").
 			Limit(query.Limit).
 			Find(&posts)
 		feed.Posts = posts
@@ -72,7 +72,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor < ?", feed.Id, query.Cursor).
-			Order("cursor desc").
+			Order("content_generated_at desc").
 			Limit(query.Limit).
 			Find(&posts)
 		feed.Posts = posts
@@ -119,14 +119,14 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
-			Order("cursor desc").
+			Order("content_generated_at desc").
 			Limit(limit).
 			Find(&postsCandidates)
 
 		// 2. Try match postsCandidate with Feed
 		for idx := range postsCandidates {
 			post := postsCandidates[idx]
-			fromCursor = int(post.Cursor)
+			fromCursor = utils.Min(fromCursor, int(post.Cursor))
 			matched, error := utils.DataExpressionMatchPostChain(string(feed.FilterDataExpression), post)
 			if error != nil {
 				continue
