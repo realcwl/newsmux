@@ -11,10 +11,11 @@ import (
 
 const (
 	// TODO: Move to .env
-	crawlerPublisherQueueName         = "newsfeed_crawled_items_queue.fifo"
-	sqsReadBatchSize                  = 100
-	publishMaxBackOffSeconds  float64 = 2.0
-	initialBackOff            float64 = 0.1
+	crawlerPublisherQueueName = "newsfeed_crawled_items_queue.fifo"
+	// Read batch size must be within [1, 10]
+	sqsReadBatchSize                 = 10
+	publishMaxBackOffSeconds float64 = 2.0
+	initialBackOff           float64 = 0.1
 )
 
 func getNewBackOff(backOff float64) float64 {
