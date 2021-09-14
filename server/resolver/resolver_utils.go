@@ -61,6 +61,10 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor > ?", feed.Id, query.Cursor).
+			// order this batch by content_generated_at instead of by cursor so that
+			// we guarantee this batch is chronologically descreasing. Frontend should
+			// process the entire batch to find max/min cursor instead of relying only
+			// on the first and the last returned item. Same for below.
 			Order("content_generated_at desc").
 			Limit(query.Limit).
 			Find(&posts)
