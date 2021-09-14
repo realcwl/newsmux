@@ -15,11 +15,11 @@ run_prodserver:
 
 run_prodpublisher:
 	$(info ******************** running publisher server ********************)
-	NEWSMUX_ENV=prod go run ./cmd/publisher/main.go -service=feed_publisher
+	NEWSMUX_ENV=prod go run ./cmd/publisher/main.go -dev=false -service=feed_publisher
 
 run_devpublisher:
 	$(info ******************** running publisher server ********************)
-	NEWSMUX_ENV=dev go run ./cmd/publisher/main.go -service=feed_publisher
+	NEWSMUX_ENV=dev go run ./cmd/publisher/main.go -dev=true -service=feed_publisher
 
 fmt:
 	$(info ******************** checking formatting ********************)
