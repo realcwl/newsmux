@@ -96,19 +96,15 @@ func (reader *SQSMessageQueueReader) DeleteMessage(msg *MessageQueueMessage) err
 	return nil
 }
 
-func (reader *SQSMessageQueueReader) ReceiveMessages(maxNumberOfMessages int64) (msgs []*MessageQueueMessage, err error) {
-	if maxNumberOfMessages < 1 || maxNumberOfMessages > 10 {
-		return nil, errors.New("maxNumberOfMessages should be >= 1 and <= 10")
-	}
-
-	Log.Info("waiting for new message")
+func (reader *SQSMessageQueueReader) ReceiveMessages(sqsReadBatchSize int64) (msgs []*MessageQueueMessage, err error) {
+	Log.Info(fmt.Sprintf("Polling SQS with batch size %d", sqsReadBatchSize))
 	result, err := reader.client.ReceiveMessage(&sqs.ReceiveMessageInput{
 		QueueUrl: &reader.url,
 		AttributeNames: aws.StringSlice([]string{
 			"SentTimestamp",
 			"ApproximateReceiveCount",
 		}),
-		MaxNumberOfMessages: aws.Int64(maxNumberOfMessages), // Receive at most 1, polling will close as soon as there is any messages received, whether 1 or many
+		MaxNumberOfMessages: aws.Int64(sqsReadBatchSize), // Receive at most 1, polling will close as soon as there is any messages received, whether 1 or many
 		MessageAttributeNames: aws.StringSlice([]string{
 			"All",
 		}),
@@ -118,6 +114,8 @@ func (reader *SQSMessageQueueReader) ReceiveMessages(maxNumberOfMessages int64) 
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Unable to read: %q, error: %v.", reader.queueName, err))
 	}
+
+	Log.Info(fmt.Sprintf("Received %d messages", len(result.Messages)))
 
 	res := []*MessageQueueMessage{}
 
