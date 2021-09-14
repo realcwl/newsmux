@@ -11,9 +11,20 @@ import (
 
 const (
 	// TODO: Move to .env
-	crawlerPublisherQueueName = "newsfeed_crawled_items_queue.fifo"
-	messageProcessConcurrency = 1
+	crawlerPublisherQueueName         = "newsfeed_crawled_items_queue.fifo"
+	sqsReadBatchSize                  = 100
+	publishMaxBackOffSeconds  float64 = 2.0
+	initialBackOff            float64 = 0.1
 )
+
+func getNewBackOff(backOff float64) float64 {
+	if backOff == 0.0 {
+		return initialBackOff
+	} else if backOff*2 < publishMaxBackOffSeconds {
+		return 2 * backOff
+	}
+	return publishMaxBackOffSeconds
+}
 
 func main() {
 	if err := dotenv.LoadDotEnvs(); err != nil {
@@ -33,10 +44,17 @@ func main() {
 	// Main publish logic lives in processor
 	processor := NewPublisherMessageProcessor(reader, db)
 
+	// Exponentially backoff on
+	backOff := 0.0
 	for {
-		processor.ReadAndProcessMessages(messageProcessConcurrency)
+		successCount := processor.ReadAndProcessMessages(sqsReadBatchSize)
+		if successCount == 0 {
+			backOff = getNewBackOff(backOff)
+		} else {
+			backOff = 0.0
+		}
 
-		// Protective delay
-		time.Sleep(2 * time.Second)
+		// Protective back off on read or process failure.
+		time.Sleep(time.Duration(backOff) * time.Second)
 	}
 }
