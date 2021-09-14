@@ -13,11 +13,11 @@ run_prodserver:
 	$(info ******************** running production server ********************)
 	NEWSMUX_ENV=prod go run ./cmd/server/main.go -dev=false -no_auth -service=api_server
 
-run_publisher:
+run_prodpublisher:
 	$(info ******************** running publisher server ********************)
 	NEWSMUX_ENV=prod go run ./cmd/publisher/main.go -service=feed_publisher
 
-run_dev_publisher:
+run_devpublisher:
 	$(info ******************** running publisher server ********************)
 	NEWSMUX_ENV=dev go run ./cmd/publisher/main.go -service=feed_publisher
 
