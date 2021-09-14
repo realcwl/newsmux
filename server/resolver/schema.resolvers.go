@@ -188,15 +188,16 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPostIn
 	}
 
 	post := model.Post{
-		Id:             uuid.New().String(),
-		Title:          input.Title,
-		Content:        input.Content,
-		CreatedAt:      time.Now(),
-		SubSource:      subSource,
-		SubSourceID:    input.SubSourceID,
-		SharedFromPost: sharedFromPost,
-		SavedByUser:    []*model.User{},
-		PublishedFeeds: []*model.Feed{},
+		Id:                 uuid.New().String(),
+		Title:              input.Title,
+		Content:            input.Content,
+		CreatedAt:          time.Now(),
+		ContentGeneratedAt: time.Now(),
+		SubSource:          subSource,
+		SubSourceID:        input.SubSourceID,
+		SharedFromPost:     sharedFromPost,
+		SavedByUser:        []*model.User{},
+		PublishedFeeds:     []*model.Feed{},
 	}
 	r.DB.Create(&post)
 
