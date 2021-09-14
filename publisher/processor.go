@@ -47,8 +47,8 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(sqsRea
 	// Process
 	// TODO: process in parallel
 	for _, msg := range msgs {
-		if err := processor.ProcessOneCralwerMessage(msg); err != nil {
-			Log.Error("fail process one crawler message : ", err)
+		if decodedMsg, err := processor.ProcessOneCralwerMessage(msg); err != nil {
+			Log.Errorf("fail process one crawler message. err: %s , message: %s", err, decodedMsg)
 			continue
 		}
 		successCount++
@@ -156,27 +156,27 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(m
 // Step2. deduplication
 // Step3. do publishing with new post, also handle recursive shared_from posts
 // Step4. if publishing succeeds, delete message in queue
-func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg *MessageQueueMessage) error {
+func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg *MessageQueueMessage) (*CrawlerMessage, error) {
 	Log.Info("process queued message")
 
 	decodedMsg, err := processor.decodeCrawlerMessage(msg)
 	if err != nil {
 		processor.Reader.DeleteMessage(msg)
-		return err
+		return nil, err
 	}
 	fmt.Println(decodedMsg)
 
 	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
-	// TODO: use cralwer generated dedup_id for dedup (dedup_id is something like external identifier)
 	if duplicated, existingPost := processor.findDuplicatedPost(decodedMsg); duplicated == true {
-		processor.Reader.DeleteMessage(msg)
-		return errors.New(fmt.Sprintf("message has already been processed, existing post_id: %s", existingPost.Id))
+		Log.Infof("[duplicated message] message has already been processed, existing deduplicate_id: %s, existing post_id: %s ", decodedMsg.Post.DeduplicateId, existingPost.Id)
+		err := processor.Reader.DeleteMessage(msg)
+		return decodedMsg, err
 	}
 
 	// Prepare Post relations to Subsources (Sources can be inferred)
 	subSource, err := processor.prepareSubSourceRecursive(decodedMsg.Post /*isRoot*/, true)
 	if err != nil {
-		return err
+		return decodedMsg, err
 	}
 
 	// Load feeds into memory based on source and subsource of the post
@@ -189,7 +189,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		/*isRoot*/ true,
 	)
 	if err != nil {
-		return err
+		return decodedMsg, err
 	}
 
 	// Check each feed's source/subsource and data expression
@@ -201,7 +201,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		// Once a message is matched to a feed, write the PostFeedPublish relation to DB
 		matched, err := DataExpressionMatchPostChain(feed.FilterDataExpression.String(), post)
 		if err != nil {
-			return err
+			return decodedMsg, err
 		}
 		if matched {
 			feedsToPublish = append(feedsToPublish, feed)
@@ -210,16 +210,16 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 
 	// Write to DB, post creation and publish is in a transaction
 	err = processor.DB.Transaction(func(tx *gorm.DB) error {
-		processor.DB.Debug().Create(&post)
-		err := processor.DB.Debug().Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
+		processor.DB.Create(&post)
+		err := processor.DB.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
 		return err
 	})
 	if err != nil {
-		return err
+		return decodedMsg, err
 	}
 
 	// Delete message from queue
-	return processor.Reader.DeleteMessage(msg)
+	return decodedMsg, processor.Reader.DeleteMessage(msg)
 }
 
 // Parse message into meaningful structure CrawlerMessage
