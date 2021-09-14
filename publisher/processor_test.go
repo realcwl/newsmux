@@ -260,6 +260,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
+			DeduplicateId: "1",
 			SubSource: &protocol.CrawledSubSource{
 				// New subsource to be created and mark as isFromSharedPost
 				Name:       "test_subsource_1",
@@ -275,6 +276,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 			OriginUrl:          "aaa",
 			ContentGeneratedAt: &timestamp.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
+				DeduplicateId: "2",
 				SubSource: &protocol.CrawledSubSource{
 					// New subsource to be created and mark as isFromSharedPost
 					Name:       "test_subsource_2",
@@ -336,4 +338,117 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.AvatarUrl, subScourceShared.AvatarUrl)
 		require.True(t, subScourceShared.IsFromSharedPost)
 	})
+}
+
+func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
+	db, _ := CreateTempDB(t)
+	client := PrepareTestDBClient(db)
+	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
+	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
+
+	msgOne := protocol.CrawlerMessage{
+		Post: &protocol.CrawlerMessage_CrawledPost{
+			DeduplicateId: "1",
+			SubSource: &protocol.CrawledSubSource{
+				// New subsource to be created and mark as isFromSharedPost
+				Name:       "test_subsource_1",
+				SourceId:   sourceId1,
+				ExternalId: "a",
+				AvatarUrl:  "a",
+				OriginUrl:  "a",
+			},
+			Title:              "老王干得好", // This doesn't match data exp
+			Content:            "老王干得好",
+			ImageUrls:          []string{"1", "4"},
+			FilesUrls:          []string{"2", "3"},
+			OriginUrl:          "aaa",
+			ContentGeneratedAt: &timestamp.Timestamp{},
+			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
+				DeduplicateId: "2",
+				SubSource: &protocol.CrawledSubSource{
+					// New subsource to be created and mark as isFromSharedPost
+					Name:       "test_subsource_2",
+					SourceId:   sourceId1,
+					ExternalId: "a",
+					AvatarUrl:  "a",
+					OriginUrl:  "a",
+				},
+				Title:              "老王做空以太坊", // This matches data exp
+				Content:            "老王做空以太坊详情",
+				ImageUrls:          []string{"1", "4"},
+				FilesUrls:          []string{"2", "3"},
+				OriginUrl:          "bbb",
+				ContentGeneratedAt: &timestamp.Timestamp{},
+			},
+		},
+		CrawledAt:      &timestamp.Timestamp{},
+		CrawlerIp:      "123",
+		CrawlerVersion: "vde",
+		IsTest:         false,
+	}
+	reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
+		&msgOne,
+	})
+	msgs, _ := reader.ReceiveMessages(1)
+	processor := NewPublisherMessageProcessor(reader, db)
+	err := processor.ProcessOneCralwerMessage(msgs[0])
+	require.Nil(t, err)
+	var subScourceOne model.SubSource
+	var subScourceTwo model.SubSource
+	processor.DB.Preload(clause.Associations).Where("name=?", "test_subsource_1").First(&subScourceOne)
+	processor.DB.Preload(clause.Associations).Where("name=?", "test_subsource_2").First(&subScourceTwo)
+	require.False(t, subScourceOne.IsFromSharedPost)
+	require.True(t, subScourceTwo.IsFromSharedPost)
+
+	msgTwo := protocol.CrawlerMessage{
+		Post: &protocol.CrawlerMessage_CrawledPost{
+			DeduplicateId: "3",
+			SubSource: &protocol.CrawledSubSource{
+				// Changing order of the two subsources
+				Name:       "test_subsource_2",
+				SourceId:   sourceId1,
+				ExternalId: "a",
+				AvatarUrl:  "a",
+				OriginUrl:  "a",
+			},
+			Title:              "老王干得好_new_msg", //avoid dedup error
+			Content:            "老王干得好_new_msg",
+			ImageUrls:          []string{"1", "4"},
+			FilesUrls:          []string{"2", "3"},
+			OriginUrl:          "aaa",
+			ContentGeneratedAt: &timestamp.Timestamp{},
+			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
+				DeduplicateId: "4",
+				SubSource: &protocol.CrawledSubSource{
+					// Changing order of the two subsources
+					Name:       "test_subsource_1",
+					SourceId:   sourceId1,
+					ExternalId: "a",
+					AvatarUrl:  "a",
+					OriginUrl:  "a",
+				},
+				Title:              "老王做空以太坊_new_msg", //avoid dedup error
+				Content:            "老王做空以太坊详情_new_msg",
+				ImageUrls:          []string{"1", "4"},
+				FilesUrls:          []string{"2", "3"},
+				OriginUrl:          "bbb",
+				ContentGeneratedAt: &timestamp.Timestamp{},
+			},
+		},
+		CrawledAt:      &timestamp.Timestamp{},
+		CrawlerIp:      "123",
+		CrawlerVersion: "vde",
+		IsTest:         false,
+	}
+	reader = NewTestMessageQueueReader([]*protocol.CrawlerMessage{
+		&msgTwo,
+	})
+	msgs, _ = reader.ReceiveMessages(1)
+	processor = NewPublisherMessageProcessor(reader, db)
+	err = processor.ProcessOneCralwerMessage(msgs[0])
+	require.Nil(t, err)
+	processor.DB.Preload(clause.Associations).Where("name=?", "test_subsource_1").First(&subScourceOne)
+	processor.DB.Preload(clause.Associations).Where("name=?", "test_subsource_2").First(&subScourceTwo)
+	require.False(t, subScourceOne.IsFromSharedPost)
+	require.False(t, subScourceTwo.IsFromSharedPost)
 }

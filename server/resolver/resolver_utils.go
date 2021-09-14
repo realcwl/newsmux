@@ -225,8 +225,12 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 	subSource.ExternalIdentifier = input.ExternalIdentifier
 	subSource.AvatarUrl = input.AvatarURL
 	subSource.OriginUrl = input.OriginURL
-	// udpate won't udpate IsFromShare,
-	// to prevent an already needed subsource got shared, and become IsFromSharedPost = true
+	if input.IsFromSharedPost == false {
+		// can only update IsFromSharedPost from true to false
+		// meaning from hidden to display
+		// to prevent an already needed subsource got shared, and become IsFromSharedPost = true
+		subSource.IsFromSharedPost = false
+	}
 	db.Save(&subSource)
 
 	return &subSource, nil
