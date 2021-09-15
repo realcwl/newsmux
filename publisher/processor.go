@@ -4,6 +4,7 @@ import (
 	b64 "encoding/base64"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
@@ -44,8 +45,8 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(sqsRea
 		return successCount
 	}
 
-	// Process
-	// TODO: process in parallel
+	// TODO: process in parallel, but can involve time ordering issue
+	// Process all messages
 	for _, msg := range msgs {
 		if decodedMsg, err := processor.ProcessOneCralwerMessage(msg); err != nil {
 			Log.Errorf("fail process one crawler message. err: %s , message: %s", err, decodedMsg)
@@ -150,6 +151,42 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(m
 	return post, nil
 }
 
+func (processor *CrawlerpublisherMessageProcessor) MatchMessageWithFeeds(feedCandidates map[string]*model.Feed, post *model.Post) ([]*model.Feed, error) {
+	var wg sync.WaitGroup
+	ch := make(chan *model.Feed, len(feedCandidates))
+	errCh := make(chan error, len(feedCandidates))
+	for _, feed := range feedCandidates {
+		// since we will append pointer, we need to have a var each iteration
+		// otherwise feeds appended will be reused and all feeds in the slice are same
+		// feed := feedCandidates[ind]
+		// Once a message is matched to a feed, write the PostFeedPublish relation to DB
+		wg.Add(1)
+		go func(feed *model.Feed) {
+			defer wg.Done()
+			matched, err := DataExpressionMatchPostChain(feed.FilterDataExpression.String(), post)
+			if err != nil {
+				errCh <- err
+			} else if matched {
+				ch <- feed
+			}
+		}(feed)
+	}
+
+	// wati for all goroutines to finish
+	wg.Wait()
+	close(ch)
+	close(errCh)
+
+	feedsToPublish := []*model.Feed{}
+	for feed := range ch {
+		feedsToPublish = append(feedsToPublish, feed)
+	}
+	if err, ok := <-errCh; ok {
+		return nil, err
+	}
+	return feedsToPublish, nil
+}
+
 // Process one cralwer-publisher message in following major steps:
 // Step1. decode into protobuf generated struct
 // Step2. update subsource
@@ -192,20 +229,10 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		return decodedMsg, err
 	}
 
-	// Check each feed's source/subsource and data expression
-	feedsToPublish := []*model.Feed{}
-	for _, feed := range feedCandidates {
-		// since we will append pointer, we need to have a var each iteration
-		// otherwise feeds appended will be reused and all feeds in the slice are same
-		// feed := feedCandidates[ind]
-		// Once a message is matched to a feed, write the PostFeedPublish relation to DB
-		matched, err := DataExpressionMatchPostChain(feed.FilterDataExpression.String(), post)
-		if err != nil {
-			return decodedMsg, err
-		}
-		if matched {
-			feedsToPublish = append(feedsToPublish, feed)
-		}
+	// Match post with candidate feeds in parallel
+	feedsToPublish, err := processor.MatchMessageWithFeeds(feedCandidates, post)
+	if err != nil {
+		return decodedMsg, err
 	}
 
 	// Write to DB, post creation and publish is in a transaction
