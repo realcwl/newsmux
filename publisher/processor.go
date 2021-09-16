@@ -172,7 +172,7 @@ func (processor *CrawlerpublisherMessageProcessor) MatchMessageWithFeeds(feedCan
 		}(feed)
 	}
 
-	// wati for all goroutines to finish
+	// wait for all goroutines to finish
 	wg.Wait()
 	close(ch)
 	close(errCh)
