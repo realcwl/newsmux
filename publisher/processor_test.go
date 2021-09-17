@@ -183,7 +183,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 
 		// Processing
 		processor := NewPublisherMessageProcessor(reader, db)
-		err := processor.ProcessOneCralwerMessage(msgs[0])
+		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
 		// Checking process result
@@ -205,7 +205,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 
 		// Processing
 		processor := NewPublisherMessageProcessor(reader, db)
-		err := processor.ProcessOneCralwerMessage(msgs[0])
+		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
 		// Checking process result
@@ -220,16 +220,20 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	})
 
 	t.Run("Test Post deduplication", func(t *testing.T) {
-		// send message again, should rasie error
+		// send message again
 		reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
 			&msgToOneFeed,
 		})
 		msgs, _ := reader.ReceiveMessages(1)
 
-		// Processing Again, should have error indicating publish failure
+		// Processing Again, there should be no new post
 		processor := NewPublisherMessageProcessor(reader, db)
-		err := processor.ProcessOneCralwerMessage(msgs[0])
-		require.NotNil(t, err)
+		_, err := processor.ProcessOneCralwerMessage(msgs[0])
+		require.NoError(t, err)
+
+		var count int64
+		processor.DB.Model(&model.Post{}).Where("title = ?", msgToOneFeed.Post.Title).Count(&count)
+		require.Equal(t, int64(1), count)
 	})
 
 	t.Run("Test Publish Post to Feed based on source Data Expression not matched", func(t *testing.T) {
@@ -240,7 +244,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 
 		// Processing
 		processor := NewPublisherMessageProcessor(reader, db)
-		err := processor.ProcessOneCralwerMessage(msgs[0])
+		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
 		// Checking process result
@@ -307,7 +311,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 
 		// Processing
 		processor := NewPublisherMessageProcessor(reader, db)
-		err := processor.ProcessOneCralwerMessage(msgs[0])
+		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
 		// Checking process result
@@ -391,7 +395,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 	})
 	msgs, _ := reader.ReceiveMessages(1)
 	processor := NewPublisherMessageProcessor(reader, db)
-	err := processor.ProcessOneCralwerMessage(msgs[0])
+	_, err := processor.ProcessOneCralwerMessage(msgs[0])
 	require.Nil(t, err)
 	var subScourceOne model.SubSource
 	var subScourceTwo model.SubSource
@@ -445,10 +449,63 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 	})
 	msgs, _ = reader.ReceiveMessages(1)
 	processor = NewPublisherMessageProcessor(reader, db)
-	err = processor.ProcessOneCralwerMessage(msgs[0])
+	_, err = processor.ProcessOneCralwerMessage(msgs[0])
 	require.Nil(t, err)
 	processor.DB.Preload(clause.Associations).Where("name=?", "test_subsource_1").First(&subScourceOne)
 	processor.DB.Preload(clause.Associations).Where("name=?", "test_subsource_2").First(&subScourceTwo)
 	require.False(t, subScourceOne.IsFromSharedPost)
 	require.False(t, subScourceTwo.IsFromSharedPost)
+}
+
+func TestMessagePublishToManyFeeds(t *testing.T) {
+	db, _ := CreateTempDB(t)
+	client := PrepareTestDBClient(db)
+	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
+	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
+	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_1", "test_externalid", sourceId1, false, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+
+	msgOne := protocol.CrawlerMessage{
+		Post: &protocol.CrawlerMessage_CrawledPost{
+			DeduplicateId: "1",
+			SubSource: &protocol.CrawledSubSource{
+				// New subsource to be created and mark as isFromSharedPost
+				Name:       "test_subsource_1",
+				SourceId:   sourceId1,
+				ExternalId: "a",
+				AvatarUrl:  "a",
+				OriginUrl:  "a",
+			},
+			Title:              "老王做空以太坊", // This matches data exp
+			Content:            "老王做空以太坊",
+			ImageUrls:          []string{"1", "4"},
+			FilesUrls:          []string{"2", "3"},
+			OriginUrl:          "aaa",
+			ContentGeneratedAt: &timestamp.Timestamp{},
+		},
+		CrawledAt:      &timestamp.Timestamp{},
+		CrawlerIp:      "123",
+		CrawlerVersion: "vde",
+		IsTest:         false,
+	}
+	reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
+		&msgOne,
+	})
+	msgs, _ := reader.ReceiveMessages(1)
+	processor := NewPublisherMessageProcessor(reader, db)
+	_, err := processor.ProcessOneCralwerMessage(msgs[0])
+	require.NoError(t, err)
+	var post model.Post
+	processor.DB.Preload(clause.Associations).Where("content=?", "老王做空以太坊").First(&post)
+	require.Equal(t, 10, len(post.PublishedFeeds))
+	require.NotEqual(t, post.PublishedFeeds[1].Id, post.PublishedFeeds[0].Id)
 }
