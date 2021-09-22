@@ -87,7 +87,8 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			if len(posts) > 0 {
 				lastCursor = int(posts[len(posts)-1].Cursor)
 			}
-			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor)
+			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor,
+				" try to republish ", query.Limit-len(posts), " more posts")
 			rePublishPostsFromCursor(db, feed, query.Limit-len(posts), lastCursor)
 		}
 	}
@@ -124,7 +125,7 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
 			Order("content_generated_at desc").
-			Limit(limit).
+			Limit(feedRefreshLimit).
 			Find(&postsCandidates)
 
 		// 2. Try match postsCandidate with Feed
