@@ -1,0 +1,99 @@
+syntax = "proto3";
+package protocol;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Luismorlan/newsmux/publisher/protocol";
+
+message KeyValuePair {
+  string key = 1;
+  string value = 2;
+}
+
+message PanopticJob {
+  // Job id uniquely identifies a data collection job, which contains multiple 
+  // heterogeneous tasks collecting data from multiple sources. 
+  string job_id = 1;
+
+  // Multiple heterogeneous tasks this job contains.
+  repeated PanopticTask tasks = 2;
+}
+
+// InputSpec describes the type of resource from which we'll extract
+// CrawlerMessage. It also describes how to fetch the resource, e.g. what 
+// header/cookie to use.
+message InputSpec {
+  oneof resource_params {
+    WebParams web_params = 1;
+  }
+
+  message WebParams {
+    // If specified, append these header params to the crawler request, 
+    // overwrite on same key.
+    repeated KeyValuePair header_params = 1;
+    // If specified, overwrite Cookie with the provided cookies.
+    repeated KeyValuePair cookies = 2;
+  }
+}
+
+// Output spec defines the shared output information which will be used to 
+// populate CrawlerMessage.
+message OutputSpec {
+  // SourceId of this collected CrawlerMessage.
+  string source_id = 1;
+}
+
+// TaskParams defines the shared/domain specific parameters that customize the 
+// execution behavior.
+message TaskParams {
+  // Domain specific params that will be passed in to customize the task 
+  // execution. For example, you'll pass in Weibo/Twitter/ZSXQ user id as part
+  // of the task param.
+  oneof params {
+    JinshiTaskParams jinshi_task_params = 5;
+    // ...
+  }
+}
+
+message TaskMetadata {
+  // job_start/end_time describes the execution span of this task.
+  google.protobuf.Timestamp task_start_time = 1;
+  google.protobuf.Timestamp task_end_time = 2;
+
+  // How many CrawlerMessage this task collected.
+  int64 total_message_collected = 3;
+
+  // Which ip address is this task executing at.
+  string ip_addr = 4;
+
+  // ...
+}
+
+// PanopticTask defines a single data collection task for a single source. A 
+// task is the smallest execution in Lambda.
+message PanopticTask {
+  // UUID for this task.
+  string task_id = 1;
+
+  // DataCollectorId defines the data collection logic to execute.
+  enum DataCollectorId {
+    COLLECTOR_UNSPECIFIED = 0;
+    // Fetch Jin10 Kuaixun.
+    COLLECTOR_JINSHI = 1;
+    // ...
+  }
+
+  DataCollectorId data_collector_id = 2;
+
+  InputSpec input_spec = 3;
+
+  OutputSpec output_spec = 4;
+
+  TaskParams task_params = 5;
+
+  TaskMetadata task_metadata = 6;
+}
+
+// Created empty param here in case we need to pass in additional parameters to
+// customize Jinshi's crawler logic.
+message JinshiTaskParams {}
