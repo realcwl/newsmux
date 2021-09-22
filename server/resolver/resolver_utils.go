@@ -104,8 +104,6 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 		batches        = 0
 	)
 
-	limit = utils.Min(feedRefreshLimit, limit)
-
 	var subsourceIds []string
 	for _, subsource := range feed.SubSources {
 		subsourceIds = append(subsourceIds, subsource.Id)
