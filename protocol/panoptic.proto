@@ -19,38 +19,24 @@ message PanopticJob {
   repeated PanopticTask tasks = 2;
 }
 
-// InputSpec describes the type of resource from which we'll extract
-// CrawlerMessage. It also describes how to fetch the resource, e.g. what 
-// header/cookie to use.
-message InputSpec {
-  oneof resource_params {
-    WebParams web_params = 1;
-  }
-
-  message WebParams {
-    // If specified, append these header params to the crawler request, 
-    // overwrite on same key.
-    repeated KeyValuePair header_params = 1;
-    // If specified, overwrite Cookie with the provided cookies.
-    repeated KeyValuePair cookies = 2;
-  }
-}
-
-// Output spec defines the shared output information which will be used to 
-// populate CrawlerMessage.
-message OutputSpec {
-  // SourceId of this collected CrawlerMessage.
-  string source_id = 1;
-}
-
 // TaskParams defines the shared/domain specific parameters that customize the 
 // execution behavior.
 message TaskParams {
+  // If specified, append these header params to the crawler request, 
+  // overwrite on same key.
+  repeated KeyValuePair header_params = 1;
+  
+  // If specified, overwrite Cookie with the provided cookies.
+  repeated KeyValuePair cookies = 2;
+
+  // SourceId of this collected CrawlerMessage.
+  string source_id = 3;
+
   // Domain specific params that will be passed in to customize the task 
   // execution. For example, you'll pass in Weibo/Twitter/ZSXQ user id as part
   // of the task param.
   oneof params {
-    JinshiTaskParams jinshi_task_params = 5;
+    JinshiTaskParams jinshi_task_params = 4;
     // ...
   }
 }
@@ -85,13 +71,11 @@ message PanopticTask {
 
   DataCollectorId data_collector_id = 2;
 
-  InputSpec input_spec = 3;
+  // Params that customizes how to collect data from the web.
+  TaskParams task_params = 3;
 
-  OutputSpec output_spec = 4;
-
-  TaskParams task_params = 5;
-
-  TaskMetadata task_metadata = 6;
+  // Metadata that's mostly for monitoring.
+  TaskMetadata task_metadata = 4;
 }
 
 // Created empty param here in case we need to pass in additional parameters to
