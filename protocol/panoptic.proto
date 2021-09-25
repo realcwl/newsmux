@@ -33,6 +33,14 @@ message TaskParams {
   string source_id = 3;
 
   repeated SubSource sub_sources = 4;
+
+  // offsite of domain specific param from 20, <20 is for shared fields
+  // Domain specific params that will be passed in to customize the task 
+  // execution. For example, you'll pass in Weibo/Twitter/ZSXQ user id as part
+  // of the task param.
+  oneof params {
+    JinshiTaskParams jinshi_task_params = 20;
+  }
 }
 
 message TaskMetadata {
@@ -89,10 +97,10 @@ message SubSource{
   // type: SUBSOURCE_USERS 
   // external_id:15281511824122 
   enum SubSourceType{
-    SUBSOURCE_UNSPECIFIED = 0;
-    SUBSOURCE_FLASHNEWS = 1;
-    SUBSOURCE_KEYNEWS = 2;
-    SUBSOURCE_USERS = 3;
+    UNSPECIFIED = 0;
+    FLASHNEWS = 1;
+    KEYNEWS = 2;
+    USERS = 3;
   }
 
   // name of the sub source, this will be written to CrawlerMessage
@@ -106,3 +114,8 @@ message SubSource{
   // this will be used to construct external request/crawl uri
   string external_id = 3;
 }
+
+
+// Created empty param here in case we need to pass in additional parameters to
+// customize Jinshi's crawler logic.
+message JinshiTaskParams {}
