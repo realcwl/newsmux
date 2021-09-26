@@ -32,7 +32,7 @@ message TaskParams {
   // SourceId of this collected CrawlerMessage.
   string source_id = 3;
 
-  repeated SubSource sub_sources = 4;
+  repeated PanopticSubSource sub_sources = 4;
 
   // offsite of domain specific param from 20, <20 is for shared fields
   // Domain specific params that will be passed in to customize the task 
@@ -81,20 +81,20 @@ message PanopticTask {
   TaskMetadata task_metadata = 4;
 }
 
-message SubSource{ 
+message PanopticSubSource{ 
   // example: 
   // name: 快讯
-  // type: SUBSOURCE_FLASHNEWS 
+  // type: FLASHNEWS 
   // external_id: None 
 
   // example:
   // name: 要闻 
-  // type: SUBSOURCE_KEYNEWS 
+  // type: KEYNEWS 
   // external_id: None 
 
   // example:
   // name: 加州分析员 
-  // type: SUBSOURCE_USERS 
+  // type: USERS 
   // external_id:15281511824122 
   enum SubSourceType{
     UNSPECIFIED = 0;
