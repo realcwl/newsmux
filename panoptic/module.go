@@ -3,6 +3,7 @@ package panoptic
 import (
 	"context"
 	"log"
+	"time"
 )
 
 const (
@@ -22,7 +23,7 @@ func RunModuleWithGracefulRestart(ctx context.Context, module *Module) {
 			GracefulRetryDelay)
 
 		// Wait for a small amount of time and restart.
-		// time.Sleep(GracefulRetryDelay * time.Second)
+		time.Sleep(GracefulRetryDelay * time.Second)
 	}
 }
 

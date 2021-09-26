@@ -39,6 +39,9 @@ func NewOrchestrator(config OrchestratorConfig, e *gochannel.GoChannel) *Orchest
 }
 
 func (o *Orchestrator) RunModule(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	// TODO(chenweilunster): Actually implement Orchestrator.
 	messages, err := o.EventBus.Subscribe(ctx, panoptic.TOPIC_PENDING_TASK)
 	if err != nil {
