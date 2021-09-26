@@ -28,7 +28,16 @@ func TestSchedulerJobDoer(t *testing.T) {
 	// will cause deadlock. Thus we need to asynchronously get back message.
 	var receivedMsg *message.Message
 	done := make(chan int)
+
 	go func() {
+		// Publish
+		schedulerJobDoer := NewSchedulerJobDoer(eventbus)
+		assert.Nil(t, schedulerJobDoer.Do(job))
+		assert.Equal(t, job.runCount, int64(1))
+	}()
+
+	go func() {
+		// Receive
 		messages, err := eventbus.Subscribe(
 			ctx, panoptic.TOPIC_PENDING_TASK)
 		assert.Nil(t, err)
@@ -39,10 +48,6 @@ func TestSchedulerJobDoer(t *testing.T) {
 			break
 		}
 	}()
-
-	schedulerJobDoer := NewSchedulerJobDoer(eventbus)
-	assert.Nil(t, schedulerJobDoer.Do(job))
-	assert.Equal(t, job.runCount, int64(1))
 
 	// Wait for message to be received.
 	<-done
