@@ -1,0 +1,47 @@
+syntax = "proto3";
+package protocol;
+
+import "protocol/panoptic.proto";
+
+option go_package = "github.com/Luismorlan/newsmux/publisher/protocol";
+
+// To regenerate go file:
+// protoc --go_out=. --go_opt=paths=source_relative ./protocol/panoptic_config.proto --experimental_allow_proto3_optional
+
+message PanopticConfig {
+  // Name of this config.
+  string name = 1;
+
+  // Which data collector this config is invoking.
+  PanopticTask.DataCollectorId data_collector_id = 2;
+
+  // parameters that this task should take in.
+  TaskParams task_params = 3;
+
+  // TaskSchedule defines the schedule by which this config should run.
+  TaskSchedule task_schedule = 4;
+}
+
+message TaskSchedule {
+  // Start the task immediately, ignoring the schedule.
+  bool start_immediatly = 1;
+
+  // There are many schdules that we should be able to support, such as every
+  //other duration of time, at certain time of day.
+  oneof schedule {
+    Routinely routinely = 2;
+
+    // TODO(chenweilunster): Add other types of schedule if necessary.
+  }
+}
+
+// Routinely defines a schedule that executes every other duration of time.
+message Routinely {
+  int64 duration_milliseconds = 1;
+}
+
+// This message is used for the purpose of config push for the scheduler.
+message PanopticConfigs {
+  // A list of task configs that's used to configure scheduler.
+  repeated PanopticConfig config = 1;
+}

@@ -5,7 +5,9 @@ import (
 	"log"
 
 	"github.com/Luismorlan/newsmux/panoptic"
+	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+	"google.golang.org/protobuf/proto"
 )
 
 type OrchestratorConfig struct {
@@ -42,9 +44,17 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	for msg := range messages {
 		log.Printf("Orchestrator %s received message", o.Name())
-		log.Println(string(msg.Payload))
+		panopticJob := protocol.PanopticJob{}
+		err := proto.Unmarshal(msg.Payload, &panopticJob)
+
+		if err != nil {
+			return err
+		}
+
+		log.Println(panopticJob.String())
 		msg.Ack()
 	}
 
