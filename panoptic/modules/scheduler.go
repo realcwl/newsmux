@@ -2,7 +2,6 @@ package modules
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"sync"
@@ -123,11 +122,9 @@ func (s *Scheduler) DoSingleJob(job *SchedulerJob) {
 }
 
 func (s *Scheduler) ScheduleSingleJob(job *SchedulerJob) {
-	fmt.Println("enter ScheduleSingleJob")
 	// Start immediately if required and never ran before.
 	if !job.HasRunBefore() && job.panopticConfig.TaskSchedule.StartImmediatly {
 		job.UpdateLastAndNextTime()
-		fmt.Println("updated job")
 		// Execute the job in a non-blocking way so that we the execution time will
 		// not skew the next run time.
 		go s.DoSingleJob(job)
