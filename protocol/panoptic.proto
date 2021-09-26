@@ -32,12 +32,14 @@ message TaskParams {
   // SourceId of this collected CrawlerMessage.
   string source_id = 3;
 
+  repeated PanopticSubSource sub_sources = 4;
+
+  // offsite of domain specific param from 20, <20 is for shared fields
   // Domain specific params that will be passed in to customize the task 
   // execution. For example, you'll pass in Weibo/Twitter/ZSXQ user id as part
   // of the task param.
   oneof params {
-    JinshiTaskParams jinshi_task_params = 4;
-    // ...
+    JinshiTaskParams jinshi_task_params = 20;
   }
 }
 
@@ -64,11 +66,12 @@ message PanopticTask {
   // DataCollectorId defines the data collection logic to execute.
   enum DataCollectorId {
     COLLECTOR_UNSPECIFIED = 0;
-    // Fetch Jin10 Kuaixun.
     COLLECTOR_JINSHI = 1;
+    COLLECTOR_KUAILANSI = 2;
     // ...
   }
 
+  // The mapping from this ID to corresponding collector is hard coded
   DataCollectorId data_collector_id = 2;
 
   // Params that customizes how to collect data from the web.
@@ -77,6 +80,41 @@ message PanopticTask {
   // Metadata that's mostly for monitoring.
   TaskMetadata task_metadata = 4;
 }
+
+message PanopticSubSource{ 
+  // example: 
+  // name: 快讯
+  // type: FLASHNEWS 
+  // external_id: None 
+
+  // example:
+  // name: 要闻 
+  // type: KEYNEWS 
+  // external_id: None 
+
+  // example:
+  // name: 加州分析员 
+  // type: USERS 
+  // external_id:15281511824122 
+  enum SubSourceType{
+    UNSPECIFIED = 0;
+    FLASHNEWS = 1;
+    KEYNEWS = 2;
+    USERS = 3;
+  }
+
+  // name of the sub source, this will be written to CrawlerMessage
+  string name = 1;
+
+  // type of the sub source, this will be used to infer:
+  // 1. for SUBSOURCE_USERS: DataCollector will hard code what url to crawl
+  // 1. for news : DataCollector will determine keynews or flashnews and populate specified one 
+  SubSourceType type = 2;
+
+  // this will be used to construct external request/crawl uri
+  string external_id = 3;
+}
+
 
 // Created empty param here in case we need to pass in additional parameters to
 // customize Jinshi's crawler logic.
