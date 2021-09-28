@@ -14,6 +14,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const (
+	jin10DateFormat = "20060102-15:04:05"
+)
+
 type Jin10Crawler struct {
 }
 
@@ -29,13 +33,13 @@ func (collector Jin10Crawler) GetLevel(elem *colly.HTMLElement) protocol.Panopti
 }
 
 func (collector Jin10Crawler) GetContent(task *protocol.PanopticTask, elem *colly.HTMLElement) string {
-	content := ""
+	var sb strings.Builder
 	selection := elem.DOM.Find(".right-content > div")
 	selection.Children().Each(func(i int, s *goquery.Selection) {
 		if len(s.Nodes) > 0 && s.Nodes[0].Data == "br" {
-			content = content + "\n"
+			sb.WriteString(" ")
 		}
-		content = content + s.Text()
+		sb.WriteString(s.Text())
 	})
 
 	// goquery don't have a good way to get text without child elements'
@@ -43,15 +47,15 @@ func (collector Jin10Crawler) GetContent(task *protocol.PanopticTask, elem *coll
 	remove := selection.Children().Text()
 	text := selection.Text()
 	result := strings.Replace(text, remove, "", -1)
-	content = content + result
-	return content
+	sb.WriteString(result)
+	return sb.String()
 }
 
 func (collector Jin10Crawler) GetGeneratedTime(task *protocol.PanopticTask, elem *colly.HTMLElement) time.Time {
 	id := elem.DOM.AttrOr("id", "")
 	timeText := elem.DOM.Find(".item-time").Text()
 	dateStr := id[5:13] + "-" + timeText
-	time, err := time.Parse("20060102-15:04:05", dateStr)
+	time, err := time.Parse(jin10DateFormat, dateStr)
 	if err != nil {
 		return time.UTC()
 	}
@@ -76,7 +80,7 @@ func (collector Jin10Crawler) GetImageUrls(task *protocol.PanopticTask, elem *co
 }
 
 // Process each html selection to get content
-func (collector Jin10Crawler) IsLegal(task *protocol.PanopticTask, level protocol.PanopticSubSource_SubSourceType) bool {
+func (collector Jin10Crawler) IsValid(task *protocol.PanopticTask, level protocol.PanopticSubSource_SubSourceType) bool {
 	requestedTypes := make(map[protocol.PanopticSubSource_SubSourceType]bool)
 
 	for _, subsource := range task.TaskParams.SubSources {
@@ -96,7 +100,7 @@ func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *coll
 
 	level := collector.GetLevel(elem)
 
-	if !collector.IsLegal(task, level) {
+	if !collector.IsValid(task, level) {
 		return nil
 	}
 
@@ -108,7 +112,7 @@ func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *coll
 
 	imageUrls := collector.GetImageUrls(task, elem)
 
-	res := &protocol.CrawlerMessage{
+	return &protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			SubSource: &protocol.CrawledSubSource{
 				Name:      SubsourceTypeToName(level),
@@ -125,8 +129,6 @@ func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *coll
 		CrawlerVersion: "1",   // todo: actual version
 		IsTest:         false,
 	}
-
-	return res
 }
 
 // todo: mock http response and test end to end Collect()
@@ -136,7 +138,6 @@ func (collector Jin10Crawler) Collect(task *protocol.PanopticTask) ([]*protocol.
 
 	c := colly.NewCollector()
 
-	// On every a element which has href attribute call callback
 	c.OnHTML(`#jin_flash_list > .jin-flash-item-container`, func(e *colly.HTMLElement) {
 		fmt.Println("解析金十")
 		res = append(res, collector.GetMessage(task, e))
