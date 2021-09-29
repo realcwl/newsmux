@@ -16,6 +16,7 @@ require (
 	github.com/bin3377/logrus-datadog-hook v0.0.3
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.2
+	github.com/go-playground/assert/v2 v2.0.1 // indirect
 	github.com/go-playground/validator/v10 v10.8.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gocolly/colly v1.2.0 // indirect

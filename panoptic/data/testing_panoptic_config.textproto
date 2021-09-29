@@ -1,0 +1,26 @@
+config: {
+  name: "Jinshi Kuaixun"
+  data_collector_id: COLLECTOR_JINSHI
+  task_params: {
+    source_id: "dummy_source_id"
+  }
+  task_schedule: {
+    start_immediatly: true
+    routinely: {
+      duration_milliseconds: 1000
+    }
+  }
+}
+config: {
+  name: "Kuailansi Kuaixun"
+  data_collector_id: COLLECTOR_JINSHI
+  task_params: {
+    source_id: "dummy_source_id"
+  }
+  task_schedule: {
+    start_immediatly: true
+    routinely: {
+      duration_milliseconds: 2000
+    }
+  }
+}

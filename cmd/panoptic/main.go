@@ -12,17 +12,24 @@ import (
 
 func main() {
 	eventbus := gochannel.NewGoChannel(
-		gochannel.Config{},
+		gochannel.Config{
+			OutputChannelBuffer:            100,
+			BlockPublishUntilSubscriberAck: false,
+		},
 		watermill.NewStdLogger(false, false),
 	)
+	ctx := context.Background()
 
 	// Initialize all engine modules here.
 	modules := []panoptic.Module{
 		// Scheduler parses data collector configs, fanout into multiple tasks and
 		// pushes onto EventBus.
 		modules.NewScheduler(
-			modules.SchedulerConfig{Name: "scheduler"},
+			modules.SchedulerConfig{Name: "scheduler",
+				PanopticConfigPath: "panoptic/data/testing_panoptic_config.textproto"},
 			eventbus,
+			modules.NewSchedulerJobDoer(eventbus),
+			ctx,
 		),
 		// Orchestrator listens tasks on EventBus, maintains an active Lambda pool
 		// and wrap Lambda result in a tasks and publish to the exporter for
@@ -34,7 +41,6 @@ func main() {
 	}
 
 	engine := panoptic.NewEngine(modules, eventbus)
-	ctx := context.Background()
 
 	// blocking call.
 	engine.Run(ctx)
