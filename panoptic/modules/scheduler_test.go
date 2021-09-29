@@ -18,7 +18,7 @@ const (
 		task_schedule: {
 			start_immediatly: true
 			routinely: {
-				duration_milliseconds: 1000
+				every_milliseconds: 1000
 			}
 		}
 	`
@@ -31,7 +31,7 @@ const (
 		task_schedule: {
 			start_immediatly: true
 			routinely: {
-				duration_milliseconds: 1000
+				every_milliseconds: 1000
 			}
 		}
 	`
@@ -44,7 +44,7 @@ const (
 		task_schedule: {
 			start_immediatly: true
 			routinely: {
-				duration_milliseconds: 1000
+				every_milliseconds: 1000
 			}
 		}
 	`
@@ -102,7 +102,7 @@ func TestUpsertJobs_UpdateOnlyConfig(t *testing.T) {
 
 	newSchedulerJob := GetCustomizedSchedulerJob(t, TestConfig1)
 	newSchedulerJob.panopticConfig.
-		TaskSchedule.GetRoutinely().DurationMilliseconds = 100
+		TaskSchedule.GetRoutinely().EveryMilliseconds = 100
 
 	jobs := []*SchedulerJob{newSchedulerJob}
 	s.UpsertJobs(jobs)
@@ -113,5 +113,5 @@ func TestUpsertJobs_UpdateOnlyConfig(t *testing.T) {
 	assert.Equal(t, s.Jobs[0].panopticConfig.Name, "cfg_1")
 	assert.Equal(t,
 		s.Jobs[0].panopticConfig.GetTaskSchedule().
-			GetRoutinely().DurationMilliseconds, int64(100))
+			GetRoutinely().EveryMilliseconds, int64(100))
 }

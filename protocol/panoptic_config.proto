@@ -5,9 +5,6 @@ import "protocol/panoptic.proto";
 
 option go_package = "github.com/Luismorlan/newsmux/publisher/protocol";
 
-// To regenerate go file:
-// protoc --go_out=. --go_opt=paths=source_relative ./protocol/panoptic_config.proto --experimental_allow_proto3_optional
-
 message PanopticConfig {
   // Name of this config.
   string name = 1;
@@ -37,7 +34,7 @@ message TaskSchedule {
 
 // Routinely defines a schedule that executes every other duration of time.
 message Routinely {
-  int64 duration_milliseconds = 1;
+  int64 every_milliseconds = 1;
 }
 
 // This message is used for the purpose of config push for the scheduler.

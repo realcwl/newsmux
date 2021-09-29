@@ -86,14 +86,14 @@ func (j *SchedulerJob) DurationTillNextRun() time.Duration {
 
 func (j *SchedulerJob) UpdateLastAndNextTime() error {
 	duration, err := j.CalculateInterval()
+	if err != nil {
+		return err
+	}
 
 	j.m.Lock()
 	defer j.m.Unlock()
 
 	j.lastRun = time.Now()
-	if err != nil {
-		return err
-	}
 	j.nextRun = j.lastRun.Add(duration)
 	return nil
 }
@@ -105,7 +105,7 @@ func (j *SchedulerJob) CalculateInterval() (time.Duration, error) {
 	switch scheduleType := j.panopticConfig.TaskSchedule.Schedule.(type) {
 	case *protocol.TaskSchedule_Routinely:
 		return time.Duration(
-			j.panopticConfig.TaskSchedule.GetRoutinely().DurationMilliseconds) *
+			j.panopticConfig.TaskSchedule.GetRoutinely().EveryMilliseconds) *
 			time.Millisecond, nil
 	default:
 		return 0, fmt.Errorf("unknown schedule type: %T", scheduleType)

@@ -21,7 +21,7 @@ const DefaultPanopticConfig = `
 	task_schedule: {
 		start_immediatly: true
 		routinely: {
-			duration_milliseconds: 1000
+			every_milliseconds: 1000
 		}
 	}
 `

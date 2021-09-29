@@ -142,6 +142,7 @@ func (s *Scheduler) ScheduleSingleJob(job *SchedulerJob) {
 		// failing, reach max run count)
 		case <-job.ctx.Done():
 			log.Printf("Job %s cancelled by itself.", job.panopticConfig.Name)
+			return
 		case <-time.After(durationTillNextRun):
 			job.UpdateLastAndNextTime()
 			go s.DoSingleJob(job)
