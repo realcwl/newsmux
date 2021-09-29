@@ -115,3 +115,12 @@ func TestUpsertJobs_UpdateOnlyConfig(t *testing.T) {
 		s.Jobs[0].panopticConfig.GetTaskSchedule().
 			GetRoutinely().EveryMilliseconds, int64(100))
 }
+
+func TestValidateJobs_DuplicateName(t *testing.T) {
+	jobs := []*SchedulerJob{
+		GetCustomizedSchedulerJob(t, TestConfig1),
+		GetCustomizedSchedulerJob(t, TestConfig2),
+		GetCustomizedSchedulerJob(t, TestConfig1),
+	}
+	assert.NotNil(t, ValidateJobs(jobs))
+}

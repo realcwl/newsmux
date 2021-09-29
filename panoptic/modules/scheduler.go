@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"sync"
@@ -11,6 +12,18 @@ import (
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"google.golang.org/protobuf/encoding/prototext"
 )
+
+// A valid job batch must not contains duplicate job name.
+func ValidateJobs(jobs []*SchedulerJob) error {
+	seen := make(map[string]bool)
+	for _, job := range jobs {
+		if _, ok := seen[job.panopticConfig.Name]; ok {
+			return fmt.Errorf("duplicate scheduler job name: %s", job.panopticConfig.Name)
+		}
+		seen[job.panopticConfig.Name] = true
+	}
+	return nil
+}
 
 type SchedulerConfig struct {
 	// Name of the scheduler.
@@ -106,6 +119,11 @@ func (s *Scheduler) ParseAndUpsertJobs() error {
 		log.Fatalln("Failed to parse PanopticConfigs:", err)
 	}
 	jobs := NewSchedulerJobs(configs, s.ctx)
+	err = ValidateJobs(jobs)
+	if err != nil {
+		return err
+	}
+
 	s.UpsertJobs(jobs)
 	return nil
 }
