@@ -10,6 +10,11 @@ message KeyValuePair {
   string value = 2;
 }
 
+// The collector (crawler) service definition.
+service DataCollect {
+  rpc Collect (PanopticJob) returns (PanopticJob) {}
+}
+
 message PanopticJob {
   // Job id uniquely identifies a data collection job, which contains multiple 
   // heterogeneous tasks collecting data from multiple sources. 
@@ -49,10 +54,13 @@ message TaskMetadata {
   google.protobuf.Timestamp task_end_time = 2;
 
   // How many CrawlerMessage this task collected.
-  int64 total_message_collected = 3;
+  int32 total_message_collected = 3;
+
+  // How many CrawlerMessage this task failed to collect.
+  int32 total_message_failed = 4;
 
   // Which ip address is this task executing at.
-  string ip_addr = 4;
+  string ip_addr = 5;
 
   // ...
 }
