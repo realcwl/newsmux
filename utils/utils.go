@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // ContainsString returns true iff the provided string slice hay contains string
@@ -86,4 +87,20 @@ func StringifyBoolean(b bool) string {
 		return "true"
 	}
 	return "false"
+}
+
+func GetRandomDataCollectorFunctionName() string {
+	return "data_collector_" + RandomAlphabetString(8)
+}
+
+func GetRandomNumberInRangeStandardDeviation(mean float64, radius float64) float64 {
+	// Use 3 standard diviation, which has the 99.7% probability to succeed.
+	deviation := float64(3)
+	for {
+		dist := distuv.UnitNormal
+		num := dist.Rand()
+		if num <= deviation && num >= -deviation {
+			return num*radius/deviation + mean
+		}
+	}
 }

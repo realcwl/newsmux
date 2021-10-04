@@ -8,7 +8,30 @@ import (
 	"github.com/Luismorlan/newsmux/panoptic/modules"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
 )
+
+func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("us-west-1"),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	client := lambda.NewFromConfig(cfg)
+	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
+		LambdaPoolSize:       3,
+		LambdaLifeSpanSecond: 30,
+		MaintainEverySecond:  10,
+	})
+	if err := executor.Init(); err != nil {
+		panic(err)
+	}
+	return executor
+}
 
 func main() {
 	eventbus := gochannel.NewGoChannel(
@@ -36,6 +59,7 @@ func main() {
 		// monitoring.
 		modules.NewOrchestrator(
 			modules.OrchestratorConfig{Name: "orchestrator"},
+			CreateAndInitLambdaExecutor(ctx),
 			eventbus,
 		),
 	}
