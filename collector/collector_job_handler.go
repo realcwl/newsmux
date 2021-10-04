@@ -9,11 +9,9 @@ import (
 	. "github.com/Luismorlan/newsmux/utils/log"
 )
 
-type DataCollectServerHandler struct {
-	protocol.UnimplementedDataCollectServer
-}
+type DataCollectJobHandler struct{}
 
-func (c DataCollectServerHandler) Collect(context context.Context, job *protocol.PanopticJob) (*protocol.PanopticJob, error) {
+func (handler DataCollectJobHandler) Collect(context context.Context, job *protocol.PanopticJob) error {
 	Log.Info("RPC call Collect() request: ", job)
 
 	var (
@@ -31,17 +29,17 @@ func (c DataCollectServerHandler) Collect(context context.Context, job *protocol
 		wg.Add(1)
 		go func(t *protocol.PanopticTask) {
 			defer wg.Done()
-			meta := processTask(t, sink)
+			meta := handler.processTask(t, sink)
 			t.TaskMetadata = meta
 		}(t)
 	}
 
 	wg.Wait()
 	Log.Info("RPC call Collect() response: ", job)
-	return job, nil
+	return nil
 }
 
-func processTask(t *protocol.PanopticTask, sink CollectedDataSink) *protocol.TaskMetadata {
+func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink CollectedDataSink) *protocol.TaskMetadata {
 	var c DataCollector
 
 	// forward task to corresponding collector
