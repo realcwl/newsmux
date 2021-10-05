@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -41,14 +40,14 @@ func HandleRequest(ctx context.Context, event DataCollectorRequest) (resp DataCo
 	Log.Info("Processing job with job id : ", job.JobId)
 
 	// handle
-	var handler collector.DataCollectServerHandler
-	res, err := handler.Collect(ctx, job)
+	var handler collector.DataCollectJobHandler
+	err := handler.Collect(ctx, job)
 	if err != nil {
 		Log.Error("Failed to execute job with error:", err)
 		return resp, err
 	}
 	// encode job
-	str, err := proto.Marshal(res)
+	str, err := proto.Marshal(job)
 	resp.SerializedJob = str
 	return resp, nil
 }
