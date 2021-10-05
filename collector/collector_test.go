@@ -79,7 +79,7 @@ func GetFakeTask(taskId, sourceId, subSourceName string, subsourceType protocol.
 
 func TestJin10CrawlerWithTitle(t *testing.T) {
 	// var elem colly.HTMLElement
-	var sink = NewSnsSink()
+	var sink = NewStdErrSink()
 	crawler := NewJin10Crawler(sink)
 	taskId := "task_1"
 	sourceId := "source_1"
@@ -107,7 +107,7 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 
 func TestJin10CrawlerWithImage(t *testing.T) {
 	// var elem colly.HTMLElement
-	var sink = NewSnsSink()
+	var sink = NewStdErrSink()
 	crawler := NewJin10Crawler(sink)
 	taskId := "task_1"
 	sourceId := "source_1"
@@ -137,7 +137,7 @@ func TestJin10CrawlerWithImage(t *testing.T) {
 
 func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 	// var elem colly.HTMLElement
-	var sink = NewSnsSink()
+	var sink = NewStdErrSink()
 	crawler := NewJin10Crawler(sink)
 	taskId := "task_1"
 	sourceId := "source_1"

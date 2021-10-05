@@ -11,7 +11,7 @@ import (
 
 type DataCollectJobHandler struct{}
 
-func (handler DataCollectJobHandler) Collect(context context.Context, job *protocol.PanopticJob) error {
+func (handler DataCollectJobHandler) Collect(context context.Context, job *protocol.PanopticJob) (err error) {
 	Log.Info("Collect() with request: ", job)
 
 	var (
@@ -21,7 +21,10 @@ func (handler DataCollectJobHandler) Collect(context context.Context, job *proto
 	if flag.IsDevelopment {
 		sink = NewStdErrSink()
 	} else {
-		sink = NewSnsSink()
+		sink, err = NewSnsSink()
+		if err != nil {
+			return err
+		}
 	}
 
 	for ind := range job.Tasks {

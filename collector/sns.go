@@ -20,9 +20,9 @@ type SnsSink struct {
 	client *sns.SNS
 }
 
-func NewSnsSink() *SnsSink {
+func NewSnsSink() (*SnsSink, error) {
 	// AWS client session
-	sess, _ := session.NewSession(&aws.Config{
+	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-west-1"),
 		Credentials: credentials.NewStaticCredentials(
 			os.Getenv("AWS_ACCESS_KEY_ID_FOR_AWS"),
@@ -30,12 +30,15 @@ func NewSnsSink() *SnsSink {
 			"",
 		),
 	})
+	if err != nil {
+		return nil, err
+	}
 	svc := sns.New(sess)
 
 	return &SnsSink{
 		arn:    testArn,
 		client: svc,
-	}
+	}, nil
 }
 
 func (s *SnsSink) Push(msg *protocol.CrawlerMessage) error {
