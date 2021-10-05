@@ -12,7 +12,7 @@ import (
 
 const (
 	testArn = "arn:aws:sns:us-west-1:213288384225:test_sns"
-	prodArn = "arn:aws:sns:us-west-1:213288384225:test_sns"
+	prodArn = "arn:aws:sns:us-west-1:213288384225:newsfeed.fifo"
 )
 
 type SnsSink struct {
@@ -25,8 +25,8 @@ func NewSnsSink() *SnsSink {
 	sess, _ := session.NewSession(&aws.Config{
 		Region: aws.String("us-west-1"),
 		Credentials: credentials.NewStaticCredentials(
-			os.Getenv("AWS_ACCESS_KEY_ID"),
-			os.Getenv("AWS_SECRET_ACCESS_KEY"),
+			os.Getenv("AWS_ACCESS_KEY_ID_FOR_AWS"),
+			os.Getenv("SECRET_ACCESS_KEY"),
 			"",
 		),
 	})
