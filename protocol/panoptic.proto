@@ -10,11 +10,6 @@ message KeyValuePair {
   string value = 2;
 }
 
-// The collector (crawler) service definition.
-service DataCollect {
-  rpc Collect (PanopticJob) returns (PanopticJob) {}
-}
-
 message PanopticJob {
   // Job id uniquely identifies a data collection job, which contains multiple 
   // heterogeneous tasks collecting data from multiple sources. 
