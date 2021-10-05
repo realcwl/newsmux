@@ -12,7 +12,7 @@ import (
 type DataCollectJobHandler struct{}
 
 func (handler DataCollectJobHandler) Collect(context context.Context, job *protocol.PanopticJob) error {
-	Log.Info("RPC call Collect() request: ", job)
+	Log.Info("Collect() with request: ", job)
 
 	var (
 		sink CollectedDataSink
@@ -35,7 +35,7 @@ func (handler DataCollectJobHandler) Collect(context context.Context, job *proto
 	}
 
 	wg.Wait()
-	Log.Info("RPC call Collect() response: ", job)
+	Log.Info("Collect() response: ", job)
 	return nil
 }
 
