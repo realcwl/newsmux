@@ -47,8 +47,8 @@ func HandleRequest(ctx context.Context, event DataCollectorRequest) (resp DataCo
 		return resp, err
 	}
 	// encode job
-	str, err := proto.Marshal(job)
-	resp.SerializedJob = str
+	bytes, err := proto.Marshal(job)
+	resp.SerializedJob = bytes
 	return resp, nil
 }
 
@@ -57,5 +57,6 @@ func main() {
 	if err := dotenv.LoadDotEnvs(); err != nil {
 		panic(err)
 	}
+	Log.Info("Starting lambda handler, waiting for requests...")
 	lambda.Start(HandleRequest)
 }
