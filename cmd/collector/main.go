@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/protocol"
 	. "github.com/Luismorlan/newsmux/utils"
@@ -30,7 +28,7 @@ type DataCollectorResponse struct {
 	SerializedJob []byte
 }
 
-func HandleRequest(ctx context.Context, event DataCollectorRequest) (resp DataCollectorResponse, e error) {
+func HandleRequest(event DataCollectorRequest) (resp DataCollectorResponse, e error) {
 	// parse job
 	job := &protocol.PanopticJob{}
 	if err := proto.Unmarshal(event.SerializedJob, job); err != nil {
@@ -41,7 +39,7 @@ func HandleRequest(ctx context.Context, event DataCollectorRequest) (resp DataCo
 
 	// handle
 	var handler collector.DataCollectJobHandler
-	err := handler.Collect(ctx, job)
+	err := handler.Collect(job)
 	if err != nil {
 		Log.Error("Failed to execute job with error:", err)
 		return resp, err

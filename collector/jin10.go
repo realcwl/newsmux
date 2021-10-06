@@ -23,10 +23,6 @@ type Jin10Crawler struct {
 	sink CollectedDataSink
 }
 
-func NewJin10Crawler(s CollectedDataSink) *Jin10Crawler {
-	return &Jin10Crawler{sink: s}
-}
-
 func (collector Jin10Crawler) GetFileUrls(task *protocol.PanopticTask, elem *colly.HTMLElement) ([]string, error) {
 	return []string{}, errors.New("GetFileUrls not implemented, should not be called")
 }
@@ -173,13 +169,19 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) (su
 	// each crawled card(news) will go to this
 	// for each page loaded, there are multiple calls into this func
 	c.OnHTML(`#jin_flash_list > .jin-flash-item-container`, func(elem *colly.HTMLElement) {
-		if msg, e := collector.GetMessage(task, elem); e == nil {
-			if e = collector.sink.Push(msg); e == nil {
-				successCount++
-				return
-			}
+		var (
+			msg *protocol.CrawlerMessage
+			err error
+		)
+		if msg, err = collector.GetMessage(task, elem); err != nil {
+			failCount++
+			return
 		}
-		failCount++
+		if err = collector.sink.Push(msg); err != nil {
+			failCount++
+			return
+		}
+		successCount++
 	})
 
 	// Set error handler

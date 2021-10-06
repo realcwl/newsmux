@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"context"
 	"sync"
 
 	"github.com/Luismorlan/newsmux/protocol"
@@ -11,9 +10,8 @@ import (
 
 type DataCollectJobHandler struct{}
 
-func (handler DataCollectJobHandler) Collect(context context.Context, job *protocol.PanopticJob) (err error) {
+func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err error) {
 	Log.Info("Collect() with request: ", job)
-
 	var (
 		sink CollectedDataSink
 		wg   sync.WaitGroup
@@ -36,22 +34,24 @@ func (handler DataCollectJobHandler) Collect(context context.Context, job *proto
 			t.TaskMetadata = meta
 		}(t)
 	}
-
 	wg.Wait()
 	Log.Info("Collect() response: ", job)
 	return nil
 }
 
 func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink CollectedDataSink) *protocol.TaskMetadata {
-	var c DataCollector
-
+	var (
+		collector DataCollector
+		builder   CollectorBuilder
+	)
 	// forward task to corresponding collector
 	switch t.DataCollectorId {
 	case protocol.PanopticTask_COLLECTOR_JINSHI:
-		c = NewJin10Crawler(sink)
+		// please follow this patter to get collector
+		collector = builder.NewJin10Crawler(sink)
 	default:
 		Log.Error("Unknown task DataCollectorId")
 		return nil
 	}
-	return RunColector(c, t)
+	return RunCollector(collector, t)
 }

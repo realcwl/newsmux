@@ -1,22 +1,26 @@
 package collector
 
 import (
-	"log"
-	"os"
 	"time"
 
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/gocolly/colly"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// todo: implement data sink
 type CollectedDataSink interface {
 	Push(msg *protocol.CrawlerMessage) error
 }
 
 type DataCollector interface {
 	CollectAndPublish(task *protocol.PanopticTask) (successCount int32, failCount int32)
+	GetMessage(task *protocol.PanopticTask, elem *colly.HTMLElement) (*protocol.CrawlerMessage, error)
+}
+
+// To make sure the interface is implemented
+// we use builder to get collector which can enforce the Interface for
+// Crawler, API and RSS collector instances
+type CrawlerCollector interface {
+	DataCollector
 
 	// All implementation functions should output error
 	// errors will be reported for debugging
@@ -30,41 +34,12 @@ type DataCollector interface {
 	IsRequested(task *protocol.PanopticTask, level protocol.PanopticSubSource_SubSourceType) bool
 }
 
-// Hard code subsource type to name
-func SubsourceTypeToName(t protocol.PanopticSubSource_SubSourceType) string {
-	if t == protocol.PanopticSubSource_FLASHNEWS {
-		return "快讯"
-	}
-	if t == protocol.PanopticSubSource_KEYNEWS {
-		return "要闻"
-	}
-	return "其他"
+type ApiCollector interface {
+	DataCollector
+	// TODO: implement api collector
 }
 
-func RunColector(collector DataCollector, task *protocol.PanopticTask) *protocol.TaskMetadata {
-	meta := &protocol.TaskMetadata{}
-
-	meta.TaskStartTime = timestamppb.Now()
-	successCount, failCount := collector.CollectAndPublish(task)
-	meta.TaskEndTime = timestamppb.Now()
-
-	meta.TotalMessageCollected = successCount
-	meta.TotalMessageFailed = failCount
-
-	return meta
-}
-
-type StdErrSink struct{}
-
-func NewStdErrSink() *StdErrSink {
-	return &StdErrSink{}
-}
-
-func (s *StdErrSink) Push(msg *protocol.CrawlerMessage) error {
-	if msg == nil {
-		return nil
-	}
-	l := log.New(os.Stderr, "[Test DataCollector Sink]", 0)
-	l.Println(msg.String())
-	return nil
+type RssCollector interface {
+	DataCollector
+	// TODO: implement rss collector
 }

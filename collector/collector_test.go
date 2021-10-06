@@ -80,7 +80,8 @@ func GetFakeTask(taskId, sourceId, subSourceName string, subsourceType protocol.
 func TestJin10CrawlerWithTitle(t *testing.T) {
 	// var elem colly.HTMLElement
 	var sink = NewStdErrSink()
-	crawler := NewJin10Crawler(sink)
+	var builder CollectorBuilder
+	crawler := builder.NewJin10Crawler(sink)
 	taskId := "task_1"
 	sourceId := "source_1"
 	task := GetFakeTask(taskId, sourceId, "快讯", protocol.PanopticSubSource_FLASHNEWS)
@@ -108,7 +109,8 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 func TestJin10CrawlerWithImage(t *testing.T) {
 	// var elem colly.HTMLElement
 	var sink = NewStdErrSink()
-	crawler := NewJin10Crawler(sink)
+	var builder CollectorBuilder
+	crawler := builder.NewJin10Crawler(sink)
 	taskId := "task_1"
 	sourceId := "source_1"
 
@@ -138,7 +140,8 @@ func TestJin10CrawlerWithImage(t *testing.T) {
 func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 	// var elem colly.HTMLElement
 	var sink = NewStdErrSink()
-	crawler := NewJin10Crawler(sink)
+	var builder CollectorBuilder
+	crawler := builder.NewJin10Crawler(sink)
 	taskId := "task_1"
 	sourceId := "source_1"
 	// Asking for Flash news
