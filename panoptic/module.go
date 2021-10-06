@@ -17,7 +17,7 @@ func RunModuleWithGracefulRestart(ctx context.Context, module *Module) {
 			break
 		}
 		log.Printf(
-			"Module %s exited with error %x, retry in %d seconds",
+			"Module %s exited with error %v, retry in %d seconds",
 			(*module).Name(),
 			err,
 			GracefulRetryDelay)
