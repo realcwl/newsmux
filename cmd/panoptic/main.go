@@ -14,7 +14,7 @@ import (
 
 func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("us-west-1"),
+		config.WithRegion(panoptic.AWS_REGION),
 	)
 
 	if err != nil {
