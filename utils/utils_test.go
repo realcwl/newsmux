@@ -27,6 +27,14 @@ func TestRandomAlphabetString(t *testing.T) {
 	}
 }
 
+func TestGetRandomNumberInRangeStandardDeviation(t *testing.T) {
+	num := GetRandomNumberInRangeStandardDeviation(1, 1)
+	assert.True(t, num >= 0 && num <= 2)
+
+	num = GetRandomNumberInRangeStandardDeviation(5, 2)
+	assert.True(t, num >= 3 && num <= 7)
+}
+
 func TestStringSlicesContainSameElements(t *testing.T) {
 	assert.True(t, StringSlicesContainSameElements([]string{}, []string{}))
 	assert.True(t, StringSlicesContainSameElements([]string{"a", "b"}, []string{"a", "b"}))

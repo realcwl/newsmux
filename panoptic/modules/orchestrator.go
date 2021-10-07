@@ -13,13 +13,6 @@ import (
 type OrchestratorConfig struct {
 	// Name of the orchestrator.
 	Name string
-
-	// Number of Lambdas maintained at a given time.
-	LambdaPoolSize int32
-
-	// Lambda life span in milli-second. Any lambda function that exceed this
-	// value will be cleaned up and replaced with a new one.
-	LambdaLifeSpanMilliSec int32
 }
 
 type Orchestrator struct {
@@ -27,13 +20,16 @@ type Orchestrator struct {
 
 	Config OrchestratorConfig
 
+	executor Executor
+
 	EventBus *gochannel.GoChannel
 }
 
 // Return a new instance of Orchestrator.
-func NewOrchestrator(config OrchestratorConfig, e *gochannel.GoChannel) *Orchestrator {
+func NewOrchestrator(config OrchestratorConfig, executor Executor, e *gochannel.GoChannel) *Orchestrator {
 	return &Orchestrator{
 		Config:   config,
+		executor: executor,
 		EventBus: e,
 	}
 }
@@ -49,7 +45,8 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 	}
 
 	for msg := range messages {
-		log.Printf("Orchestrator %s received message", o.Name())
+		msg.Ack()
+
 		panopticJob := protocol.PanopticJob{}
 		err := proto.Unmarshal(msg.Payload, &panopticJob)
 
@@ -57,8 +54,15 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 			return err
 		}
 
-		log.Println(panopticJob.String())
-		msg.Ack()
+		go func(job *protocol.PanopticJob) {
+			res, err := o.executor.Execute(ctx, &panopticJob)
+			if err != nil {
+				log.Printf("fail to execute job: %s, error: %s", panopticJob.String(), err)
+				return
+			}
+			log.Printf("successfully executed job: %s", res)
+		}(&panopticJob)
+
 	}
 
 	return nil
