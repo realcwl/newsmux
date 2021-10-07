@@ -2,10 +2,10 @@ package modules
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"google.golang.org/protobuf/proto"
 )
@@ -13,13 +13,6 @@ import (
 type OrchestratorConfig struct {
 	// Name of the orchestrator.
 	Name string
-
-	// Number of Lambdas maintained at a given time.
-	LambdaPoolSize int32
-
-	// Lambda life span in milli-second. Any lambda function that exceed this
-	// value will be cleaned up and replaced with a new one.
-	LambdaLifeSpanMilliSec int32
 }
 
 type Orchestrator struct {
@@ -27,13 +20,16 @@ type Orchestrator struct {
 
 	Config OrchestratorConfig
 
+	executor Executor
+
 	EventBus *gochannel.GoChannel
 }
 
 // Return a new instance of Orchestrator.
-func NewOrchestrator(config OrchestratorConfig, e *gochannel.GoChannel) *Orchestrator {
+func NewOrchestrator(config OrchestratorConfig, executor Executor, e *gochannel.GoChannel) *Orchestrator {
 	return &Orchestrator{
 		Config:   config,
+		executor: executor,
 		EventBus: e,
 	}
 }
@@ -42,14 +38,14 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// TODO(chenweilunster): Actually implement Orchestrator.
 	messages, err := o.EventBus.Subscribe(ctx, panoptic.TOPIC_PENDING_TASK)
 	if err != nil {
 		return err
 	}
 
 	for msg := range messages {
-		log.Printf("Orchestrator %s received message", o.Name())
+		msg.Ack()
+
 		panopticJob := protocol.PanopticJob{}
 		err := proto.Unmarshal(msg.Payload, &panopticJob)
 
@@ -57,8 +53,15 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 			return err
 		}
 
-		log.Println(panopticJob.String())
-		msg.Ack()
+		go func(job *protocol.PanopticJob) {
+			res, err := o.executor.Execute(ctx, &panopticJob)
+			if err != nil {
+				Log.Infof("fail to execute job: %s, error: %s", panopticJob.String(), err)
+				return
+			}
+			Log.Infof("successfully executed job: %s", res)
+		}(&panopticJob)
+
 	}
 
 	return nil
