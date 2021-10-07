@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Luismorlan/newsmux/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,7 +65,13 @@ func TestUpsertJobs_AllNew(t *testing.T) {
 
 	assert.Equal(t, len(s.Jobs), 3)
 	assert.Equal(t, s.Jobs[0].lastRun, time.Time{})
-	assert.Equal(t, s.Jobs[2].panopticConfig.Name, "cfg_3")
+
+	jobNames := []string{}
+	for _, j := range s.Jobs {
+		jobNames = append(jobNames, j.panopticConfig.Name)
+	}
+	assert.True(t, utils.StringSlicesContainSameElements(jobNames,
+		[]string{"cfg_1", "cfg_2", "cfg_3"}))
 }
 
 func TestUpsertJobs_RemoveSome(t *testing.T) {

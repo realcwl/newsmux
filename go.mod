@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go v1.40.19
 	github.com/aws/aws-sdk-go-v2/config v1.5.0
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.4.1
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.9.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/lambda v1.9.0
 	github.com/bin3377/logrus-datadog-hook v0.0.3
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.2
