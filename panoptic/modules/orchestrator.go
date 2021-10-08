@@ -2,10 +2,10 @@ package modules
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"google.golang.org/protobuf/proto"
 )
@@ -38,7 +38,6 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// TODO(chenweilunster): Actually implement Orchestrator.
 	messages, err := o.EventBus.Subscribe(ctx, panoptic.TOPIC_PENDING_TASK)
 	if err != nil {
 		return err
@@ -57,10 +56,10 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 		go func(job *protocol.PanopticJob) {
 			res, err := o.executor.Execute(ctx, &panopticJob)
 			if err != nil {
-				log.Printf("fail to execute job: %s, error: %s", panopticJob.String(), err)
+				Log.Infof("fail to execute job: %s, error: %s", panopticJob.String(), err)
 				return
 			}
-			log.Printf("successfully executed job: %s", res)
+			Log.Infof("successfully executed job: %s", res)
 		}(&panopticJob)
 
 	}

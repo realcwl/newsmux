@@ -7,7 +7,7 @@ config: {
   task_schedule: {
     start_immediatly: true
     routinely: {
-      every_milliseconds: 1000
+      every_milliseconds: 30000
     }
   }
 }
@@ -20,7 +20,7 @@ config: {
   task_schedule: {
     start_immediatly: true
     routinely: {
-      every_milliseconds: 2000
+      every_milliseconds: 20000
     }
   }
 }

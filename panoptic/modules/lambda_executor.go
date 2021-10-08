@@ -2,20 +2,19 @@ package modules
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"log"
 	"math/rand"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
-	"google.golang.org/protobuf/proto"
 )
 
 // Configuration of the lambda executor.
@@ -23,7 +22,7 @@ type LambdaExecutorConfig struct {
 	// Number of Lambdas maintained at a given time.
 	LambdaPoolSize int
 
-	// Lambda life span in milli-second. Any lambda function that exceed this
+	// Lambda life span in second. Any lambda function that exceed this
 	// value will be cleaned up and replaced with a new one.
 	LambdaLifeSpanSecond int64
 
@@ -129,15 +128,7 @@ func MakeDataCollectorRpc(ctx context.Context, job *protocol.PanopticJob, functi
 	}
 
 	// Invoke Lambda
-	marshall, err := proto.Marshal(job)
-	if err != nil {
-		return nil, err
-	}
-
-	req := DataCollectorRequest{
-		SerializedJob: marshall,
-	}
-	payload, err := json.Marshal(req)
+	payload, err := model.PanopticJobToLambdaPayload(job)
 	if err != nil {
 		return nil, err
 	}
@@ -151,20 +142,7 @@ func MakeDataCollectorRpc(ctx context.Context, job *protocol.PanopticJob, functi
 		return nil, err
 	}
 
-	var collectorResponse DataCollectorRequest
-
-	err = json.Unmarshal(res.Payload, &collectorResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	resJob := &protocol.PanopticJob{}
-	err = proto.Unmarshal(collectorResponse.SerializedJob, resJob)
-	if err != nil {
-		return nil, err
-	}
-
-	return resJob, nil
+	return model.LambdaPayloadToPanopticJob(res.Payload)
 }
 
 // A function can be removed if it contains no pending jobs
@@ -173,6 +151,12 @@ func (f *LambdaFunction) IsRemovable() bool {
 	defer f.m.RUnlock()
 
 	return len(f.jobs) == 0
+}
+
+// A function is stale if its created time is too long ago
+func (f *LambdaFunction) IsStale() bool {
+	now := time.Now()
+	return now.Sub(f.createdTime) < f.span
 }
 
 // Add a pending job on the lambda function.
@@ -244,6 +228,7 @@ func (l *LambdaExecutor) AddLambdaFunction() (string, error) {
 // creations.
 func (l *LambdaExecutor) AddLambdaFunctions(count int) ([]string, error) {
 	wg := sync.WaitGroup{}
+	m := sync.Mutex{}
 	names := []string{}
 	errs := []error{}
 	i := 0
@@ -252,6 +237,9 @@ func (l *LambdaExecutor) AddLambdaFunctions(count int) ([]string, error) {
 		go func() {
 			defer wg.Done()
 			name, err := l.AddLambdaFunction()
+
+			m.Lock()
+			defer m.Unlock()
 			if err != nil {
 				errs = append(errs, err)
 				return
@@ -289,7 +277,7 @@ func (l *LambdaExecutor) DeleteLambdaFunction(name string) error {
 		return err
 	}
 
-	log.Printf("removed lambda function %s", name)
+	Log.Infof("removed lambda function %s", name)
 
 	return nil
 }
@@ -306,7 +294,7 @@ func (l *LambdaExecutor) IntializeLambdaPool() error {
 		return err
 	}
 
-	log.Printf("initialized lambda pool, names: %s\n", strings.Join(names, ", "))
+	Log.Infof("initialized lambda pool, names: %s\n", strings.Join(names, ", "))
 
 	return nil
 }
@@ -324,10 +312,10 @@ func (l *LambdaExecutor) MaintainLambdaPool() {
 			case <-ctx.Done():
 				return
 			case <-time.After(time.Duration(l.config.MaintainEverySecond * int64(time.Second))):
-				log.Println("start lambda pool maintainance")
+				Log.Infof("start lambda pool maintainance")
 				l.MarkStaleFunctions()
 				if err := l.FillLambdaPool(); err != nil {
-					log.Printf("fail to fill Lambda Pool, %s", err)
+					Log.Errorf("fail to fill Lambda Pool, %s", err)
 				}
 				l.DeleteRemovableFunctions()
 				continue
@@ -341,11 +329,10 @@ func (l *LambdaExecutor) MarkStaleFunctions() {
 	l.m.Lock()
 	defer l.m.Unlock()
 
-	now := time.Now()
 	i := 0
 	for i < len(l.pool) {
 		f := l.pool[i]
-		if now.Sub(f.createdTime) < f.span {
+		if f.IsStale() {
 			i++
 			continue
 		}
@@ -366,7 +353,7 @@ func (l *LambdaExecutor) FillLambdaPool() error {
 	}
 
 	for _, name := range names {
-		log.Printf("refill lambda function %s\n", name)
+		Log.Infof("refill lambda function %s\n", name)
 	}
 
 	return nil
