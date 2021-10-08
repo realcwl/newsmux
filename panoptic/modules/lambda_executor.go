@@ -115,7 +115,6 @@ func WaitForLambdaActivate(ctx context.Context, functionName string, lambdaClien
 	err := waiter.Wait(ctx, &lambda.GetFunctionConfigurationInput{
 		FunctionName: &functionName,
 	}, time.Duration(300*time.Second))
-
 	if err != nil {
 		return err
 	}

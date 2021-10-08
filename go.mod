@@ -9,6 +9,7 @@ require (
 	github.com/ThreeDotsLabs/watermill v1.1.1
 	github.com/antchfx/htmlquery v1.2.3 // indirect
 	github.com/antchfx/xmlquery v1.3.7 // indirect
+	github.com/aws/aws-lambda-go v1.27.0
 	github.com/aws/aws-sdk-go v1.40.19
 	github.com/aws/aws-sdk-go-v2/config v1.5.0
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.4.1
@@ -39,6 +40,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.1.0
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gonum.org/v1/gonum v0.9.3
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.33.0
