@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -154,4 +155,54 @@ func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, msg)
 	})
+}
+
+func TestJin10CollectorHandler(t *testing.T) {
+	job := protocol.PanopticJob{
+		Tasks: []*protocol.PanopticTask{
+			{
+				TaskId:          "123",
+				DataCollectorId: protocol.PanopticTask_COLLECTOR_JINSHI,
+				TaskParams: &protocol.TaskParams{
+					HeaderParams: []*protocol.KeyValuePair{},
+					Cookies:      []*protocol.KeyValuePair{},
+					SourceId:     "123",
+					SubSources: []*protocol.PanopticSubSource{
+						{
+							Name:       "快讯",
+							Type:       protocol.PanopticSubSource_FLASHNEWS,
+							ExternalId: "1",
+						},
+					},
+				},
+			},
+			{
+				TaskId:          "456",
+				DataCollectorId: protocol.PanopticTask_COLLECTOR_JINSHI,
+				TaskParams: &protocol.TaskParams{
+					HeaderParams: []*protocol.KeyValuePair{},
+					Cookies:      []*protocol.KeyValuePair{},
+					SourceId:     "456",
+					SubSources: []*protocol.PanopticSubSource{
+						{
+							Name:       "要闻",
+							Type:       protocol.PanopticSubSource_KEYNEWS,
+							ExternalId: "2",
+						},
+					},
+				},
+			},
+		}}
+	var handler DataCollectJobHandler
+	err := handler.Collect(&job)
+	fmt.Println("job", job.String())
+	require.NoError(t, err)
+	require.Equal(t, 2, len(job.Tasks))
+	require.Equal(t, "123", job.Tasks[0].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.Equal(t, "456", job.Tasks[1].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
 }

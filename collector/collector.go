@@ -24,6 +24,8 @@ type CrawlerCollector interface {
 
 	// All implementation functions should output error
 	// errors will be reported for debugging
+	GetQueryPath() string
+	GetStartUri() string
 	GetContent(task *protocol.PanopticTask, elem *colly.HTMLElement) (string, error)
 	GetDedupId(task *protocol.PanopticTask, content string) (string, error)
 	GetGeneratedTime(task *protocol.PanopticTask, elem *colly.HTMLElement) (time.Time, error)

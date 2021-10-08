@@ -1,10 +1,8 @@
 package collector
 
 import (
-	"log"
-	"os"
-
 	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/log"
 )
 
 type StdErrSink struct{}
@@ -17,7 +15,6 @@ func (s *StdErrSink) Push(msg *protocol.CrawlerMessage) error {
 	if msg == nil {
 		return nil
 	}
-	l := log.New(os.Stderr, "[Test DataCollector Sink]", 0)
-	l.Println(msg.String())
+	Log.Info(msg.String())
 	return nil
 }

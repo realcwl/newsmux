@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -44,7 +45,7 @@ func (collector Jin10Crawler) GetContent(task *protocol.PanopticTask, elem *coll
 	if len(selection.Nodes) == 0 {
 		return "", errors.New("Jin10 news DOM not found")
 	}
-	selection.Children().Each(func(i int, s *goquery.Selection) {
+	selection.Children().Each(func(_ int, s *goquery.Selection) {
 		if len(s.Nodes) > 0 && s.Nodes[0].Data == "br" {
 			sb.WriteString(" ")
 		}
@@ -162,23 +163,33 @@ func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *coll
 	}, nil
 }
 
+func (collector Jin10Crawler) GetQueryPath() string {
+	return `#jin_flash_list > .jin-flash-item-container`
+}
+
+func (collector Jin10Crawler) GetStartUri() string {
+	return "https://www.jin10.com/index.html"
+}
+
 // todo: mock http response and test end to end Collect()
 func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) (successCount int32, failCount int32) {
 	c := colly.NewCollector()
-
+	Log.Info("Starting crawl Jin10, Task ", task.String())
 	// each crawled card(news) will go to this
 	// for each page loaded, there are multiple calls into this func
-	c.OnHTML(`#jin_flash_list > .jin-flash-item-container`, func(elem *colly.HTMLElement) {
+	c.OnHTML(collector.GetQueryPath(), func(elem *colly.HTMLElement) {
 		var (
 			msg *protocol.CrawlerMessage
 			err error
 		)
 		if msg, err = collector.GetMessage(task, elem); err != nil {
 			failCount++
+			LogHtmlParsingError(task, elem, err)
 			return
 		}
 		if err = collector.sink.Push(msg); err != nil {
 			failCount++
+			LogHtmlParsingError(task, elem, err)
 			return
 		}
 		successCount++
@@ -187,9 +198,19 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) (su
 	// Set error handler
 	c.OnError(func(r *colly.Response, err error) {
 		// todo: error should be put into metadata
-		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+		Log.Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", collector.GetQueryPath())
 	})
 
-	c.Visit("https://www.jin10.com/index.html")
+	c.OnResponse(func(_ *colly.Response) {
+		Log.Info("Finished crawl one page for Jin10, Task ", task.String())
+	})
+
+	c.OnScraped(func(_ *colly.Response) {
+		if successCount == 0 {
+			Log.Error("Finished crawl Jin10 with 0 success msg, Task ", task.String(), " failCount ", failCount, " path ", collector.GetQueryPath())
+		}
+	})
+
+	c.Visit(collector.GetStartUri())
 	return
 }

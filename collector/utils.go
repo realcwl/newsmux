@@ -1,7 +1,11 @@
 package collector
 
 import (
+	"fmt"
+
 	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/gocolly/colly"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -27,4 +31,9 @@ func RunCollector(collector DataCollector, task *protocol.PanopticTask) *protoco
 	meta.TotalMessageFailed = failCount
 
 	return meta
+}
+
+func LogHtmlParsingError(task *protocol.PanopticTask, elem *colly.HTMLElement, err error) {
+	html, _ := elem.DOM.Html()
+	Log.Error(fmt.Sprintf("Error in data collector. [Error] %s. [Task] %s. [DOM Start] %s [DOM End].", err.Error(), task.String(), html))
 }

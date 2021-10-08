@@ -27,22 +27,6 @@ func main() {
 					},
 				},
 			},
-			{
-				TaskId:          "456",
-				DataCollectorId: protocol.PanopticTask_COLLECTOR_JINSHI,
-				TaskParams: &protocol.TaskParams{
-					HeaderParams: []*protocol.KeyValuePair{},
-					Cookies:      []*protocol.KeyValuePair{},
-					SourceId:     "456",
-					SubSources: []*protocol.PanopticSubSource{
-						{
-							Name:       "要闻",
-							Type:       protocol.PanopticSubSource_KEYNEWS,
-							ExternalId: "2",
-						},
-					},
-				},
-			},
 		}}
 	bytes, _ := proto.Marshal(&job)
 	fmt.Println("serializedJob ", bytes)

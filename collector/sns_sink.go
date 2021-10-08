@@ -1,11 +1,9 @@
 package collector
 
 import (
-	"os"
-
 	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 )
@@ -24,11 +22,6 @@ func NewSnsSink() (*SnsSink, error) {
 	// AWS client session
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-west-1"),
-		Credentials: credentials.NewStaticCredentials(
-			os.Getenv("AWS_ACCESS_KEY_ID_FOR_AWS"),
-			os.Getenv("SECRET_ACCESS_KEY"),
-			"",
-		),
 	})
 	if err != nil {
 		return nil, err
@@ -43,6 +36,7 @@ func NewSnsSink() (*SnsSink, error) {
 
 func (s *SnsSink) Push(msg *protocol.CrawlerMessage) error {
 	if msg == nil {
+		Log.Warn("push empty message into queue")
 		return nil
 	}
 	serializedMsg := msg.String()
@@ -51,5 +45,8 @@ func (s *SnsSink) Push(msg *protocol.CrawlerMessage) error {
 		Message:  &serializedMsg,
 		TopicArn: &s.arn,
 	})
+	if err == nil {
+		Log.Info("Successfully push message into queue : ", serializedMsg)
+	}
 	return err
 }
