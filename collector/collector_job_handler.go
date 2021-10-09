@@ -20,9 +20,9 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	)
 	ip, err := GetCurrentIpAddress(httpClient)
 	if err != nil {
-		Log.Error("ip fetching error: ", err)
+		Logger.Log.Error("ip fetching error: ", err)
 	}
-	Log.Info("ip address", ip)
+	Logger.Log.Info("ip address", ip)
 
 	if flag.IsDevelopment {
 		sink = NewStdErrSink()
@@ -41,6 +41,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 			if err := handler.processTask(t, sink); err != nil {
 				Logger.Log.Errorf("fail to process task: %s", err)
 			}
+			t.TaskMetadata.IpAddr = ip
 		}(t)
 	}
 	wg.Wait()
