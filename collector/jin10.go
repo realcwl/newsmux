@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/protocol"
-	. "github.com/Luismorlan/newsmux/utils/log"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -172,9 +172,12 @@ func (collector Jin10Crawler) GetStartUri() string {
 }
 
 // todo: mock http response and test end to end Collect()
-func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) (successCount int32, failCount int32) {
+func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
+	metadata := task.TaskMetadata
+	metadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
+
 	c := colly.NewCollector()
-	Log.Info("Starting crawl Jin10, Task ", task.String())
+	Logger.Log.Info("Starting crawl Jin10, Task ", task.String())
 	// each crawled card(news) will go to this
 	// for each page loaded, there are multiple calls into this func
 	c.OnHTML(collector.GetQueryPath(), func(elem *colly.HTMLElement) {
@@ -183,31 +186,38 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) (su
 			err error
 		)
 		if msg, err = collector.GetMessage(task, elem); err != nil {
-			failCount++
+			metadata.TotalMessageFailed++
 			LogHtmlParsingError(task, elem, err)
 			return
 		}
 		if err = collector.sink.Push(msg); err != nil {
-			failCount++
-			LogHtmlParsingError(task, elem, err)
+			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
+			metadata.TotalMessageFailed++
+			Logger.Log.Errorf("fail to publish message %s to SNS. Task: %s", msg.String(), task.String())
 			return
 		}
-		successCount++
+		metadata.TotalMessageCollected++
 	})
 
 	// Set error handler
 	c.OnError(func(r *colly.Response, err error) {
 		// todo: error should be put into metadata
-		Log.Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", collector.GetQueryPath())
+		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
+		Logger.Log.Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", collector.GetQueryPath())
 	})
 
 	c.OnResponse(func(_ *colly.Response) {
-		Log.Info("Finished crawl one page for Jin10, Task ", task.String())
+		Logger.Log.Info("Finished crawl one page for Jin10, Task ", task.String())
 	})
 
 	c.OnScraped(func(_ *colly.Response) {
-		if successCount == 0 {
-			Log.Error("Finished crawl Jin10 with 0 success msg, Task ", task.String(), " failCount ", failCount, " path ", collector.GetQueryPath())
+		if task.TaskMetadata.TotalMessageCollected == 0 {
+			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
+			Logger.Log.Error("Finished crawl Jin10 with 0 success msg, Task ", task.String(), " failCount ", task.TaskMetadata.TotalMessageFailed, " path ", collector.GetQueryPath())
+			return
+		}
+		if task.TaskMetadata.TotalMessageFailed > 0 {
+			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		}
 	})
 

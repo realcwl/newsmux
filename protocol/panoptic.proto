@@ -44,19 +44,30 @@ message TaskParams {
 }
 
 message TaskMetadata {
+  // name of the config that triggers this task.
+  string config_name = 1;
+
   // job_start/end_time describes the execution span of this task.
-  google.protobuf.Timestamp task_start_time = 1;
-  google.protobuf.Timestamp task_end_time = 2;
+  google.protobuf.Timestamp task_start_time = 2;
+  google.protobuf.Timestamp task_end_time = 3;
 
   // How many CrawlerMessage this task collected.
-  int32 total_message_collected = 3;
+  int32 total_message_collected = 4;
 
   // How many CrawlerMessage this task failed to collect.
-  int32 total_message_failed = 4;
+  int32 total_message_failed = 5;
 
   // Which ip address is this task executing at.
-  string ip_addr = 5;
+  string ip_addr = 6;
 
+  // The result state of the task execution, determined by data collector.
+  enum TaskResultState {
+    STATE_UNSPECIFIED = 0;
+    STATE_SUCCESS = 1;
+    STATE_FAILURE = 2;
+  }
+
+  TaskResultState result_state = 7;
   // ...
 }
 

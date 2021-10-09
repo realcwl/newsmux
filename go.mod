@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/99designs/gqlgen v0.13.0
+	github.com/DataDog/datadog-go v4.8.2+incompatible // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/PuerkitoBio/goquery v1.7.1
 	github.com/ThreeDotsLabs/watermill v1.1.1

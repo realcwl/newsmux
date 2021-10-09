@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/DataDog/datadog-go/statsd"
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/panoptic/modules"
 	"github.com/ThreeDotsLabs/watermill"
@@ -23,14 +24,22 @@ func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 
 	client := lambda.NewFromConfig(cfg)
 	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
-		LambdaPoolSize:       3,
-		LambdaLifeSpanSecond: 30,
+		LambdaPoolSize:       1,
+		LambdaLifeSpanSecond: 300,
 		MaintainEverySecond:  10,
 	})
 	if err := executor.Init(); err != nil {
 		panic(err)
 	}
 	return executor
+}
+
+func NewDogStatsdClient() *statsd.Client {
+	statsd, err := statsd.New("127.0.0.1:8125")
+	if err != nil {
+		panic(err)
+	}
+	return statsd
 }
 
 func main() {
@@ -45,6 +54,8 @@ func main() {
 
 	// Initialize all engine modules here.
 	modules := []panoptic.Module{
+		// Reporter reports the execution metrics to datadog for monitoring purpose.
+		modules.NewReporter(modules.ReporterConfig{Name: "reporter"}, NewDogStatsdClient(), eventbus),
 		// Scheduler parses data collector configs, fanout into multiple tasks and
 		// pushes onto EventBus.
 		modules.NewScheduler(

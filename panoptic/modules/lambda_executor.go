@@ -12,7 +12,7 @@ import (
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
-	. "github.com/Luismorlan/newsmux/utils/log"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 )
@@ -277,7 +277,7 @@ func (l *LambdaExecutor) DeleteLambdaFunction(name string) error {
 		return err
 	}
 
-	Log.Infof("removed lambda function %s", name)
+	Logger.Log.Infof("removed lambda function %s", name)
 
 	return nil
 }
@@ -294,7 +294,7 @@ func (l *LambdaExecutor) IntializeLambdaPool() error {
 		return err
 	}
 
-	Log.Infof("initialized lambda pool, names: %s\n", strings.Join(names, ", "))
+	Logger.Log.Infof("initialized lambda pool, names: %s\n", strings.Join(names, ", "))
 
 	return nil
 }
@@ -312,10 +312,10 @@ func (l *LambdaExecutor) MaintainLambdaPool() {
 			case <-ctx.Done():
 				return
 			case <-time.After(time.Duration(l.config.MaintainEverySecond * int64(time.Second))):
-				Log.Infof("start lambda pool maintainance")
+				Logger.Log.Infof("start lambda pool maintainance")
 				l.MarkStaleFunctions()
 				if err := l.FillLambdaPool(); err != nil {
-					Log.Errorf("fail to fill Lambda Pool, %s", err)
+					Logger.Log.Errorf("fail to fill Lambda Pool, %s", err)
 				}
 				l.DeleteRemovableFunctions()
 				continue
@@ -353,7 +353,7 @@ func (l *LambdaExecutor) FillLambdaPool() error {
 	}
 
 	for _, name := range names {
-		Log.Infof("refill lambda function %s\n", name)
+		Logger.Log.Infof("refill lambda function %s\n", name)
 	}
 
 	return nil

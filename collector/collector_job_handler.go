@@ -1,17 +1,18 @@
 package collector
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils/flag"
-	. "github.com/Luismorlan/newsmux/utils/log"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 type DataCollectJobHandler struct{}
 
 func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err error) {
-	Log.Info("Collect() with request: ", job)
+	Logger.Log.Info("Collect() with request: ", job)
 	var (
 		sink CollectedDataSink
 		wg   sync.WaitGroup
@@ -30,16 +31,17 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 		wg.Add(1)
 		go func(t *protocol.PanopticTask) {
 			defer wg.Done()
-			meta := handler.processTask(t, sink)
-			t.TaskMetadata = meta
+			if err := handler.processTask(t, sink); err != nil {
+				Logger.Log.Errorf("fail to process task: %s", err)
+			}
 		}(t)
 	}
 	wg.Wait()
-	Log.Info("Collect() response: ", job)
+	Logger.Log.Info("Collect() response: ", job)
 	return nil
 }
 
-func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink CollectedDataSink) *protocol.TaskMetadata {
+func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink CollectedDataSink) error {
 	var (
 		collector DataCollector
 		builder   CollectorBuilder
@@ -50,8 +52,8 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		// please follow this patter to get collector
 		collector = builder.NewJin10Crawler(sink)
 	default:
-		Log.Error("Unknown task DataCollectorId")
-		return nil
+		return errors.New("unknown task data collector id")
 	}
-	return RunCollector(collector, t)
+	RunCollector(collector, t)
+	return nil
 }
