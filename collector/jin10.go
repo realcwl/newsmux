@@ -12,7 +12,6 @@ import (
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -156,7 +155,7 @@ func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *coll
 			DeduplicateId:      deduplicateId,
 			ImageUrls:          imageUrls,
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123", // todo: actual ip
 		CrawlerVersion: "1",   // todo: actual version
 		IsTest:         false,

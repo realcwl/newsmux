@@ -75,6 +75,7 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 		feed.Name = input.Name
 		feed.Creator = user
 		feed.FilterDataExpression = datatypes.JSON(input.FilterDataExpression)
+		feed.Visibility = input.Visibility
 	} else {
 		// If it is insert, create feed object
 		feed = model.Feed{

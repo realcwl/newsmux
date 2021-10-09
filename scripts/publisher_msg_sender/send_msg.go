@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // This binary is to generate a test message for end to end testing
@@ -40,7 +40,7 @@ func main() {
 			FilesUrls: []string{"http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg", "http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg"},
 			OriginUrl: "aaa.com",
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "123",
 		IsTest:         false,

@@ -13,7 +13,6 @@ import (
 	"github.com/Luismorlan/newsmux/server/resolver"
 	. "github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/jinzhu/copier"
@@ -73,9 +72,9 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -99,7 +98,7 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 		protocol.CrawlerMessage{},
 		protocol.CrawlerMessage_CrawledPost{},
 		protocol.CrawledSubSource{},
-		timestamp.Timestamp{},
+		timestamppb.Timestamp{},
 	)))
 }
 
@@ -278,7 +277,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
 				DeduplicateId: "2",
 				SubSource: &protocol.CrawledSubSource{
@@ -294,10 +293,10 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 				ImageUrls:          []string{"1", "4"},
 				FilesUrls:          []string{"2", "3"},
 				OriginUrl:          "bbb",
-				ContentGeneratedAt: &timestamp.Timestamp{},
+				ContentGeneratedAt: &timestamppb.Timestamp{},
 			},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -366,7 +365,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
 				DeduplicateId: "2",
 				SubSource: &protocol.CrawledSubSource{
@@ -382,10 +381,10 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 				ImageUrls:          []string{"1", "4"},
 				FilesUrls:          []string{"2", "3"},
 				OriginUrl:          "bbb",
-				ContentGeneratedAt: &timestamp.Timestamp{},
+				ContentGeneratedAt: &timestamppb.Timestamp{},
 			},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -420,7 +419,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
 				DeduplicateId: "4",
 				SubSource: &protocol.CrawledSubSource{
@@ -436,10 +435,10 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 				ImageUrls:          []string{"1", "4"},
 				FilesUrls:          []string{"2", "3"},
 				OriginUrl:          "bbb",
-				ContentGeneratedAt: &timestamp.Timestamp{},
+				ContentGeneratedAt: &timestamppb.Timestamp{},
 			},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -490,9 +489,9 @@ func TestMessagePublishToManyFeeds(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,

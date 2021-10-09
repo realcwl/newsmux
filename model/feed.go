@@ -28,6 +28,13 @@ Posts: all posts published to this feed, "many-to-many" relation
 SubSources: All subsources this feed is listening to, "many-to-many" relationship.
 	Do not only rely on subsource to infer source, so that we can have Feed only subscribe to source
 */
+type Visibility string
+
+const (
+	Global  Visibility = "GLOBAL"
+	Private Visibility = "PRIVATE"
+)
+
 type Feed struct {
 	Id                   string    `gorm:"primaryKey"`
 	CreatedAt            time.Time `gorm:"<-:create"`
@@ -38,6 +45,7 @@ type Feed struct {
 	Subscribers          []*User      `json:"subscribers" gorm:"many2many;constraint:OnDelete:CASCADE;"`
 	Posts                []*Post      `json:"posts" gorm:"many2many:post_feed_publishes;constraint:OnDelete:CASCADE;"`
 	SubSources           []*SubSource `json:"subSources" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
+	Visibility           Visibility   `json:"visibility" gorm:"type:enum('GLOBAL','PRIVATE');default:'PRIVATE'"`
 	FilterDataExpression datatypes.JSON
 }
 

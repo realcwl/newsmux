@@ -954,6 +954,11 @@ enum FeedRefreshDirection {
   OLD
 }
 
+enum Visibility {
+  PRIVATE
+  PUBLIC
+}
+
 # TODO(jamie): more documentations on all APIs
 type Query {
   allFeeds: [Feed!]
@@ -1027,6 +1032,7 @@ input UpsertFeedInput {
   name: String!
   filterDataExpression: String!
   subSourceIds: [String!]!
+  visibility: Visibility!
 }
 
 # TODO: for testing purpose, real post is created by crawler and publisher
@@ -4204,6 +4210,41 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 	return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "__Directive",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsRepeatable, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) ___EnumValue_name(ctx context.Context, field graphql.CollectedField, obj *introspection.EnumValue) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5156,7 +5197,10 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 func (ec *executionContext) unmarshalInputDeleteFeedInput(ctx context.Context, obj interface{}) (model.DeleteFeedInput, error) {
 	var it model.DeleteFeedInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5184,7 +5228,10 @@ func (ec *executionContext) unmarshalInputDeleteFeedInput(ctx context.Context, o
 
 func (ec *executionContext) unmarshalInputFeedRefreshInput(ctx context.Context, obj interface{}) (model.FeedRefreshInput, error) {
 	var it model.FeedRefreshInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5236,7 +5283,10 @@ func (ec *executionContext) unmarshalInputFeedRefreshInput(ctx context.Context, 
 
 func (ec *executionContext) unmarshalInputFeedSeedStateInput(ctx context.Context, obj interface{}) (model.FeedSeedStateInput, error) {
 	var it model.FeedSeedStateInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5264,7 +5314,10 @@ func (ec *executionContext) unmarshalInputFeedSeedStateInput(ctx context.Context
 
 func (ec *executionContext) unmarshalInputFeedsGetPostsInput(ctx context.Context, obj interface{}) (model.FeedsGetPostsInput, error) {
 	var it model.FeedsGetPostsInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5292,7 +5345,10 @@ func (ec *executionContext) unmarshalInputFeedsGetPostsInput(ctx context.Context
 
 func (ec *executionContext) unmarshalInputNewPostInput(ctx context.Context, obj interface{}) (model.NewPostInput, error) {
 	var it model.NewPostInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5344,7 +5400,10 @@ func (ec *executionContext) unmarshalInputNewPostInput(ctx context.Context, obj 
 
 func (ec *executionContext) unmarshalInputNewSourceInput(ctx context.Context, obj interface{}) (model.NewSourceInput, error) {
 	var it model.NewSourceInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5380,7 +5439,10 @@ func (ec *executionContext) unmarshalInputNewSourceInput(ctx context.Context, ob
 
 func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj interface{}) (model.NewUserInput, error) {
 	var it model.NewUserInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5408,7 +5470,10 @@ func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj 
 
 func (ec *executionContext) unmarshalInputSeedStateInput(ctx context.Context, obj interface{}) (model.SeedStateInput, error) {
 	var it model.SeedStateInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5436,7 +5501,10 @@ func (ec *executionContext) unmarshalInputSeedStateInput(ctx context.Context, ob
 
 func (ec *executionContext) unmarshalInputSourcesInput(ctx context.Context, obj interface{}) (model.SourcesInput, error) {
 	var it model.SourcesInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5456,7 +5524,10 @@ func (ec *executionContext) unmarshalInputSourcesInput(ctx context.Context, obj 
 
 func (ec *executionContext) unmarshalInputSubscribeInput(ctx context.Context, obj interface{}) (model.SubscribeInput, error) {
 	var it model.SubscribeInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5484,7 +5555,10 @@ func (ec *executionContext) unmarshalInputSubscribeInput(ctx context.Context, ob
 
 func (ec *executionContext) unmarshalInputSubsourcesInput(ctx context.Context, obj interface{}) (model.SubsourcesInput, error) {
 	var it model.SubsourcesInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5504,7 +5578,10 @@ func (ec *executionContext) unmarshalInputSubsourcesInput(ctx context.Context, o
 
 func (ec *executionContext) unmarshalInputUpsertFeedInput(ctx context.Context, obj interface{}) (model.UpsertFeedInput, error) {
 	var it model.UpsertFeedInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5548,6 +5625,14 @@ func (ec *executionContext) unmarshalInputUpsertFeedInput(ctx context.Context, o
 			if err != nil {
 				return it, err
 			}
+		case "visibility":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("visibility"))
+			it.Visibility, err = ec.unmarshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -5556,7 +5641,10 @@ func (ec *executionContext) unmarshalInputUpsertFeedInput(ctx context.Context, o
 
 func (ec *executionContext) unmarshalInputUpsertSubSourceInput(ctx context.Context, obj interface{}) (model.UpsertSubSourceInput, error) {
 	var it model.UpsertSubSourceInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5616,7 +5704,10 @@ func (ec *executionContext) unmarshalInputUpsertSubSourceInput(ctx context.Conte
 
 func (ec *executionContext) unmarshalInputUserSeedStateInput(ctx context.Context, obj interface{}) (model.UserSeedStateInput, error) {
 	var it model.UserSeedStateInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -6438,6 +6529,11 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "isRepeatable":
+			out.Values[i] = ec.___Directive_isRepeatable(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6713,6 +6809,13 @@ func (ec *executionContext) marshalNFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -6796,6 +6899,13 @@ func (ec *executionContext) marshalNFeedSeedState2ᚕᚖgithubᚗcomᚋLuismorla
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -6918,6 +7028,13 @@ func (ec *executionContext) marshalNPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7001,6 +7118,12 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
 	}
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7042,6 +7165,13 @@ func (ec *executionContext) marshalNSubSource2ᚕgithubᚗcomᚋLuismorlanᚋnew
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7079,6 +7209,13 @@ func (ec *executionContext) marshalNSubSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋ
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7160,6 +7297,13 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7186,6 +7330,22 @@ func (ec *executionContext) marshalNUserSeedState2ᚖgithubᚗcomᚋLuismorlan�
 func (ec *executionContext) unmarshalNUserSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserSeedStateInput(ctx context.Context, v interface{}) (*model.UserSeedStateInput, error) {
 	res, err := ec.unmarshalInputUserSeedStateInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx context.Context, v interface{}) (model.Visibility, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := model.Visibility(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v model.Visibility) graphql.Marshaler {
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -7226,6 +7386,13 @@ func (ec *executionContext) marshalN__Directive2ᚕgithubᚗcomᚋ99designsᚋgq
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7299,6 +7466,13 @@ func (ec *executionContext) marshalN__DirectiveLocation2ᚕstringᚄ(ctx context
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7348,6 +7522,13 @@ func (ec *executionContext) marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋg
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7389,6 +7570,13 @@ func (ec *executionContext) marshalN__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgen�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7478,6 +7666,13 @@ func (ec *executionContext) marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7526,6 +7721,13 @@ func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7588,6 +7790,13 @@ func (ec *executionContext) marshalOSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnew
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7639,6 +7848,12 @@ func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel
 	ret := make(graphql.Array, len(v))
 	for i := range v {
 		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
 	}
 
 	return ret
@@ -7732,6 +7947,13 @@ func (ec *executionContext) marshalOUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7772,6 +7994,13 @@ func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgq
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7812,6 +8041,13 @@ func (ec *executionContext) marshalO__Field2ᚕgithubᚗcomᚋ99designsᚋgqlgen
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7852,6 +8088,13 @@ func (ec *executionContext) marshalO__InputValue2ᚕgithubᚗcomᚋ99designsᚋg
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7899,6 +8142,13 @@ func (ec *executionContext) marshalO__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgen�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
