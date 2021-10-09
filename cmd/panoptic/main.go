@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/Luismorlan/newsmux/panoptic"
@@ -14,15 +15,21 @@ import (
 )
 
 func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(panoptic.AWS_REGION),
-	)
-
-	if err != nil {
-		panic(err)
+	//
+	var client *lambda.Client
+	env := os.Getenv("NEWSMUX_ENV")
+	if env == "prod" {
+		client = lambda.New(lambda.Options{Region: panoptic.AWS_REGION})
+	} else {
+		cfg, err := config.LoadDefaultConfig(context.TODO(),
+			config.WithRegion(panoptic.AWS_REGION),
+		)
+		if err != nil {
+			panic(err)
+		}
+		client = lambda.NewFromConfig(cfg)
 	}
 
-	client := lambda.NewFromConfig(cfg)
 	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
 		LambdaPoolSize:       1,
 		LambdaLifeSpanSecond: 300,

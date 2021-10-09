@@ -3,6 +3,7 @@ package modules
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"strings"
 	"sync"
@@ -261,7 +262,7 @@ func (l *LambdaExecutor) AddLambdaFunctions(count int) ([]string, error) {
 		}
 
 		wg.Wait()
-		return nil, errors.New("fail to initialize Lambda Pool due to failure")
+		return nil, fmt.Errorf("fail to initialize Lambda Pool due to failure, %s", errs[0])
 	}
 
 	return names, nil

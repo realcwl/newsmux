@@ -28,7 +28,9 @@ phases:
       - echo Writing image definition file
       - printf '[{"name":"backend","imageUri":"%s"}]' $REPOSITORY_URL:$IMAGE_TAG > imagedef.json
       - printf '[{"name":"publisher","imageUri":"%s"}]' $REPOSITORY_URL:$IMAGE_TAG > imagedef-publisher.json
+      - printf '[{"name":"panoptic","imageUri":"%s"}]' $REPOSITORY_URL:$IMAGE_TAG > imagedef-panoptic.json
 artifacts:
   files:
     - imagedef.json
     - imagedef-publisher.json
+    - imagedef-panoptic.json
