@@ -14,9 +14,16 @@ type DataCollectJobHandler struct{}
 func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err error) {
 	Logger.Log.Info("Collect() with request: ", job)
 	var (
-		sink CollectedDataSink
-		wg   sync.WaitGroup
+		sink       CollectedDataSink
+		wg         sync.WaitGroup
+		httpClient HttpClient
 	)
+	ip, err := GetCurrentIpAddress(httpClient)
+	if err != nil {
+		Log.Error("ip fetching error: ", err)
+	}
+	Log.Info("ip address", ip)
+
 	if flag.IsDevelopment {
 		sink = NewStdErrSink()
 	} else {

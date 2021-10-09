@@ -206,3 +206,11 @@ func TestJin10CollectorHandler(t *testing.T) {
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
 }
+
+func TestIpAddressFetch(t *testing.T) {
+	var client HttpClient
+	ip, err := GetCurrentIpAddress(client)
+	require.NoError(t, err)
+	fmt.Println("ip: ", ip)
+	require.Greater(t, len(ip), 0)
+}
