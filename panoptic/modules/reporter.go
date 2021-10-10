@@ -36,19 +36,54 @@ func NewReporter(config ReporterConfig, statsd *statsd.Client, e *gochannel.GoCh
 	}
 }
 
-// Report task result state to datadog.
-func ReportResultState(job *protocol.PanopticJob, statsd *statsd.Client) {
+// Report task result state to datadog. Each finished task increment the task
+// counter by 1, and tag it with lots of other information in order for backend
+// to slice it.
+func ReportTaskResultState(task *protocol.PanopticTask, statsdClient *statsd.Client) {
+	err := statsdClient.Incr(panoptic.DDOG_TASK_STATE_COUNTER,
+		[]string{
+			task.TaskMetadata.ConfigName,
+			task.DataCollectorId.String(),
+			task.TaskMetadata.IpAddr,
+			task.TaskMetadata.ResultState.String(),
+		}, 1)
+	if err != nil {
+		Logger.Log.Infoln("cannot report result state")
+	}
+}
+
+// Report how many messages are crawled or failed for a task.
+func ReportTaskMessages(task *protocol.PanopticTask, statsdClient *statsd.Client) {
+	err := statsdClient.Count(panoptic.DDOG_TASK_SUCCESS_MESSAGE_COUNTER,
+		int64(task.TaskMetadata.TotalMessageCollected),
+		[]string{
+			task.TaskMetadata.ConfigName,
+			task.DataCollectorId.String(),
+			task.TaskMetadata.IpAddr,
+			task.TaskMetadata.ResultState.String(),
+		}, 1)
+	if err != nil {
+		Logger.Log.Infoln("cannot report total message count")
+	}
+
+	err = statsdClient.Count(panoptic.DDOG_TASK_FAILURE_MESSAGE_COUNTER,
+		int64(task.TaskMetadata.TotalMessageFailed),
+		[]string{
+			task.TaskMetadata.ConfigName,
+			task.DataCollectorId.String(),
+			task.TaskMetadata.IpAddr,
+			task.TaskMetadata.ResultState.String(),
+		}, 1)
+	if err != nil {
+		Logger.Log.Infoln("cannot report total message failed")
+	}
+}
+
+// Report task level tracking information.
+func (r *Reporter) ReportTask(job *protocol.PanopticJob) {
 	for _, task := range job.Tasks {
-		err := statsd.Incr(panoptic.DDOG_TASK_STATE_COUNTER,
-			[]string{
-				task.TaskMetadata.ConfigName,
-				task.DataCollectorId.String(),
-				task.TaskMetadata.IpAddr,
-				task.TaskMetadata.ResultState.String(),
-			}, 1)
-		if err != nil {
-			Logger.Log.Infoln("cannot report result state")
-		}
+		ReportTaskResultState(task, r.Statsd)
+		ReportTaskMessages(task, r.Statsd)
 	}
 }
 
@@ -71,7 +106,7 @@ func (r *Reporter) ProcessPanopticJobs(ctx context.Context) error {
 			return err
 		}
 
-		ReportResultState(&job, r.Statsd)
+		r.ReportTask(&job)
 	}
 
 	return nil

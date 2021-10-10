@@ -22,13 +22,15 @@ func cleanup() {
 	Log.Info("data collector shutdown")
 }
 
-func HandleRequest(event model.DataCollectorRequest) (resp model.DataCollectorResponse, e error) {
+func HandleRequest(event model.DataCollectorRequest) (model.DataCollectorResponse, error) {
+	res := model.DataCollectorResponse{}
+
 	// parse job
 	job := &protocol.PanopticJob{}
 	Log.Info("Raw serialized job : ", event.SerializedJob)
 	if err := proto.Unmarshal(event.SerializedJob, job); err != nil {
 		Log.Error("Failed to parse job with error:", err)
-		return resp, err
+		return res, err
 	}
 	Log.Info("Processing job with job id : ", job.JobId)
 
@@ -37,12 +39,16 @@ func HandleRequest(event model.DataCollectorRequest) (resp model.DataCollectorRe
 	err := handler.Collect(job)
 	if err != nil {
 		Log.Error("Failed to execute job with error:", err)
-		return resp, err
+		return res, err
 	}
 	// encode job
 	bytes, err := proto.Marshal(job)
-	resp.SerializedJob = bytes
-	return resp, nil
+	if err != nil {
+		return res, err
+	}
+
+	res.SerializedJob = bytes
+	return res, nil
 }
 
 func main() {

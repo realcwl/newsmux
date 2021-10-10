@@ -160,7 +160,7 @@ func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 		elem := GetMockHtmlElem(htmlWithImage, "flash20210925215015057100")
 		ctx := &CrawlerWorkingContext{Task: &task, Element: elem, OriginUrl: "a.com"}
 		err := crawler.GetMessage(ctx)
-		require.Error(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -207,12 +207,12 @@ func TestJin10CollectorHandler(t *testing.T) {
 	require.Equal(t, 2, len(job.Tasks))
 	require.Equal(t, "123", job.Tasks[0].TaskId)
 	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
-	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
 	require.Equal(t, "456", job.Tasks[1].TaskId)
 	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
-	// require.Equal(t, 2, 1)
+	require.Equal(t, job.Tasks[0].TaskMetadata.ResultState, protocol.TaskMetadata_STATE_SUCCESS)
 }
 
 func TestIpAddressFetch(t *testing.T) {

@@ -2,7 +2,7 @@ package collector
 
 import (
 	"github.com/Luismorlan/newsmux/protocol"
-	. "github.com/Luismorlan/newsmux/utils/log"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -36,7 +36,7 @@ func NewSnsSink() (*SnsSink, error) {
 
 func (s *SnsSink) Push(msg *protocol.CrawlerMessage) error {
 	if msg == nil {
-		Log.Warn("push empty message into queue")
+		Logger.Log.Warn("push empty message into queue")
 		return nil
 	}
 	serializedMsg := msg.String()
@@ -46,7 +46,7 @@ func (s *SnsSink) Push(msg *protocol.CrawlerMessage) error {
 		TopicArn: &s.arn,
 	})
 	if err == nil {
-		Log.Info("Successfully push message into queue : ", serializedMsg)
+		Logger.Log.Info("Successfully push message into queue : ", serializedMsg)
 	}
 	return err
 }

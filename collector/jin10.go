@@ -32,7 +32,7 @@ func (collector Jin10Crawler) UpdateNewsType(workingContext *CrawlerWorkingConte
 	selection := workingContext.Element.DOM.Find(".jin-flash-item")
 	if len(selection.Nodes) == 0 {
 		workingContext.NewsType = protocol.PanopticSubSource_UNSPECIFIED
-		return errors.New("Jin10 news item not found")
+		return errors.New("jin10 news item not found")
 	}
 	if selection.HasClass("is-important") {
 		workingContext.NewsType = protocol.PanopticSubSource_KEYNEWS
@@ -75,7 +75,7 @@ func (collector Jin10Crawler) UpdateGeneratedTime(workingContext *CrawlerWorking
 	timeText := workingContext.Element.DOM.Find(".item-time").Text()
 	if len(id) <= 13 {
 		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
-		return errors.New("Jin10 news DOM id length is smaller than expected")
+		return errors.New("jin10 news DOM id length is smaller than expected")
 	}
 
 	dateStr := id[5:13] + "-" + timeText
@@ -178,7 +178,8 @@ func (collector Jin10Crawler) GetMessage(workingContext *CrawlerWorkingContext) 
 	}
 
 	if !collector.IsRequested(workingContext) {
-		return errors.New("Not requested level")
+		workingContext.Result = nil
+		return nil
 	}
 
 	err = collector.UpdateGeneratedTime(workingContext)
@@ -226,6 +227,9 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 			LogHtmlParsingError(task, elem, err)
 			return
 		}
+		if workingContext.Result == nil {
+			return
+		}
 		if err = collector.sink.Push(workingContext.Result); err != nil {
 			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 			metadata.TotalMessageFailed++
@@ -258,5 +262,4 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	})
 
 	c.Visit(collector.GetStartUri())
-	return
 }
