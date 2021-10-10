@@ -3,6 +3,7 @@ package main
 import (
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
 	. "github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
@@ -21,17 +22,10 @@ func cleanup() {
 	Log.Info("data collector shutdown")
 }
 
-type DataCollectorRequest struct {
-	SerializedJob []byte
-}
-
-type DataCollectorResponse struct {
-	SerializedJob []byte
-}
-
-func HandleRequest(event DataCollectorRequest) (resp DataCollectorResponse, e error) {
+func HandleRequest(event model.DataCollectorRequest) (resp model.DataCollectorResponse, e error) {
 	// parse job
 	job := &protocol.PanopticJob{}
+	Log.Info("Raw serialized job : ", event.SerializedJob)
 	if err := proto.Unmarshal(event.SerializedJob, job); err != nil {
 		Log.Error("Failed to parse job with error:", err)
 		return resp, err

@@ -4,8 +4,8 @@ go 1.16
 
 require (
 	github.com/99designs/gqlgen v0.13.0
+	github.com/DataDog/datadog-go v4.8.2+incompatible
 	github.com/DataDog/datadog-lambda-go v1.3.0
-	github.com/DataDog/datadog-go v4.8.2+incompatible // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/PuerkitoBio/goquery v1.7.1
 	github.com/ThreeDotsLabs/watermill v1.1.1
@@ -38,7 +38,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/temoto/robotstxt v1.1.2 // indirect
-	github.com/ugorji/go v1.2.6 // indirect
+	github.com/ugorji/go/codec v1.2.6 // indirect
 	github.com/vektah/gqlparser/v2 v2.1.0
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 	golang.org/x/text v0.3.7 // indirect

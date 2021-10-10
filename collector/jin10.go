@@ -121,7 +121,7 @@ func (collector Jin10Crawler) IsRequested(task *protocol.PanopticTask, level pro
 	return true
 }
 
-func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *colly.HTMLElement) (*protocol.CrawlerMessage, error) {
+func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *colly.HTMLElement, originUrl string) (*protocol.CrawlerMessage, error) {
 
 	content, err := collector.GetContent(task, elem)
 	if err != nil {
@@ -171,6 +171,7 @@ func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *coll
 			ContentGeneratedAt: timestamppb.New(generatedTime),
 			DeduplicateId:      deduplicateId,
 			ImageUrls:          imageUrls,
+			OriginUrl:          originUrl,
 		},
 		CrawledAt:      &timestamp.Timestamp{},
 		CrawlerIp:      "123", // todo: actual ip
@@ -201,7 +202,7 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 			msg *protocol.CrawlerMessage
 			err error
 		)
-		if msg, err = collector.GetMessage(task, elem); err != nil {
+		if msg, err = collector.GetMessage(task, elem, collector.GetStartUri()); err != nil {
 			metadata.TotalMessageFailed++
 			LogHtmlParsingError(task, elem, err)
 			return

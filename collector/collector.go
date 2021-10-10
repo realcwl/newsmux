@@ -13,7 +13,7 @@ type CollectedDataSink interface {
 
 type DataCollector interface {
 	CollectAndPublish(task *protocol.PanopticTask)
-	GetMessage(task *protocol.PanopticTask, elem *colly.HTMLElement) (*protocol.CrawlerMessage, error)
+	GetMessage(task *protocol.PanopticTask, elem *colly.HTMLElement, originUrl string) (*protocol.CrawlerMessage, error)
 }
 
 // To make sure the interface is implemented
