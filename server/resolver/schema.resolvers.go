@@ -83,6 +83,7 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 			Name:                 input.Name,
 			Creator:              user,
 			FilterDataExpression: datatypes.JSON(input.FilterDataExpression),
+			Visibility:           input.Visibility,
 		}
 	}
 
@@ -96,7 +97,7 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 		queryResult = r.DB.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
 			UpdateAll: false,
-			DoUpdates: clause.AssignmentColumns([]string{"name", "updated_at", "creator_id", "filter_data_expression"}),
+			DoUpdates: clause.AssignmentColumns([]string{"name", "updated_at", "creator_id", "filter_data_expression", "visibility"}),
 		}).Create(&feed)
 
 		if queryResult.RowsAffected != 1 {

@@ -120,8 +120,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, false, db, client)
 	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api_2", "test_externalid", sourceId2, false, db, client)
 
-	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", DataExpressionJsonForTest, []string{subSourceId1, subSourceId2}, db, client)
+	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", DataExpressionJsonForTest, []string{subSourceId1, subSourceId2}, 0, db, client)
 	TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	TestUserSubscribeFeedAndValidate(t, uid, feedId2, db, client)
 
@@ -259,7 +259,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_1", "test_externalid", sourceId1, false, db, client)
-	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
 
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
@@ -462,16 +462,16 @@ func TestMessagePublishToManyFeeds(t *testing.T) {
 	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_1", "test_externalid", sourceId1, false, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, 0, db, client)
 
 	msgOne := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{

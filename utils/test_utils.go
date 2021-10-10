@@ -199,7 +199,7 @@ func TestCreateUserAndValidate(t *testing.T, name string, userId string, db *gor
 // create feed with name, do sanity checks and returns its Id
 // filterDataExpression in graphql input should have escapes \
 //
-func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, subSourceIds []string, db *gorm.DB, client *client.Client) (id string, updatedAt string) {
+func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, subSourceIds []string, visibility int, db *gorm.DB, client *client.Client) (id string, updatedAt string) {
 	var resp struct {
 		UpsertFeed struct {
 			Id                   string `json:"id"`
@@ -211,6 +211,7 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 			SubSources           []struct {
 				Id string `json:"id"`
 			} `json:"subSources"`
+			Visibility int `json:"visibility"`
 		} `json:"upsertFeed"`
 	}
 
@@ -221,18 +222,19 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	compactEscapedjson := strings.ReplaceAll(compactedBuffer.String(), `"`, `\"`)
 
 	query := fmt.Sprintf(`mutation {
-		upsertFeed(input:{userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s}) {
+		upsertFeed(input:{userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s visibility:%d}) {
 		  id
 		  name
 		  createdAt
 		  updatedAt
 		  filterDataExpression
+		  visibility
 		  subSources {
 			id
 		  }
 		}
 	  }
-	  `, userId, name, compactEscapedjson, subSourceIdsStr)
+	  `, userId, name, compactEscapedjson, subSourceIdsStr, visibility)
 
 	fmt.Println(query)
 
@@ -262,6 +264,7 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 
 	require.Truef(t, time.Now().UnixNano() > createTime.UnixNano(), "time created wrong")
 	require.Equal(t, "", resp.UpsertFeed.DeletedAt)
+	require.Equal(t, visibility, resp.UpsertFeed.Visibility)
 
 	if len(subSourceIds) > 0 {
 		require.Equal(t, subSourceIds[0], resp.UpsertFeed.SubSources[0].Id)
@@ -278,6 +281,7 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 			CreatedAt            string `json:"createdAt"`
 			UpdatedAt            string `json:"updatedAt"`
 			FilterDataExpression string `json:"filterDataExpression"`
+			Visibility           int    `json:"visibility"`
 			SubSources           []struct {
 				Id string `json:"id"`
 			} `json:"subSources"`
@@ -308,7 +312,7 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 	// make the create-update gap more obvious
 	time.Sleep(2 * time.Second)
 	query := fmt.Sprintf(`mutation {
-		upsertFeed(input:{feedId:"%s" userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s}) {
+		upsertFeed(input:{feedId:"%s" userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s visibility:%d}) {
 		  id
 		  name
 		  createdAt
@@ -323,9 +327,10 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 		  posts{
 			  id
 		  }
+		  visibility
 		}
 	  }
-	  `, feed.Id, feed.CreatorID, feed.Name, compactEscapedjson, subSourceIdsStr)
+	  `, feed.Id, feed.CreatorID, feed.Name, compactEscapedjson, subSourceIdsStr, feed.Visibility)
 
 	fmt.Println(query)
 
@@ -341,6 +346,7 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 	require.Equal(t, feed.Id, resp.UpsertFeed.Id)
 	require.Equal(t, feed.Name, resp.UpsertFeed.Name)
 	require.Equal(t, len(feed.SubSources), len(resp.UpsertFeed.SubSources))
+	require.Equal(t, feed.Visibility, resp.UpsertFeed.Visibility)
 
 	compactEscapedjson = strings.ReplaceAll(compactEscapedjson, `\`, ``)
 	// resp.UpsertFeed.FilterDataExpression do not need to replace the `\`

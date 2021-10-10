@@ -62,6 +62,7 @@ type ComplexityRoot struct {
 		SubSources           func(childComplexity int) int
 		Subscribers          func(childComplexity int) int
 		UpdatedAt            func(childComplexity int) int
+		Visibility           func(childComplexity int) int
 	}
 
 	FeedSeedState struct {
@@ -281,6 +282,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Feed.UpdatedAt(childComplexity), true
+
+	case "Feed.visibility":
+		if e.complexity.Feed.Visibility == nil {
+			break
+		}
+
+		return e.complexity.Feed.Visibility(childComplexity), true
 
 	case "FeedSeedState.id":
 		if e.complexity.FeedSeedState.ID == nil {
@@ -894,6 +902,7 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
   posts: [Post!]!
   subSources: [SubSource!]!
   filterDataExpression: String!
+  visibility: Int!
 }
 
 type FeedSeedState implements FeedSeedStateInterface {
@@ -1712,6 +1721,41 @@ func (ec *executionContext) _Feed_filterDataExpression(ctx context.Context, fiel
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Feed_visibility(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Feed",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Visibility, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _FeedSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
@@ -5852,6 +5896,11 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 				}
 				return res
 			})
+		case "visibility":
+			out.Values[i] = ec._Feed_visibility(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
