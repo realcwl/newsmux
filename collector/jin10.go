@@ -31,7 +31,7 @@ func (collector Jin10Crawler) GetFileUrls(task *protocol.PanopticTask, elem *col
 func (collector Jin10Crawler) GetLevel(elem *colly.HTMLElement) (protocol.PanopticSubSource_SubSourceType, error) {
 	selection := elem.DOM.Find(".jin-flash-item")
 	if len(selection.Nodes) == 0 {
-		return protocol.PanopticSubSource_UNSPECIFIED, errors.New("Jin10 news item not found")
+		return protocol.PanopticSubSource_UNSPECIFIED, errors.New("jin10 news item not found")
 	}
 	if selection.HasClass("is-important") {
 		return protocol.PanopticSubSource_KEYNEWS, nil
@@ -43,7 +43,7 @@ func (collector Jin10Crawler) GetContent(task *protocol.PanopticTask, elem *coll
 	var sb strings.Builder
 	selection := elem.DOM.Find(".right-content > div")
 	if len(selection.Nodes) == 0 {
-		return "", errors.New("Jin10 news DOM not found")
+		return "", errors.New("jin10 news DOM not found")
 	}
 	selection.Children().Each(func(_ int, s *goquery.Selection) {
 		if len(s.Nodes) > 0 && s.Nodes[0].Data == "br" {
@@ -65,7 +65,7 @@ func (collector Jin10Crawler) GetGeneratedTime(task *protocol.PanopticTask, elem
 	id := elem.DOM.AttrOr("id", "")
 	timeText := elem.DOM.Find(".item-time").Text()
 	if len(id) <= 13 {
-		return time.Now().UTC(), errors.New("Jin10 news DOM id length is smaller than expected")
+		return time.Now().UTC(), errors.New("jin10 news DOM id length is smaller than expected")
 	}
 
 	dateStr := id[5:13] + "-" + timeText
@@ -91,7 +91,7 @@ func (collector Jin10Crawler) GetImageUrls(task *protocol.PanopticTask, elem *co
 
 	imageUrl := selection.AttrOr("src", "")
 	if len(imageUrl) == 0 {
-		return []string{}, errors.New("Image DOM exist but src not found")
+		return []string{}, errors.New("image DOM exist but src not found")
 	}
 	return []string{imageUrl}, nil
 }
@@ -114,6 +114,16 @@ func (collector Jin10Crawler) IsRequested(task *protocol.PanopticTask, level pro
 }
 
 func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *colly.HTMLElement) (*protocol.CrawlerMessage, error) {
+	level, err := collector.GetLevel(elem)
+	if err != nil {
+		return nil, err
+	}
+
+	if !collector.IsRequested(task, level) {
+		// If the content is not the desired one, return nil message to skip
+		// processing.
+		return nil, nil
+	}
 
 	content, err := collector.GetContent(task, elem)
 	if err != nil {
@@ -123,15 +133,6 @@ func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *coll
 	deduplicateId, err := collector.GetDedupId(task, content)
 	if err != nil {
 		return nil, err
-	}
-
-	level, err := collector.GetLevel(elem)
-	if err != nil {
-		return nil, err
-	}
-
-	if !collector.IsRequested(task, level) {
-		return nil, errors.New("Not requested level")
 	}
 
 	generatedTime, err := collector.GetGeneratedTime(task, elem)
@@ -190,6 +191,13 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 			LogHtmlParsingError(task, elem, err)
 			return
 		}
+
+		// In the case where no error, but still empty message, this means that
+		// this HTMLElement should be skipped all together.
+		if msg == nil {
+			return
+		}
+
 		if err = collector.sink.Push(msg); err != nil {
 			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 			metadata.TotalMessageFailed++
@@ -222,5 +230,4 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	})
 
 	c.Visit(collector.GetStartUri())
-	return
 }

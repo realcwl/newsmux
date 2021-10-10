@@ -2,7 +2,7 @@ package collector
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 
 	"github.com/Luismorlan/newsmux/protocol"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -42,7 +42,7 @@ func GetCurrentIpAddress(client HttpClient) (ip string, err error) {
 		return "", err
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

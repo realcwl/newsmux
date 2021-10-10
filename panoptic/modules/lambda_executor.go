@@ -122,13 +122,13 @@ func WaitForLambdaActivate(ctx context.Context, functionName string, lambdaClien
 }
 
 func MakeDataCollectorRpc(ctx context.Context, job *protocol.PanopticJob, functionName string, lambdaClient *lambda.Client) (*protocol.PanopticJob, error) {
-	err := WaitForLambdaActivate(ctx, functionName, lambdaClient)
+	// Invoke Lambda
+	payload, err := model.PanopticJobToLambdaPayload(job)
 	if err != nil {
 		return nil, err
 	}
 
-	// Invoke Lambda
-	payload, err := model.PanopticJobToLambdaPayload(job)
+	err = WaitForLambdaActivate(ctx, functionName, lambdaClient)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +312,6 @@ func (l *LambdaExecutor) MaintainLambdaPool() {
 			case <-ctx.Done():
 				return
 			case <-time.After(time.Duration(l.config.MaintainEverySecond * int64(time.Second))):
-				Logger.Log.Infof("start lambda pool maintainance")
 				l.MarkStaleFunctions()
 				if err := l.FillLambdaPool(); err != nil {
 					Logger.Log.Errorf("fail to fill Lambda Pool, %s", err)

@@ -152,7 +152,7 @@ func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 		htmlWithImage := `<div data-v-c7711130="" data-v-471802f2="" id="flash20210925215015057100" class="jin-flash-item-container is-normal"><!----><div data-v-c7711130="" class="jin-flash-item flash is-important"><div data-v-2b138c9f="" data-v-c7711130="" class="detail-btn"><div data-v-2b138c9f="" class="detail-btn_container"><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span></div></div><!----><div data-v-c7711130="" class="item-time">21:50:15</div><div data-v-c7711130="" class="item-right is-common"><div data-v-c7711130="" class="right-top"><!----><div data-v-c7711130="" class="right-content"><div data-v-c7711130="">孟晚舟乘坐的中国政府包机抵达深圳宝安机场。欢迎回家！（人民日报）</div></div><div data-v-c7711130="" class="right-pic img-intercept flash-pic"><div data-v-c7711130="" class="img-container show-shadow"><img data-v-c7711130="" data-src="https://flash-scdn.jin10.com/16f8ddbe-1b4b-4c1b-a3d1-844e466edb67.jpg/lite" src="https://flash-scdn.jin10.com/16f8ddbe-1b4b-4c1b-a3d1-844e466edb67.jpg/lite" lazy="loaded"></div></div><!----><!----></div></div><div data-v-47f123d2="" data-v-c7711130="" class="flash-item-share" style="display: none;"><a data-v-47f123d2="" href="javascript:void('openShare')" class="share-btn"><i data-v-47f123d2="" class="jin-icon iconfont icon-fenxiang"></i><span data-v-47f123d2="">分享</span></a><a data-v-47f123d2="" href="https://flash.jin10.com/detail/20210925215015057100" target="_blank"><i data-v-47f123d2="" class="jin-icon iconfont icon-xiangqing"></i><span data-v-47f123d2="">详情</span></a><a data-v-47f123d2="" href="javascript:void('copyFlash')"><i data-v-47f123d2="" class="jin-icon iconfont icon-fuzhi"></i><span data-v-47f123d2="">复制</span></a><!----></div></div></div>`
 		elem := GetMockHtmlElem(htmlWithImage, "flash20210925215015057100")
 		msg, err := crawler.GetMessage(&task, elem)
-		require.Error(t, err)
+		require.Nil(t, err)
 		require.Nil(t, msg)
 	})
 }
@@ -200,11 +200,12 @@ func TestJin10CollectorHandler(t *testing.T) {
 	require.Equal(t, 2, len(job.Tasks))
 	require.Equal(t, "123", job.Tasks[0].TaskId)
 	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
-	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
 	require.Equal(t, "456", job.Tasks[1].TaskId)
 	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
+	require.Equal(t, job.Tasks[0].TaskMetadata.ResultState, protocol.TaskMetadata_STATE_SUCCESS)
 }
 
 func TestIpAddressFetch(t *testing.T) {
