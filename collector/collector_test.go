@@ -160,9 +160,7 @@ func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 		elem := GetMockHtmlElem(htmlWithImage, "flash20210925215015057100")
 		ctx := &CrawlerWorkingContext{Task: &task, Element: elem, OriginUrl: "a.com"}
 		err := crawler.GetMessage(ctx)
-		msg := ctx.Result
 		require.Error(t, err)
-		require.Nil(t, msg)
 	})
 }
 

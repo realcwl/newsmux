@@ -140,14 +140,22 @@ func (collector Jin10Crawler) IsRequested(workingContext *CrawlerWorkingContext)
 	return true
 }
 
+func (collector Jin10Crawler) UpdateSubsourceName(workingContext *CrawlerWorkingContext) error {
+	workingContext.Result.Post.SubSource.Name = SubsourceTypeToName(workingContext.NewsType)
+	return nil
+}
+
 func (collector Jin10Crawler) GetMessage(workingContext *CrawlerWorkingContext) error {
+	workingContext.Result = &protocol.CrawlerMessage{Post: &protocol.CrawlerMessage_CrawledPost{}}
 	// context per element crawl
+	workingContext.Result.Post.SubSource = &protocol.CrawledSubSource{}
 	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
 	//todo: put in central place
 	workingContext.Result.Post.SubSource.AvatarUrl = "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jin10.png"
 	workingContext.Result.CrawledAt = &timestamp.Timestamp{}
 	workingContext.Result.CrawlerVersion = "1"
 	workingContext.Result.IsTest = false
+	workingContext.Result.Post.OriginUrl = workingContext.OriginUrl
 
 	err := collector.UpdateContent(workingContext)
 	if err != nil {
@@ -179,6 +187,11 @@ func (collector Jin10Crawler) GetMessage(workingContext *CrawlerWorkingContext) 
 	}
 
 	err = collector.UpdateImageUrls(workingContext)
+	if err != nil {
+		return err
+	}
+
+	err = collector.UpdateSubsourceName(workingContext)
 	if err != nil {
 		return err
 	}
