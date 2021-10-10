@@ -24,26 +24,29 @@ type Jin10Crawler struct {
 	sink CollectedDataSink
 }
 
-func (collector Jin10Crawler) GetFileUrls(task *protocol.PanopticTask, elem *colly.HTMLElement) ([]string, error) {
-	return []string{}, errors.New("GetFileUrls not implemented, should not be called")
+func (collector Jin10Crawler) UpdateFileUrls(workingContext *CrawlerWorkingContext) error {
+	return errors.New("UpdateFileUrls not implemented, should not be called")
 }
 
-func (collector Jin10Crawler) GetLevel(elem *colly.HTMLElement) (protocol.PanopticSubSource_SubSourceType, error) {
-	selection := elem.DOM.Find(".jin-flash-item")
+func (collector Jin10Crawler) UpdateNewsType(workingContext *CrawlerWorkingContext) error {
+	selection := workingContext.Element.DOM.Find(".jin-flash-item")
 	if len(selection.Nodes) == 0 {
-		return protocol.PanopticSubSource_UNSPECIFIED, errors.New("Jin10 news item not found")
+		workingContext.NewsType = protocol.PanopticSubSource_UNSPECIFIED
+		return errors.New("Jin10 news item not found")
 	}
 	if selection.HasClass("is-important") {
-		return protocol.PanopticSubSource_KEYNEWS, nil
+		workingContext.NewsType = protocol.PanopticSubSource_KEYNEWS
+		return nil
 	}
-	return protocol.PanopticSubSource_FLASHNEWS, nil
+	workingContext.NewsType = protocol.PanopticSubSource_FLASHNEWS
+	return nil
 }
 
-func (collector Jin10Crawler) GetContent(task *protocol.PanopticTask, elem *colly.HTMLElement) (string, error) {
+func (collector Jin10Crawler) UpdateContent(workingContext *CrawlerWorkingContext) error {
 	var sb strings.Builder
-	selection := elem.DOM.Find(".right-content > div")
+	selection := workingContext.Element.DOM.Find(".right-content > div")
 	if len(selection.Nodes) == 0 {
-		return "", errors.New("Jin10 news DOM not found")
+		return errors.New("jin10 news DOM not found")
 	}
 	selection.Children().Each(func(_ int, s *goquery.Selection) {
 		if len(s.Nodes) > 0 && s.Nodes[0].Data == "br" {
@@ -58,126 +61,129 @@ func (collector Jin10Crawler) GetContent(task *protocol.PanopticTask, elem *coll
 	text := selection.Text()
 	result := strings.Replace(text, remove, "", -1)
 	sb.WriteString(result)
-	return sb.String(), nil
+
+	content := sb.String()
+	workingContext.Result.Post.Content = content
+	if len(content) == 0 {
+		return errors.New("empty Content")
+	}
+	return nil
 }
 
-func (collector Jin10Crawler) GetGeneratedTime(task *protocol.PanopticTask, elem *colly.HTMLElement) (time.Time, error) {
-	id := elem.DOM.AttrOr("id", "")
-	timeText := elem.DOM.Find(".item-time").Text()
+func (collector Jin10Crawler) UpdateGeneratedTime(workingContext *CrawlerWorkingContext) error {
+	id := workingContext.Element.DOM.AttrOr("id", "")
+	timeText := workingContext.Element.DOM.Find(".item-time").Text()
 	if len(id) <= 13 {
-		return time.Now().UTC(), errors.New("Jin10 news DOM id length is smaller than expected")
+		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
+		return errors.New("Jin10 news DOM id length is smaller than expected")
 	}
 
 	dateStr := id[5:13] + "-" + timeText
 	generatedTime, err := time.Parse(jin10DateFormat, dateStr)
 	if err != nil {
-		return generatedTime.UTC(), err
+		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
+		return err
 	}
-	return generatedTime, nil
+	workingContext.Result.Post.ContentGeneratedAt = timestamppb.New(generatedTime.UTC())
+	return nil
 }
 
-func (collector Jin10Crawler) getExternalPostId(elem *colly.HTMLElement) (string, error) {
-	id := elem.DOM.AttrOr("id", "")
+func (collector Jin10Crawler) UpdateExternalPostId(workingContext *CrawlerWorkingContext) error {
+	id := workingContext.Element.DOM.AttrOr("id", "")
 	if len(id) == 0 {
-		return "", errors.New("Can't get id")
+		return errors.New("can't get external post id for the news")
 	}
-	return id, nil
+	workingContext.ExternalPostId = id
+	return nil
 }
 
-func (collector Jin10Crawler) GetDedupId(task *protocol.PanopticTask, content string, id string) (string, error) {
+func (collector Jin10Crawler) UpdateDedupId(workingContext *CrawlerWorkingContext) error {
 	hasher := md5.New()
-	_, err := hasher.Write([]byte(task.TaskParams.SourceId + id))
-	return hex.EncodeToString(hasher.Sum(nil)), err
+	_, err := hasher.Write([]byte(workingContext.Task.TaskParams.SourceId + workingContext.ExternalPostId))
+	if err != nil {
+		return err
+	}
+	workingContext.Result.Post.DeduplicateId = hex.EncodeToString(hasher.Sum(nil))
+	return nil
 }
 
-func (collector Jin10Crawler) GetImageUrls(task *protocol.PanopticTask, elem *colly.HTMLElement) ([]string, error) {
+func (collector Jin10Crawler) UpdateImageUrls(workingContext *CrawlerWorkingContext) error {
 	// there is only one image can be in jin10
-	selection := elem.DOM.Find(".img-container > img")
+	selection := workingContext.Element.DOM.Find(".img-container > img")
+	workingContext.Result.Post.ImageUrls = []string{}
 	if len(selection.Nodes) == 0 {
-		return []string{}, nil
+		return nil
 	}
 
 	imageUrl := selection.AttrOr("src", "")
 	if len(imageUrl) == 0 {
-		return []string{}, errors.New("Image DOM exist but src not found")
+		return errors.New("image DOM exist but src not found")
 	}
-	return []string{imageUrl}, nil
+	workingContext.Result.Post.ImageUrls = []string{imageUrl}
+	return nil
 }
 
 // Process each html selection to get content
-func (collector Jin10Crawler) IsRequested(task *protocol.PanopticTask, level protocol.PanopticSubSource_SubSourceType) bool {
+func (collector Jin10Crawler) IsRequested(workingContext *CrawlerWorkingContext) bool {
 	requestedTypes := make(map[protocol.PanopticSubSource_SubSourceType]bool)
 
-	for _, subsource := range task.TaskParams.SubSources {
+	for _, subsource := range workingContext.Task.TaskParams.SubSources {
 		s := subsource
 		requestedTypes[s.Type] = true
 	}
 
-	if _, ok := requestedTypes[level]; !ok {
-		fmt.Println("Not requested, actual level: ", level, " requested ", requestedTypes)
+	if _, ok := requestedTypes[workingContext.NewsType]; !ok {
+		fmt.Println("Not requested, actual level: ", workingContext.NewsType, " requested ", requestedTypes)
 		return false
 	}
 
 	return true
 }
 
-func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *colly.HTMLElement, originUrl string) (*protocol.CrawlerMessage, error) {
+func (collector Jin10Crawler) GetMessage(workingContext *CrawlerWorkingContext) error {
+	// context per element crawl
+	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
+	//todo: put in central place
+	workingContext.Result.Post.SubSource.AvatarUrl = "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jin10.png"
+	workingContext.Result.CrawledAt = &timestamp.Timestamp{}
+	workingContext.Result.CrawlerVersion = "1"
+	workingContext.Result.IsTest = false
 
-	content, err := collector.GetContent(task, elem)
+	err := collector.UpdateContent(workingContext)
 	if err != nil {
-		return nil, err
-	}
-	if len(content) == 0 {
-		return nil, errors.New("Empty Content")
+		return err
 	}
 
-	id, err := collector.getExternalPostId(elem)
+	err = collector.UpdateExternalPostId(workingContext)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	deduplicateId, err := collector.GetDedupId(task, content, id)
+	err = collector.UpdateDedupId(workingContext)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	level, err := collector.GetLevel(elem)
+	err = collector.UpdateNewsType(workingContext)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if !collector.IsRequested(task, level) {
-		return nil, errors.New("Not requested level")
+	if !collector.IsRequested(workingContext) {
+		return errors.New("Not requested level")
 	}
 
-	generatedTime, err := collector.GetGeneratedTime(task, elem)
+	err = collector.UpdateGeneratedTime(workingContext)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	imageUrls, err := collector.GetImageUrls(task, elem)
+	err = collector.UpdateImageUrls(workingContext)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &protocol.CrawlerMessage{
-		Post: &protocol.CrawlerMessage_CrawledPost{
-			SubSource: &protocol.CrawledSubSource{
-				Name:      SubsourceTypeToName(level),
-				SourceId:  task.TaskParams.SourceId,
-				AvatarUrl: "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jin10.png", //todo: put in central place
-			},
-			Content:            content,
-			ContentGeneratedAt: timestamppb.New(generatedTime),
-			DeduplicateId:      deduplicateId,
-			ImageUrls:          imageUrls,
-			OriginUrl:          originUrl,
-		},
-		CrawledAt:      &timestamp.Timestamp{},
-		CrawlerIp:      "123", // todo: actual ip
-		CrawlerVersion: "1",   // todo: actual version
-		IsTest:         false,
-	}, nil
+	return nil
 }
 
 func (collector Jin10Crawler) GetQueryPath() string {
@@ -199,18 +205,18 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	// for each page loaded, there are multiple calls into this func
 	c.OnHTML(collector.GetQueryPath(), func(elem *colly.HTMLElement) {
 		var (
-			msg *protocol.CrawlerMessage
 			err error
 		)
-		if msg, err = collector.GetMessage(task, elem, collector.GetStartUri()); err != nil {
+		workingContext := &CrawlerWorkingContext{Task: task, Element: elem, OriginUrl: collector.GetStartUri()}
+		if err = collector.GetMessage(workingContext); err != nil {
 			metadata.TotalMessageFailed++
 			LogHtmlParsingError(task, elem, err)
 			return
 		}
-		if err = collector.sink.Push(msg); err != nil {
+		if err = collector.sink.Push(workingContext.Result); err != nil {
 			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 			metadata.TotalMessageFailed++
-			Logger.Log.Errorf("fail to publish message %s to SNS. Task: %s", msg.String(), task.String())
+			Logger.Log.Errorf("fail to publish message %s to SNS. Task: %s", workingContext.Result.String(), task.String())
 			return
 		}
 		metadata.TotalMessageCollected++
