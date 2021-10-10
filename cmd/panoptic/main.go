@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
+	"github.com/DataDog/datadog-go/statsd"
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/panoptic/modules"
 	"github.com/ThreeDotsLabs/watermill"
@@ -13,24 +15,38 @@ import (
 )
 
 func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(panoptic.AWS_REGION),
-	)
-
-	if err != nil {
-		panic(err)
+	//
+	var client *lambda.Client
+	env := os.Getenv("NEWSMUX_ENV")
+	if env == "prod" {
+		client = lambda.New(lambda.Options{Region: panoptic.AWS_REGION})
+	} else {
+		cfg, err := config.LoadDefaultConfig(context.TODO(),
+			config.WithRegion(panoptic.AWS_REGION),
+		)
+		if err != nil {
+			panic(err)
+		}
+		client = lambda.NewFromConfig(cfg)
 	}
 
-	client := lambda.NewFromConfig(cfg)
 	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
-		LambdaPoolSize:       3,
-		LambdaLifeSpanSecond: 30,
+		LambdaPoolSize:       1,
+		LambdaLifeSpanSecond: 300,
 		MaintainEverySecond:  10,
 	})
 	if err := executor.Init(); err != nil {
 		panic(err)
 	}
 	return executor
+}
+
+func NewDogStatsdClient() *statsd.Client {
+	statsd, err := statsd.New("127.0.0.1:8125")
+	if err != nil {
+		panic(err)
+	}
+	return statsd
 }
 
 func main() {
@@ -45,6 +61,8 @@ func main() {
 
 	// Initialize all engine modules here.
 	modules := []panoptic.Module{
+		// Reporter reports the execution metrics to datadog for monitoring purpose.
+		modules.NewReporter(modules.ReporterConfig{Name: "reporter"}, NewDogStatsdClient(), eventbus),
 		// Scheduler parses data collector configs, fanout into multiple tasks and
 		// pushes onto EventBus.
 		modules.NewScheduler(

@@ -2,9 +2,10 @@ package collector
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/Luismorlan/newsmux/protocol"
-	. "github.com/Luismorlan/newsmux/utils/log"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gocolly/colly"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -20,20 +21,33 @@ func SubsourceTypeToName(t protocol.PanopticSubSource_SubSourceType) string {
 	return "其他"
 }
 
-func RunCollector(collector DataCollector, task *protocol.PanopticTask) *protocol.TaskMetadata {
-	meta := &protocol.TaskMetadata{}
+func RunCollector(collector DataCollector, task *protocol.PanopticTask) {
+	if task.TaskMetadata == nil {
+		task.TaskMetadata = &protocol.TaskMetadata{}
+	}
 
-	meta.TaskStartTime = timestamppb.Now()
-	successCount, failCount := collector.CollectAndPublish(task)
-	meta.TaskEndTime = timestamppb.Now()
-
-	meta.TotalMessageCollected = successCount
-	meta.TotalMessageFailed = failCount
-
-	return meta
+	task.TaskMetadata.TaskStartTime = timestamppb.Now()
+	collector.CollectAndPublish(task)
+	task.TaskMetadata.TaskEndTime = timestamppb.Now()
 }
 
 func LogHtmlParsingError(task *protocol.PanopticTask, elem *colly.HTMLElement, err error) {
 	html, _ := elem.DOM.Html()
-	Log.Error(fmt.Sprintf("Error in data collector. [Error] %s. [Task] %s. [DOM Start] %s [DOM End].", err.Error(), task.String(), html))
+	Logger.Log.Error(fmt.Sprintf("Error in data collector. [Error] %s. [Task] %s. [DOM Start] %s [DOM End].", err.Error(), task.String(), html))
+}
+
+func GetCurrentIpAddress(client HttpClient) (ip string, err error) {
+	resp, err := client.Get("https://api.ipify.org")
+	if err != nil {
+		return "", err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	resp.Body.Close()
+	fmt.Printf("%s", body)
+	return string(body), err
 }

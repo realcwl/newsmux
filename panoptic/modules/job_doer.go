@@ -38,6 +38,9 @@ func (d *SchedulerJobDoer) Do(job *SchedulerJob) error {
 		TaskId:          uuid.NewString(),
 		DataCollectorId: job.panopticConfig.DataCollectorId,
 		TaskParams:      job.panopticConfig.TaskParams,
+		TaskMetadata: &protocol.TaskMetadata{
+			ConfigName: job.panopticConfig.Name,
+		},
 	})
 
 	data, err := proto.Marshal(panopticJob)
@@ -45,7 +48,7 @@ func (d *SchedulerJobDoer) Do(job *SchedulerJob) error {
 		return err
 	}
 	msg := message.NewMessage(watermill.NewUUID(), data)
-	d.EventBus.Publish(panoptic.TOPIC_PENDING_TASK, msg)
+	d.EventBus.Publish(panoptic.TOPIC_PENDING_JOB, msg)
 
 	job.IncrementRunCount()
 

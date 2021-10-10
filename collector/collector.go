@@ -12,7 +12,7 @@ type CollectedDataSink interface {
 }
 
 type DataCollector interface {
-	CollectAndPublish(task *protocol.PanopticTask) (successCount int32, failCount int32)
+	CollectAndPublish(task *protocol.PanopticTask)
 	GetMessage(task *protocol.PanopticTask, elem *colly.HTMLElement) (*protocol.CrawlerMessage, error)
 }
 
