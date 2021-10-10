@@ -28,24 +28,18 @@ Posts: all posts published to this feed, "many-to-many" relation
 SubSources: All subsources this feed is listening to, "many-to-many" relationship.
 	Do not only rely on subsource to infer source, so that we can have Feed only subscribe to source
 */
-type Visibility string
-
-const (
-	Global  Visibility = "GLOBAL"
-	Private Visibility = "PRIVATE"
-)
-
 type Feed struct {
-	Id                   string    `gorm:"primaryKey"`
-	CreatedAt            time.Time `gorm:"<-:create"`
-	UpdatedAt            time.Time
-	CreatorID            string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Creator              User   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Name                 string
-	Subscribers          []*User      `json:"subscribers" gorm:"many2many;constraint:OnDelete:CASCADE;"`
-	Posts                []*Post      `json:"posts" gorm:"many2many:post_feed_publishes;constraint:OnDelete:CASCADE;"`
-	SubSources           []*SubSource `json:"subSources" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
-	Visibility           Visibility   `json:"visibility" gorm:"type:enum('GLOBAL','PRIVATE');default:'PRIVATE'"`
+	Id          string    `gorm:"primaryKey"`
+	CreatedAt   time.Time `gorm:"<-:create"`
+	UpdatedAt   time.Time
+	CreatorID   string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Creator     User   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Name        string
+	Subscribers []*User      `json:"subscribers" gorm:"many2many;constraint:OnDelete:CASCADE;"`
+	Posts       []*Post      `json:"posts" gorm:"many2many:post_feed_publishes;constraint:OnDelete:CASCADE;"`
+	SubSources  []*SubSource `json:"subSources" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
+	// Visibility of 0 means private, 1 means global
+	Visibility           int `json:"visibility" gorm:"default:0;"`
 	FilterDataExpression datatypes.JSON
 }
 

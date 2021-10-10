@@ -90,12 +90,12 @@ type SubsourcesInput struct {
 }
 
 type UpsertFeedInput struct {
-	UserID               string     `json:"userId"`
-	FeedID               *string    `json:"feedId"`
-	Name                 string     `json:"name"`
-	FilterDataExpression string     `json:"filterDataExpression"`
-	SubSourceIds         []string   `json:"subSourceIds"`
-	Visibility           Visibility `json:"visibility"`
+	UserID               string   `json:"userId"`
+	FeedID               *string  `json:"feedId"`
+	Name                 string   `json:"name"`
+	FilterDataExpression string   `json:"filterDataExpression"`
+	SubSourceIds         []string `json:"subSourceIds"`
+	Visibility           int      `json:"visibility"`
 }
 
 type UpsertSubSourceInput struct {

@@ -954,11 +954,6 @@ enum FeedRefreshDirection {
   OLD
 }
 
-enum Visibility {
-  PRIVATE
-  PUBLIC
-}
-
 # TODO(jamie): more documentations on all APIs
 type Query {
   allFeeds: [Feed!]
@@ -1032,7 +1027,7 @@ input UpsertFeedInput {
   name: String!
   filterDataExpression: String!
   subSourceIds: [String!]!
-  visibility: Visibility!
+  visibility: Int!
 }
 
 # TODO: for testing purpose, real post is created by crawler and publisher
@@ -5629,7 +5624,7 @@ func (ec *executionContext) unmarshalInputUpsertFeedInput(ctx context.Context, o
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("visibility"))
-			it.Visibility, err = ec.unmarshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx, v)
+			it.Visibility, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7330,22 +7325,6 @@ func (ec *executionContext) marshalNUserSeedState2ᚖgithubᚗcomᚋLuismorlan�
 func (ec *executionContext) unmarshalNUserSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserSeedStateInput(ctx context.Context, v interface{}) (*model.UserSeedStateInput, error) {
 	res, err := ec.unmarshalInputUserSeedStateInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx context.Context, v interface{}) (model.Visibility, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := model.Visibility(tmp)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v model.Visibility) graphql.Marshaler {
-	res := graphql.MarshalString(string(v))
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-	}
-	return res
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

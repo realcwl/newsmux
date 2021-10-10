@@ -5,11 +5,6 @@ enum FeedRefreshDirection {
   OLD
 }
 
-enum Visibility {
-  PRIVATE
-  PUBLIC
-}
-
 # TODO(jamie): more documentations on all APIs
 type Query {
   allFeeds: [Feed!]
@@ -83,7 +78,7 @@ input UpsertFeedInput {
   name: String!
   filterDataExpression: String!
   subSourceIds: [String!]!
-  visibility: Visibility!
+  visibility: Int!
 }
 
 # TODO: for testing purpose, real post is created by crawler and publisher
