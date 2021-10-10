@@ -1,6 +1,7 @@
 package main
 
 import (
+	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/protocol"
 	. "github.com/Luismorlan/newsmux/utils"
@@ -56,5 +57,6 @@ func main() {
 		panic(err)
 	}
 	Log.Info("Starting lambda handler, waiting for requests...")
-	lambda.Start(HandleRequest)
+
+	lambda.Start(ddlambda.WrapFunction(HandleRequest, nil))
 }

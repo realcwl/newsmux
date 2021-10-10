@@ -27,7 +27,7 @@ type CrawlerCollector interface {
 	GetQueryPath() string
 	GetStartUri() string
 	GetContent(task *protocol.PanopticTask, elem *colly.HTMLElement) (string, error)
-	GetDedupId(task *protocol.PanopticTask, content string) (string, error)
+	GetDedupId(task *protocol.PanopticTask, content string, id string) (string, error)
 	GetGeneratedTime(task *protocol.PanopticTask, elem *colly.HTMLElement) (time.Time, error)
 	GetLevel(elem *colly.HTMLElement) (protocol.PanopticSubSource_SubSourceType, error)
 	GetImageUrls(task *protocol.PanopticTask, elem *colly.HTMLElement) ([]string, error)

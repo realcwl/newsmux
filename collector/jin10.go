@@ -76,9 +76,17 @@ func (collector Jin10Crawler) GetGeneratedTime(task *protocol.PanopticTask, elem
 	return generatedTime, nil
 }
 
-func (collector Jin10Crawler) GetDedupId(task *protocol.PanopticTask, content string) (string, error) {
+func (collector Jin10Crawler) getExternalPostId(elem *colly.HTMLElement) (string, error) {
+	id := elem.DOM.AttrOr("id", "")
+	if len(id) == 0 {
+		return "", errors.New("Can't get id")
+	}
+	return id, nil
+}
+
+func (collector Jin10Crawler) GetDedupId(task *protocol.PanopticTask, content string, id string) (string, error) {
 	hasher := md5.New()
-	_, err := hasher.Write([]byte(task.TaskParams.SourceId + content))
+	_, err := hasher.Write([]byte(task.TaskParams.SourceId + id))
 	return hex.EncodeToString(hasher.Sum(nil)), err
 }
 
@@ -119,8 +127,16 @@ func (collector Jin10Crawler) GetMessage(task *protocol.PanopticTask, elem *coll
 	if err != nil {
 		return nil, err
 	}
+	if len(content) == 0 {
+		return nil, errors.New("Empty Content")
+	}
 
-	deduplicateId, err := collector.GetDedupId(task, content)
+	id, err := collector.getExternalPostId(elem)
+	if err != nil {
+		return nil, err
+	}
+
+	deduplicateId, err := collector.GetDedupId(task, content, id)
 	if err != nil {
 		return nil, err
 	}
