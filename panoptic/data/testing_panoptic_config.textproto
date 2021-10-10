@@ -2,25 +2,17 @@ config: {
   name: "Jinshi Kuaixun"
   data_collector_id: COLLECTOR_JINSHI
   task_params: {
-    source_id: "dummy_source_id"
+    source_id: "a882eb0d-0bde-401a-b708-a7ce352b7392"
+    sub_sources: [{
+      name: "快讯"
+      type: FLASHNEWS
+      external_id: "kuaixun"
+    }]
   }
   task_schedule: {
     start_immediatly: true
     routinely: {
-      every_milliseconds: 3000
-    }
-  }
-}
-config: {
-  name: "Kuailansi Kuaixun"
-  data_collector_id: COLLECTOR_JINSHI
-  task_params: {
-    source_id: "dummy_source_id"
-  }
-  task_schedule: {
-    start_immediatly: true
-    routinely: {
-      every_milliseconds: 2000
+      every_milliseconds: 60000
     }
   }
 }

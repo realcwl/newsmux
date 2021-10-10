@@ -5,7 +5,7 @@ import (
 
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/protocol"
-	. "github.com/Luismorlan/newsmux/utils/log"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
@@ -69,13 +69,13 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 		go func(job *protocol.PanopticJob) {
 			res, err := o.executor.Execute(ctx, &panopticJob)
 			if err != nil {
-				Log.Infof("fail to execute job: %s, error: %s", panopticJob.String(), err)
+				Logger.Log.Infof("fail to execute job: %s, error: %s", panopticJob.String(), err)
 				return
 			}
 
 			err = o.PublishFinishedJob(res)
 			if err != nil {
-				Log.Infof("fail to publish job into executed job channel, error: %s", err)
+				Logger.Log.Infof("fail to publish job into executed job channel, error: %s", err)
 				return
 			}
 		}(&panopticJob)
