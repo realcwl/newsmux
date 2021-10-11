@@ -31,7 +31,7 @@ func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 	}
 
 	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
-		LambdaPoolSize:       1,
+		LambdaPoolSize:       10,
 		LambdaLifeSpanSecond: 300,
 		MaintainEverySecond:  10,
 	})
