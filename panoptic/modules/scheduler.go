@@ -2,14 +2,18 @@ package modules
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
@@ -107,16 +111,48 @@ func (s *Scheduler) UpsertJobs(jobs []*SchedulerJob) {
 	}
 }
 
-func (s *Scheduler) ParseAndUpsertJobs() error {
-	// TODO(chenweilunster): Parse from S3 if in production.
-	in, err := ioutil.ReadFile(s.Config.PanopticConfigPath)
-	if err != nil {
-		return err
+// Read config either from local workspace (dev) or from Github (production)
+func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, error) {
+	env := os.Getenv("NEWSMUX_ENV")
+	configs := &protocol.PanopticConfigs{}
+
+	if env == "prod" {
+		// Read from Github project: https://github.com/Luismorlan/panoptic_config
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: os.Getenv("GITHUB_ACCESS_TOKEN")},
+		)
+		tc := oauth2.NewClient(s.ctx, ts)
+		client := github.NewClient(tc)
+		content, _, res, err := client.Repositories.GetContents(s.ctx, "Luismorlan", "panoptic_config", "config.textproto", nil)
+		if err != nil {
+			return nil, err
+		}
+		if res.StatusCode != 200 {
+			return nil, fmt.Errorf("fail to get config from Github, http code %d", res.StatusCode)
+		}
+		decode, _ := base64.StdEncoding.DecodeString(*content.Content)
+		if err := prototext.Unmarshal(decode, configs); err != nil {
+			return nil, err
+		}
+	} else {
+		// Read from local workspace, file panoptic/data/testing_panoptic_config.textproto
+		in, err := ioutil.ReadFile(s.Config.PanopticConfigPath)
+		if err != nil {
+			return nil, err
+		}
+		if err := prototext.Unmarshal(in, configs); err != nil {
+			return nil, err
+		}
 	}
 
-	configs := &protocol.PanopticConfigs{}
-	if err := prototext.Unmarshal(in, configs); err != nil {
-		log.Fatalln("Failed to parse PanopticConfigs:", err)
+	return configs, nil
+}
+
+func (s *Scheduler) ParseAndUpsertJobs() error {
+	configs, err := s.ReadConfig()
+
+	if err != nil {
+		return err
 	}
 	jobs := NewSchedulerJobs(configs, s.ctx)
 	err = ValidateJobs(jobs)
