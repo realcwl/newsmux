@@ -143,6 +143,11 @@ func MakeDataCollectorRpc(ctx context.Context, job *protocol.PanopticJob, functi
 		return nil, err
 	}
 
+	// If timeout
+	if res.FunctionError != nil {
+		return nil, errors.New(*res.FunctionError)
+	}
+
 	return model.LambdaPayloadToPanopticJob(res.Payload)
 }
 
@@ -198,6 +203,7 @@ func (l *LambdaExecutor) AddLambdaFunction() (string, error) {
 	funcName := utils.GetRandomDataCollectorFunctionName()
 	role := panoptic.LAMBDA_AWS_ROLE
 	imageUri := panoptic.DATA_COLLECTOR_IMAGE
+	timeout := int32(900)
 
 	res, err := l.lambdaClient.CreateFunction(l.ctx, &lambda.CreateFunctionInput{
 		FunctionName: &funcName,
@@ -206,6 +212,7 @@ func (l *LambdaExecutor) AddLambdaFunction() (string, error) {
 			ImageUri: &imageUri,
 		},
 		PackageType: types.PackageTypeImage,
+		Timeout:     &timeout,
 	})
 
 	if err != nil {
