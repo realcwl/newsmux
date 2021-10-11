@@ -199,7 +199,7 @@ func TestCreateUserAndValidate(t *testing.T, name string, userId string, db *gor
 // create feed with name, do sanity checks and returns its Id
 // filterDataExpression in graphql input should have escapes \
 //
-func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, subSourceIds []string, visibility int, db *gorm.DB, client *client.Client) (id string, updatedAt string) {
+func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, subSourceIds []string, visibility model.Visibility, db *gorm.DB, client *client.Client) (id string, updatedAt string) {
 	var resp struct {
 		UpsertFeed struct {
 			Id                   string `json:"id"`
@@ -211,7 +211,7 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 			SubSources           []struct {
 				Id string `json:"id"`
 			} `json:"subSources"`
-			Visibility int `json:"visibility"`
+			Visibility model.Visibility `json:"visibility"`
 		} `json:"upsertFeed"`
 	}
 
@@ -222,7 +222,7 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	compactEscapedjson := strings.ReplaceAll(compactedBuffer.String(), `"`, `\"`)
 
 	query := fmt.Sprintf(`mutation {
-		upsertFeed(input:{userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s visibility:%d}) {
+		upsertFeed(input:{userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s visibility:%s}) {
 		  id
 		  name
 		  createdAt
@@ -276,12 +276,12 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, client *client.Client) (updatedAt string, postIds []string) {
 	var resp struct {
 		UpsertFeed struct {
-			Id                   string `json:"id"`
-			Name                 string `json:"name"`
-			CreatedAt            string `json:"createdAt"`
-			UpdatedAt            string `json:"updatedAt"`
-			FilterDataExpression string `json:"filterDataExpression"`
-			Visibility           int    `json:"visibility"`
+			Id                   string           `json:"id"`
+			Name                 string           `json:"name"`
+			CreatedAt            string           `json:"createdAt"`
+			UpdatedAt            string           `json:"updatedAt"`
+			FilterDataExpression string           `json:"filterDataExpression"`
+			Visibility           model.Visibility `json:"visibility"`
 			SubSources           []struct {
 				Id string `json:"id"`
 			} `json:"subSources"`
@@ -312,7 +312,7 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 	// make the create-update gap more obvious
 	time.Sleep(2 * time.Second)
 	query := fmt.Sprintf(`mutation {
-		upsertFeed(input:{feedId:"%s" userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s visibility:%d}) {
+		upsertFeed(input:{feedId:"%s" userId:"%s" name:"%s" filterDataExpression:"%s" subSourceIds:%s visibility:%s}) {
 		  id
 		  name
 		  createdAt

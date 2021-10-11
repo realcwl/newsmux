@@ -90,12 +90,12 @@ type SubsourcesInput struct {
 }
 
 type UpsertFeedInput struct {
-	UserID               string   `json:"userId"`
-	FeedID               *string  `json:"feedId"`
-	Name                 string   `json:"name"`
-	FilterDataExpression string   `json:"filterDataExpression"`
-	SubSourceIds         []string `json:"subSourceIds"`
-	Visibility           int      `json:"visibility"`
+	UserID               string     `json:"userId"`
+	FeedID               *string    `json:"feedId"`
+	Name                 string     `json:"name"`
+	FilterDataExpression string     `json:"filterDataExpression"`
+	SubSourceIds         []string   `json:"subSourceIds"`
+	Visibility           Visibility `json:"visibility"`
 }
 
 type UpsertSubSourceInput struct {
@@ -159,5 +159,46 @@ func (e *FeedRefreshDirection) UnmarshalGQL(v interface{}) error {
 }
 
 func (e FeedRefreshDirection) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Visibility string
+
+const (
+	VisibilityGlobal  Visibility = "GLOBAL"
+	VisibilityPrivate Visibility = "PRIVATE"
+)
+
+var AllVisibility = []Visibility{
+	VisibilityGlobal,
+	VisibilityPrivate,
+}
+
+func (e Visibility) IsValid() bool {
+	switch e {
+	case VisibilityGlobal, VisibilityPrivate:
+		return true
+	}
+	return false
+}
+
+func (e Visibility) String() string {
+	return string(e)
+}
+
+func (e *Visibility) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Visibility(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Visibility", str)
+	}
+	return nil
+}
+
+func (e Visibility) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

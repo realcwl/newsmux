@@ -8,7 +8,7 @@ type Feed implements FeedSeedStateInterface @goModel(model: "model.Feed") {
   posts: [Post!]!
   subSources: [SubSource!]!
   filterDataExpression: String!
-  visibility: Int!
+  visibility: Visibility!
 }
 
 type FeedSeedState implements FeedSeedStateInterface {

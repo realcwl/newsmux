@@ -902,7 +902,7 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
   posts: [Post!]!
   subSources: [SubSource!]!
   filterDataExpression: String!
-  visibility: Int!
+  visibility: Visibility!
 }
 
 type FeedSeedState implements FeedSeedStateInterface {
@@ -961,6 +961,11 @@ type PostInFeedOutput {
 enum FeedRefreshDirection {
   NEW
   OLD
+}
+
+enum Visibility {
+  GLOBAL
+  PRIVATE
 }
 
 # TODO(jamie): more documentations on all APIs
@@ -1036,7 +1041,7 @@ input UpsertFeedInput {
   name: String!
   filterDataExpression: String!
   subSourceIds: [String!]!
-  visibility: Int!
+  visibility: Visibility!
 }
 
 # TODO: for testing purpose, real post is created by crawler and publisher
@@ -1753,9 +1758,9 @@ func (ec *executionContext) _Feed_visibility(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(model.Visibility)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _FeedSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
@@ -5668,7 +5673,7 @@ func (ec *executionContext) unmarshalInputUpsertFeedInput(ctx context.Context, o
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("visibility"))
-			it.Visibility, err = ec.unmarshalNInt2int(ctx, v)
+			it.Visibility, err = ec.unmarshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7374,6 +7379,16 @@ func (ec *executionContext) marshalNUserSeedState2ᚖgithubᚗcomᚋLuismorlan�
 func (ec *executionContext) unmarshalNUserSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserSeedStateInput(ctx context.Context, v interface{}) (*model.UserSeedStateInput, error) {
 	res, err := ec.unmarshalInputUserSeedStateInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx context.Context, v interface{}) (model.Visibility, error) {
+	var res model.Visibility
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v model.Visibility) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

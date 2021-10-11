@@ -64,7 +64,7 @@ func TestCreateFeed(t *testing.T) {
 
 	t.Run("Test Feed Creation", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, 1, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
 		require.NotEmpty(t, feedId)
 	})
 }
@@ -149,7 +149,7 @@ func TestUserSubscribeFeed(t *testing.T) {
 
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, 0, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	})
 }
@@ -160,14 +160,14 @@ func TestDeleteFeed(t *testing.T) {
 	t.Run("Test User delete Feed", func(t *testing.T) {
 		utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, 1, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 		utils.TestDeleteFeedAndValidate(t, uid, feedId, true, db, client)
 	})
 
 	t.Run("Test non owner delete Feed", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, 0, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 		utils.TestDeleteFeedAndValidate(t, "non_owner", feedId, false, db, client)
 	})
@@ -179,8 +179,8 @@ func TestQueryFeeds(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "default_user_id", db, client)
-	feedIdOne, updatedTimeOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, 0, db, client)
-	feedIdTwo, updatedTimeTwo := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, 1, db, client)
+	feedIdOne, updatedTimeOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
+	feedIdTwo, updatedTimeTwo := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "123123213123", sourceId, false, db, client)
 	utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, false, db, client)
@@ -485,7 +485,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceIdOne := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "1111", sourceId, false, db, client)
 	subSourceIdTwo := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api_2", "2222", sourceId, false, db, client)
-	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", ``, []string{}, 1, db, client)
+	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", ``, []string{}, model.VisibilityGlobal, db, client)
 
 	postId1, _ := utils.TestCreatePostAndValidate(t, "test_title_1", "same_content_test", subSourceIdOne, feedIdOne, db, client)
 	postId2, _ := utils.TestCreatePostAndValidate(t, "test_title_2", "test_content_2", subSourceIdOne, feedIdOne, db, client)
