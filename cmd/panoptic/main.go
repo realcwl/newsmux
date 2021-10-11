@@ -8,6 +8,7 @@ import (
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/panoptic/modules"
+	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -15,7 +16,6 @@ import (
 )
 
 func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
-	//
 	var client *lambda.Client
 	env := os.Getenv("NEWSMUX_ENV")
 	if env == "prod" {
@@ -50,6 +50,10 @@ func NewDogStatsdClient() *statsd.Client {
 }
 
 func main() {
+	if err := dotenv.LoadDotEnvs(); err != nil {
+		log.Fatalln(err)
+	}
+
 	eventbus := gochannel.NewGoChannel(
 		gochannel.Config{
 			OutputChannelBuffer:            100,
