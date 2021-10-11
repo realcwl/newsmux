@@ -33,7 +33,7 @@ func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
 		LambdaPoolSize:       10,
 		LambdaLifeSpanSecond: 300,
-		MaintainEverySecond:  10,
+		MaintainEverySecond:  30,
 	})
 	if err := executor.Init(); err != nil {
 		panic(err)
