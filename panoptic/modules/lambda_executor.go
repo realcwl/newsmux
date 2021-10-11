@@ -318,10 +318,28 @@ func (l *LambdaExecutor) MaintainLambdaPool() {
 					Logger.Log.Errorf("fail to fill Lambda Pool, %s", err)
 				}
 				l.DeleteRemovableFunctions()
+				l.ReportLambdaPools()
 				continue
 			}
 		}
 	}(l.ctx)
+}
+
+// Report LambdaPool size
+func (l *LambdaExecutor) ReportLambdaPools() {
+	l.m.RLock()
+	defer l.m.RUnlock()
+
+	stalePoolSize := 0
+	l.stalePool.Range(func(_, _ interface{}) bool {
+		stalePoolSize++
+		return true
+	})
+
+	Logger.Log.Infof(
+		"lambda pool status after maintainance: %d active lambda functions, %d stale functions",
+		len(l.pool),
+		stalePoolSize)
 }
 
 // Move all stale functions from active pool to stale pool.
