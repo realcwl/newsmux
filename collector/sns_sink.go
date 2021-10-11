@@ -29,7 +29,7 @@ func NewSnsSink() (*SnsSink, error) {
 	svc := sns.New(sess)
 
 	return &SnsSink{
-		arn:    testArn,
+		arn:    prodArn,
 		client: svc,
 	}, nil
 }

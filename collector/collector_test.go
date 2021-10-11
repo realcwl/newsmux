@@ -96,7 +96,7 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, msg)
 
-		require.Equal(t, "25e45a605e0829428ce51df89638ddcf", msg.Post.DeduplicateId)
+		require.Equal(t, "7e85d9a10e1ac1dbbf9c4c14989a9c6f", msg.Post.DeduplicateId)
 		require.Equal(t, "标普：美国经济正在降温 但仍具有弹性 美国经济已经有所降温，但仍然具有弹性。将美国2021年和2022年实际GDP增速预期分别调整至5.7%和4.1%，此前在6月报告中的预期分别为6.7%和3.7%。尽管美国经济仍处于过热状态，但随着夏季结束，美国经济已经开始降温。供应中断仍是美国经济放缓的主要原因，而德尔塔变种病毒现在是另一个拖累因素。目前的GDP预测仍将是1984年以来的最高水平。预计美联储将在12月开始缩减资产购买规模，并在2022年12月加息，随后分别在2023年和2024年加息两次。", msg.Post.Content)
 		require.Equal(t, 0, len(msg.Post.ImageUrls))
 		require.Equal(t, 0, len(msg.Post.FilesUrls))
@@ -130,7 +130,7 @@ func TestJin10CrawlerWithImage(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, msg)
 
-		require.Equal(t, "b9cc13b9d2bc97e13b187a50bd6ecee0", msg.Post.DeduplicateId)
+		require.Equal(t, "7170aaae523ca3d0bc2b2b92bfead0d4", msg.Post.DeduplicateId)
 		require.Equal(t, "孟晚舟乘坐的中国政府包机抵达深圳宝安机场。欢迎回家！（人民日报）", msg.Post.Content)
 		require.Equal(t, 1, len(msg.Post.ImageUrls))
 		require.Equal(t, "https://flash-scdn.jin10.com/16f8ddbe-1b4b-4c1b-a3d1-844e466edb67.jpg/lite", msg.Post.ImageUrls[0])
