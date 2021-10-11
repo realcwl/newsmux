@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/protocol"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -117,7 +118,7 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, error) {
 	configs := &protocol.PanopticConfigs{}
 
 	if env == "prod" {
-		// Read from Github project: https://github.com/Luismorlan/panoptic_config
+		Logger.Log.Infoln("read config from Github project: https://github.com/Luismorlan/panoptic_config")
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: os.Getenv("GITHUB_ACCESS_TOKEN")},
 		)
@@ -135,7 +136,7 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, error) {
 			return nil, err
 		}
 	} else {
-		// Read from local workspace, file panoptic/data/testing_panoptic_config.textproto
+		Logger.Log.Infoln("read config from local workspace, file panoptic/data/testing_panoptic_config.textproto")
 		in, err := ioutil.ReadFile(s.Config.PanopticConfigPath)
 		if err != nil {
 			return nil, err
@@ -150,6 +151,8 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, error) {
 
 func (s *Scheduler) ParseAndUpsertJobs() error {
 	configs, err := s.ReadConfig()
+
+	Logger.Log.Infof("initial PanopticConfigs: %s", configs.String())
 
 	if err != nil {
 		return err
