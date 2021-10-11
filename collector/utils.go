@@ -2,6 +2,7 @@ package collector
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/Luismorlan/newsmux/protocol"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -33,4 +34,20 @@ func RunCollector(collector DataCollector, task *protocol.PanopticTask) {
 func LogHtmlParsingError(task *protocol.PanopticTask, elem *colly.HTMLElement, err error) {
 	html, _ := elem.DOM.Html()
 	Logger.Log.Error(fmt.Sprintf("Error in data collector. [Error] %s. [Task] %s. [DOM Start] %s [DOM End].", err.Error(), task.String(), html))
+}
+
+func GetCurrentIpAddress(client HttpClient) (ip string, err error) {
+	resp, err := client.Get("https://api.ipify.org")
+	if err != nil {
+		return "", err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	resp.Body.Close()
+	fmt.Printf("%s", body)
+	return string(body), err
 }

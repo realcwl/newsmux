@@ -19,6 +19,7 @@ import (
 const (
 	APIServer     = "api_server"
 	FeedPublisher = "feed_publisher"
+	Collector     = "collector"
 )
 
 var (

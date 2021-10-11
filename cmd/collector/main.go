@@ -1,7 +1,9 @@
 package main
 
 import (
+	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
 	. "github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
@@ -20,20 +22,15 @@ func cleanup() {
 	Log.Info("data collector shutdown")
 }
 
-type DataCollectorRequest struct {
-	SerializedJob []byte
-}
+func HandleRequest(event model.DataCollectorRequest) (model.DataCollectorResponse, error) {
+	res := model.DataCollectorResponse{}
 
-type DataCollectorResponse struct {
-	SerializedJob []byte
-}
-
-func HandleRequest(event DataCollectorRequest) (resp DataCollectorResponse, e error) {
 	// parse job
 	job := &protocol.PanopticJob{}
+	Log.Info("Raw serialized job : ", event.SerializedJob)
 	if err := proto.Unmarshal(event.SerializedJob, job); err != nil {
 		Log.Error("Failed to parse job with error:", err)
-		return resp, err
+		return res, err
 	}
 	Log.Info("Processing job with job id : ", job.JobId)
 
@@ -42,12 +39,16 @@ func HandleRequest(event DataCollectorRequest) (resp DataCollectorResponse, e er
 	err := handler.Collect(job)
 	if err != nil {
 		Log.Error("Failed to execute job with error:", err)
-		return resp, err
+		return res, err
 	}
 	// encode job
 	bytes, err := proto.Marshal(job)
-	resp.SerializedJob = bytes
-	return resp, nil
+	if err != nil {
+		return res, err
+	}
+
+	res.SerializedJob = bytes
+	return res, nil
 }
 
 func main() {
@@ -56,5 +57,6 @@ func main() {
 		panic(err)
 	}
 	Log.Info("Starting lambda handler, waiting for requests...")
-	lambda.Start(HandleRequest)
+
+	lambda.Start(ddlambda.WrapFunction(HandleRequest, nil))
 }

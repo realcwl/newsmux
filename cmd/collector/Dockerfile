@@ -19,6 +19,8 @@ RUN go build -o /main cmd/collector/main.go
 FROM public.ecr.aws/lambda/provided:al2
 COPY --from=build /main /main
 
+ENV NEWSMUX_ENV="prod"
+
 # switch to prod when roll out to prod
 # dev will send all msgs into stderr
-ENTRYPOINT [ "/main", "-dev=true", "-service=collector" ]
+ENTRYPOINT [ "/main", "-dev=false", "-service=collector" ]

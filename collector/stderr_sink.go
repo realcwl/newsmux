@@ -2,7 +2,7 @@ package collector
 
 import (
 	"github.com/Luismorlan/newsmux/protocol"
-	. "github.com/Luismorlan/newsmux/utils/log"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 type StdErrSink struct{}
@@ -15,6 +15,6 @@ func (s *StdErrSink) Push(msg *protocol.CrawlerMessage) error {
 	if msg == nil {
 		return nil
 	}
-	Log.Info(msg.String())
+	Logger.Log.Info("mock pushed to SNS with msg: ", msg.String())
 	return nil
 }

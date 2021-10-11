@@ -3,6 +3,7 @@ package modules
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"strings"
 	"sync"
@@ -122,13 +123,13 @@ func WaitForLambdaActivate(ctx context.Context, functionName string, lambdaClien
 }
 
 func MakeDataCollectorRpc(ctx context.Context, job *protocol.PanopticJob, functionName string, lambdaClient *lambda.Client) (*protocol.PanopticJob, error) {
-	err := WaitForLambdaActivate(ctx, functionName, lambdaClient)
+	// Invoke Lambda
+	payload, err := model.PanopticJobToLambdaPayload(job)
 	if err != nil {
 		return nil, err
 	}
 
-	// Invoke Lambda
-	payload, err := model.PanopticJobToLambdaPayload(job)
+	err = WaitForLambdaActivate(ctx, functionName, lambdaClient)
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +141,11 @@ func MakeDataCollectorRpc(ctx context.Context, job *protocol.PanopticJob, functi
 
 	if err != nil {
 		return nil, err
+	}
+
+	// If timeout
+	if res.FunctionError != nil {
+		return nil, errors.New(*res.FunctionError)
 	}
 
 	return model.LambdaPayloadToPanopticJob(res.Payload)
@@ -197,6 +203,7 @@ func (l *LambdaExecutor) AddLambdaFunction() (string, error) {
 	funcName := utils.GetRandomDataCollectorFunctionName()
 	role := panoptic.LAMBDA_AWS_ROLE
 	imageUri := panoptic.DATA_COLLECTOR_IMAGE
+	timeout := int32(900)
 
 	res, err := l.lambdaClient.CreateFunction(l.ctx, &lambda.CreateFunctionInput{
 		FunctionName: &funcName,
@@ -205,6 +212,7 @@ func (l *LambdaExecutor) AddLambdaFunction() (string, error) {
 			ImageUri: &imageUri,
 		},
 		PackageType: types.PackageTypeImage,
+		Timeout:     &timeout,
 	})
 
 	if err != nil {
@@ -261,7 +269,7 @@ func (l *LambdaExecutor) AddLambdaFunctions(count int) ([]string, error) {
 		}
 
 		wg.Wait()
-		return nil, errors.New("fail to initialize Lambda Pool due to failure")
+		return nil, fmt.Errorf("fail to initialize Lambda Pool due to failure, %s", errs[0])
 	}
 
 	return names, nil
@@ -312,16 +320,33 @@ func (l *LambdaExecutor) MaintainLambdaPool() {
 			case <-ctx.Done():
 				return
 			case <-time.After(time.Duration(l.config.MaintainEverySecond * int64(time.Second))):
-				Logger.Log.Infof("start lambda pool maintainance")
 				l.MarkStaleFunctions()
 				if err := l.FillLambdaPool(); err != nil {
 					Logger.Log.Errorf("fail to fill Lambda Pool, %s", err)
 				}
 				l.DeleteRemovableFunctions()
+				l.ReportLambdaPools()
 				continue
 			}
 		}
 	}(l.ctx)
+}
+
+// Report LambdaPool size
+func (l *LambdaExecutor) ReportLambdaPools() {
+	l.m.RLock()
+	defer l.m.RUnlock()
+
+	stalePoolSize := 0
+	l.stalePool.Range(func(_, _ interface{}) bool {
+		stalePoolSize++
+		return true
+	})
+
+	Logger.Log.Infof(
+		"lambda pool status after maintainance: %d active lambda functions, %d stale functions",
+		len(l.pool),
+		stalePoolSize)
 }
 
 // Move all stale functions from active pool to stale pool.
