@@ -13,7 +13,6 @@ import (
 	"github.com/Luismorlan/newsmux/server/resolver"
 	. "github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/jinzhu/copier"
@@ -73,9 +72,9 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -99,7 +98,7 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 		protocol.CrawlerMessage{},
 		protocol.CrawlerMessage_CrawledPost{},
 		protocol.CrawledSubSource{},
-		timestamp.Timestamp{},
+		timestamppb.Timestamp{},
 	)))
 }
 
@@ -121,8 +120,8 @@ func TestProcessCrawlerMessage(t *testing.T) {
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api", "test_externalid", sourceId1, false, db, client)
 	subSourceId2 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api_2", "test_externalid", sourceId2, false, db, client)
 
-	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", DataExpressionJsonForTest, []string{subSourceId1, subSourceId2}, db, client)
+	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	feedId2, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api_2", DataExpressionJsonForTest, []string{subSourceId1, subSourceId2}, model.VisibilityPrivate, db, client)
 	TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 	TestUserSubscribeFeedAndValidate(t, uid, feedId2, db, client)
 
@@ -260,7 +259,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_1", "test_externalid", sourceId1, false, db, client)
-	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
 
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
@@ -278,7 +277,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
 				DeduplicateId: "2",
 				SubSource: &protocol.CrawledSubSource{
@@ -294,10 +293,10 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 				ImageUrls:          []string{"1", "4"},
 				FilesUrls:          []string{"2", "3"},
 				OriginUrl:          "bbb",
-				ContentGeneratedAt: &timestamp.Timestamp{},
+				ContentGeneratedAt: &timestamppb.Timestamp{},
 			},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -366,7 +365,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
 				DeduplicateId: "2",
 				SubSource: &protocol.CrawledSubSource{
@@ -382,10 +381,10 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 				ImageUrls:          []string{"1", "4"},
 				FilesUrls:          []string{"2", "3"},
 				OriginUrl:          "bbb",
-				ContentGeneratedAt: &timestamp.Timestamp{},
+				ContentGeneratedAt: &timestamppb.Timestamp{},
 			},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -420,7 +419,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
 				DeduplicateId: "4",
 				SubSource: &protocol.CrawledSubSource{
@@ -436,10 +435,10 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 				ImageUrls:          []string{"1", "4"},
 				FilesUrls:          []string{"2", "3"},
 				OriginUrl:          "bbb",
-				ContentGeneratedAt: &timestamp.Timestamp{},
+				ContentGeneratedAt: &timestamppb.Timestamp{},
 			},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,
@@ -463,16 +462,16 @@ func TestMessagePublishToManyFeeds(t *testing.T) {
 	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 	sourceId1 := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_1", "test_externalid", sourceId1, false, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
-	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
+	TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
 
 	msgOne := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
@@ -490,9 +489,9 @@ func TestMessagePublishToManyFeeds(t *testing.T) {
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
 			OriginUrl:          "aaa",
-			ContentGeneratedAt: &timestamp.Timestamp{},
+			ContentGeneratedAt: &timestamppb.Timestamp{},
 		},
-		CrawledAt:      &timestamp.Timestamp{},
+		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
 		IsTest:         false,

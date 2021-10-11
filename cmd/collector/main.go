@@ -9,7 +9,7 @@ import (
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 func init() {

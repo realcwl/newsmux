@@ -46,3 +46,6 @@ fmt:
 
 test:
 	NEWSMUX_ENV=test go test ./...
+
+generate:
+	go generate ./...

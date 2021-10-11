@@ -38,6 +38,7 @@ type Feed struct {
 	Subscribers          []*User      `json:"subscribers" gorm:"many2many;constraint:OnDelete:CASCADE;"`
 	Posts                []*Post      `json:"posts" gorm:"many2many:post_feed_publishes;constraint:OnDelete:CASCADE;"`
 	SubSources           []*SubSource `json:"subSources" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
+	Visibility           Visibility   `json:"visibility" gorm:"default:'PRIVATE';"`
 	FilterDataExpression datatypes.JSON
 }
 

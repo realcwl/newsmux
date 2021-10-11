@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type DataCollectorRequest struct {
