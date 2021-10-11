@@ -65,7 +65,8 @@ func (collector Jin10Crawler) UpdateContent(workingContext *CrawlerWorkingContex
 	content := sb.String()
 	workingContext.Result.Post.Content = content
 	if len(content) == 0 {
-		return errors.New("empty Content")
+		Logger.Log.Warn("empty content")
+		return nil
 	}
 	return nil
 }
@@ -99,7 +100,7 @@ func (collector Jin10Crawler) UpdateExternalPostId(workingContext *CrawlerWorkin
 
 func (collector Jin10Crawler) UpdateDedupId(workingContext *CrawlerWorkingContext) error {
 	hasher := md5.New()
-	_, err := hasher.Write([]byte(workingContext.Task.TaskParams.SourceId + workingContext.ExternalPostId))
+	_, err := hasher.Write([]byte(workingContext.ExternalPostId))
 	if err != nil {
 		return err
 	}
