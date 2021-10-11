@@ -6,7 +6,9 @@ config: {
     sub_sources: [{
       name: "快讯"
       type: FLASHNEWS
-      external_id: "kuaixun"
+    }, {
+      name: "要闻"
+      type: KEYNEWS
     }]
   }
   task_schedule: {
