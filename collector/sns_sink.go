@@ -45,8 +45,5 @@ func (s *SnsSink) Push(msg *protocol.CrawlerMessage) error {
 		Message:  &serializedMsg,
 		TopicArn: &s.arn,
 	})
-	if err == nil {
-		Logger.Log.Info("Successfully push message into queue : ", serializedMsg)
-	}
 	return err
 }
