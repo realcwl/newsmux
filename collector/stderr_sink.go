@@ -15,6 +15,6 @@ func (s *StdErrSink) Push(msg *protocol.CrawlerMessage) error {
 	if msg == nil {
 		return nil
 	}
-	Logger.Log.Info(msg.String())
+	Logger.Log.Info("mock pushed to SNS with msg: ", msg.String())
 	return nil
 }

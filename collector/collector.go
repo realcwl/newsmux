@@ -1,8 +1,6 @@
 package collector
 
 import (
-	"time"
-
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/gocolly/colly"
 )
@@ -11,9 +9,21 @@ type CollectedDataSink interface {
 	Push(msg *protocol.CrawlerMessage) error
 }
 
+// This is the contxt we keep to be used for all the steps
+// Initialized with task and element
+// All steps can put additional information into this object to pass down to next step
+type CrawlerWorkingContext struct {
+	Task           *protocol.PanopticTask
+	Element        *colly.HTMLElement
+	OriginUrl      string
+	ExternalPostId string
+	NewsType       protocol.PanopticSubSource_SubSourceType
+	// final result of crawled message for each news
+	Result *protocol.CrawlerMessage
+}
+
 type DataCollector interface {
 	CollectAndPublish(task *protocol.PanopticTask)
-	GetMessage(task *protocol.PanopticTask, elem *colly.HTMLElement) (*protocol.CrawlerMessage, error)
 }
 
 // To make sure the interface is implemented
@@ -22,18 +32,21 @@ type DataCollector interface {
 type CrawlerCollector interface {
 	DataCollector
 
+	GetMessage(*CrawlerWorkingContext) error
+
 	// All implementation functions should output error
 	// errors will be reported for debugging
 	GetQueryPath() string
 	GetStartUri() string
-	GetContent(task *protocol.PanopticTask, elem *colly.HTMLElement) (string, error)
-	GetDedupId(task *protocol.PanopticTask, content string) (string, error)
-	GetGeneratedTime(task *protocol.PanopticTask, elem *colly.HTMLElement) (time.Time, error)
-	GetLevel(elem *colly.HTMLElement) (protocol.PanopticSubSource_SubSourceType, error)
-	GetImageUrls(task *protocol.PanopticTask, elem *colly.HTMLElement) ([]string, error)
-	GetFileUrls(task *protocol.PanopticTask, elem *colly.HTMLElement) ([]string, error)
 
-	IsRequested(task *protocol.PanopticTask, level protocol.PanopticSubSource_SubSourceType) bool
+	UpdateContent(workingContext *CrawlerWorkingContext) error
+	UpdateDedupId(workingContext *CrawlerWorkingContext) error
+	UpdateGeneratedTime(workingContext *CrawlerWorkingContext) error
+	UpdateNewsType(workingContext *CrawlerWorkingContext) error
+	UpdateImageUrls(workingContext *CrawlerWorkingContext) error
+	UpdateFileUrls(workingContext *CrawlerWorkingContext) error
+
+	IsRequested(workingContext *CrawlerWorkingContext) bool
 }
 
 type ApiCollector interface {

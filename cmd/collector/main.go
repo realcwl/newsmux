@@ -1,6 +1,7 @@
 package main
 
 import (
+	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -26,6 +27,7 @@ func HandleRequest(event model.DataCollectorRequest) (model.DataCollectorRespons
 
 	// parse job
 	job := &protocol.PanopticJob{}
+	Log.Info("Raw serialized job : ", event.SerializedJob)
 	if err := proto.Unmarshal(event.SerializedJob, job); err != nil {
 		Log.Error("Failed to parse job with error:", err)
 		return res, err
@@ -55,5 +57,6 @@ func main() {
 		panic(err)
 	}
 	Log.Info("Starting lambda handler, waiting for requests...")
-	lambda.Start(HandleRequest)
+
+	lambda.Start(ddlambda.WrapFunction(HandleRequest, nil))
 }
