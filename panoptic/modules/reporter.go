@@ -106,6 +106,8 @@ func (r *Reporter) ProcessPanopticJobs(ctx context.Context) error {
 			return err
 		}
 
+		Logger.Log.Infof("reporter received PanopticJob: %s", job.String())
+
 		r.ReportTask(&job)
 	}
 
