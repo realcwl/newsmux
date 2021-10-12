@@ -112,12 +112,17 @@ type ComplexityRoot struct {
 		Posts      func(childComplexity int) int
 		Sources    func(childComplexity int, input *model.SourcesInput) int
 		SubSources func(childComplexity int, input *model.SubsourcesInput) int
+		UserState  func(childComplexity int, input model.UserStateInput) int
 		Users      func(childComplexity int) int
 	}
 
 	SeedState struct {
 		FeedSeedState func(childComplexity int) int
 		UserSeedState func(childComplexity int) int
+	}
+
+	Signal struct {
+		SignalType func(childComplexity int) int
 	}
 
 	Source struct {
@@ -143,6 +148,7 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
+		Signal   func(childComplexity int) int
 		SyncDown func(childComplexity int, userID string) int
 	}
 
@@ -160,6 +166,10 @@ type ComplexityRoot struct {
 		AvatarURL func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Name      func(childComplexity int) int
+	}
+
+	UserState struct {
+		User func(childComplexity int) int
 	}
 }
 
@@ -186,6 +196,7 @@ type QueryResolver interface {
 	AllFeeds(ctx context.Context) ([]*model.Feed, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 	Users(ctx context.Context) ([]*model.User, error)
+	UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error)
 	Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error)
 	SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error)
 	Sources(ctx context.Context, input *model.SourcesInput) ([]*model.Source, error)
@@ -200,6 +211,7 @@ type SubSourceResolver interface {
 }
 type SubscriptionResolver interface {
 	SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error)
+	Signal(ctx context.Context) (<-chan *model.Signal, error)
 }
 type UserResolver interface {
 	DeletedAt(ctx context.Context, obj *model.User) (*time.Time, error)
@@ -583,6 +595,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.SubSources(childComplexity, args["input"].(*model.SubsourcesInput)), true
 
+	case "Query.userState":
+		if e.complexity.Query.UserState == nil {
+			break
+		}
+
+		args, err := ec.field_Query_userState_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UserState(childComplexity, args["input"].(model.UserStateInput)), true
+
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
 			break
@@ -603,6 +627,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SeedState.UserSeedState(childComplexity), true
+
+	case "Signal.signalType":
+		if e.complexity.Signal.SignalType == nil {
+			break
+		}
+
+		return e.complexity.Signal.SignalType(childComplexity), true
 
 	case "Source.createdAt":
 		if e.complexity.Source.CreatedAt == nil {
@@ -716,6 +747,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SubSource.Source(childComplexity), true
 
+	case "Subscription.signal":
+		if e.complexity.Subscription.Signal == nil {
+			break
+		}
+
+		return e.complexity.Subscription.Signal(childComplexity), true
+
 	case "Subscription.syncDown":
 		if e.complexity.Subscription.SyncDown == nil {
 			break
@@ -797,6 +835,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.UserSeedState.Name(childComplexity), true
+
+	case "UserState.user":
+		if e.complexity.UserState.User == nil {
+			break
+		}
+
+		return e.complexity.UserState.User(childComplexity), true
 
 	}
 	return 0, false
@@ -968,60 +1013,6 @@ enum Visibility {
   PRIVATE
 }
 
-# TODO(jamie): more documentations on all APIs
-type Query {
-  allFeeds: [Feed!]
-  posts: [Post!]
-  users: [User!]
-
-  # Feeds is the main API for newsfeed
-  # WARNING: if you do not pass feedUpdatedTime, your curosr/direction will be ignored
-  # WARNING: please pass the cursor based on returned posts cursor, otherwise the republish will skip some posts
-
-  # It is used to return posts for a feed
-  # It can be called with a list of following queries, each query represent a feed
-  # Caller can specify only 1 or more feeds
-
-  # FeedID          string					Feed id to fetch posts
-  # Limit           int						Max amount of posts shall the API return, at most 30
-  # Cursor          int						The cursor of the pivot post
-  # Direction       FeedRefreshDirection	NEW or OLD description below
-  # FeedUpdatedTime *time.Time				Time stamp used to represent feed version description below
-
-  # Returns: Feeds
-  # 	caller can get each feed's FeedUpdatedTime and its posts, and each post has a cursor
-
-  # How to use cursor and direction?
-  # 	Direction = NEW:    load feed new posts with cursor larger than cursor A (default -1), from newest one, no more than Limit
-  # 	Direction = OLD: load feed old posts with cursor smaller than cursor B (default -1), from newest one, no more than Limit
-
-  # 	If not specified, use NEW as direction, -1 as cursor to give newest Posts
-
-  # 	How is cursor defined:
-  # 		it is an auto-increament index Posts
-
-  # What if feed is changed, and front end doesn't know?
-  # Feed updates are not pushed to frontend, backend pass a turn-around field FeedUpdatedTime
-  # 	to frontend, and API call will carry this timestamp. Once feed is updated, API will know the
-  # 	input timestamp is not same as the updated "FeedUpdatedTime", thus, will not respect the cursor
-
-  # If frontend disconnected for a while, how do front end know it gets all posts up until latest?
-  # In this case, front end can still query {Feeds} with its stored NEWest cursor
-  # 	{Feeds} will return the most recent N post up to N=Limit
-  # 	Front end can check if the N == Limit, if so, it indicate there is very likely to be more posts
-  # 	need to be fetched. And frontend can send another {Feeds} request. It can also choose not
-  # 	to fetch so many posts.
-
-  # What if the data expression filter or subsource are changed
-  # Chaging feed is on {upsertFeed}
-  # For {feeds} we will handle on-the-fly posts re-publish, in these conditions:
-  # 1. query OLD but can't satisfy the limit
-
-  feeds(input: FeedsGetPostsInput): [Feed!]!
-  subSources(input: SubsourcesInput): [SubSource!]!
-  sources(input: SourcesInput): [Source!]
-}
-
 input SourcesInput {
   subSourceFromSharedPost: Boolean!
 }
@@ -1096,6 +1087,63 @@ input DeleteFeedInput {
   feedId: String!
 }
 
+type Query {
+  allFeeds: [Feed!]
+  posts: [Post!]
+  users: [User!]
+
+  # State is the main API to "bootstrap" application, where it fetches required
+  # states for the given input. After receiving the StateOutput, client will
+  # then make subsequent calls to request all data.
+  userState(input: UserStateInput!): UserState!
+
+  # Feeds is the main API for newsfeed
+  # WARNING: if you do not pass feedUpdatedTime, your curosr/direction will be ignored
+  # WARNING: please pass the cursor based on returned posts cursor, otherwise the republish will skip some posts
+
+  # It is used to return posts for a feed
+  # It can be called with a list of following queries, each query represent a feed
+  # Caller can specify only 1 or more feeds
+
+  # FeedID          string					Feed id to fetch posts
+  # Limit           int						Max amount of posts shall the API return, at most 30
+  # Cursor          int						The cursor of the pivot post
+  # Direction       FeedRefreshDirection	NEW or OLD description below
+  # FeedUpdatedTime *time.Time				Time stamp used to represent feed version description below
+
+  # Returns: Feeds
+  # 	caller can get each feed's FeedUpdatedTime and its posts, and each post has a cursor
+
+  # How to use cursor and direction?
+  # 	Direction = NEW:    load feed new posts with cursor larger than cursor A (default -1), from newest one, no more than Limit
+  # 	Direction = OLD: load feed old posts with cursor smaller than cursor B (default -1), from newest one, no more than Limit
+
+  # 	If not specified, use NEW as direction, -1 as cursor to give newest Posts
+
+  # 	How is cursor defined:
+  # 		it is an auto-increament index Posts
+
+  # What if feed is changed, and front end doesn't know?
+  # Feed updates are not pushed to frontend, backend pass a turn-around field FeedUpdatedTime
+  # 	to frontend, and API call will carry this timestamp. Once feed is updated, API will know the
+  # 	input timestamp is not same as the updated "FeedUpdatedTime", thus, will not respect the cursor
+
+  # If frontend disconnected for a while, how do front end know it gets all posts up until latest?
+  # In this case, front end can still query {Feeds} with its stored NEWest cursor
+  # 	{Feeds} will return the most recent N post up to N=Limit
+  # 	Front end can check if the N == Limit, if so, it indicate there is very likely to be more posts
+  # 	need to be fetched. And frontend can send another {Feeds} request. It can also choose not
+  # 	to fetch so many posts.
+
+  # What if the data expression filter or subsource are changed
+  # Chaging feed is on {upsertFeed}
+  # For {feeds} we will handle on-the-fly posts re-publish, in these conditions:
+  # 1. query OLD but can't satisfy the limit
+  feeds(input: FeedsGetPostsInput): [Feed!]!
+  subSources(input: SubsourcesInput): [SubSource!]!
+  sources(input: SourcesInput): [Source!]
+}
+
 type Mutation {
   createUser(input: NewUserInput!): User!
   upsertFeed(input: UpsertFeedInput!): Feed!
@@ -1111,7 +1159,14 @@ type Mutation {
 }
 
 type Subscription {
+  # DEPRACATED - New code should not rely on this API! It's waiting to be
+  # removed.
   syncDown(userId: String!): SeedState!
+
+  # Subscribe to signals sending from server side. Client side should handle
+  # signals properly. The first time this is called will always return
+  # SEED_STATE signal.
+  signal: Signal!
 }
 
 scalar Time
@@ -1126,6 +1181,18 @@ input SeedStateInput {
   feedSeedState: [FeedSeedStateInput!]!
 }
 `, BuiltIn: false},
+	{Name: "graph/signal.graphqls", Input: `# Each SignalType instruct the client side application to do some certain thing.
+enum SignalType {
+  # Instruct client side to pull seed state. This is the first signal send to
+  # client side application.
+  SEED_STATE
+}
+
+type Signal @goModel(model: "model.Signal") {
+  signalType: SignalType!
+  # Some signal also need params, adding all custom params below this line.
+}
+`, BuiltIn: false},
 	{Name: "graph/source.graphqls", Input: `type Source @goModel(model: "model.Source") {
   id: String!
   createdAt: Time!
@@ -1134,6 +1201,14 @@ input SeedStateInput {
   name: String!
   domain: String
   subsources: [SubSource!]!
+}
+`, BuiltIn: false},
+	{Name: "graph/state.graphqls", Input: `input UserStateInput {
+  userId: String!
+}
+
+type UserState @goModel(model: "model.UserState") {
+  user: User
 }
 `, BuiltIn: false},
 	{Name: "graph/subsource.graphqls", Input: `type SubSource @goModel(model: "model.SubSource") {
@@ -1355,6 +1430,21 @@ func (ec *executionContext) field_Query_subSources_args(ctx context.Context, raw
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalOSubsourcesInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubsourcesInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_userState_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UserStateInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUserStateInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserStateInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2909,6 +2999,48 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 	return ec.marshalOUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_userState(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_userState_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().UserState(rctx, args["input"].(model.UserStateInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.UserState)
+	fc.Result = res
+	return ec.marshalNUserState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserState(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3171,6 +3303,41 @@ func (ec *executionContext) _SeedState_feedSeedState(ctx context.Context, field 
 	res := resTmp.([]*model.FeedSeedState)
 	fc.Result = res
 	return ec.marshalNFeedSeedState2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedStateᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Signal_signalType(ctx context.Context, field graphql.CollectedField, obj *model.Signal) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Signal",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SignalType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.SignalType)
+	fc.Result = res
+	return ec.marshalNSignalType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignalType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Source_id(ctx context.Context, field graphql.CollectedField, obj *model.Source) (ret graphql.Marshaler) {
@@ -3773,6 +3940,51 @@ func (ec *executionContext) _Subscription_syncDown(ctx context.Context, field gr
 	}
 }
 
+func (ec *executionContext) _Subscription_signal(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().Signal(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.Signal)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalNSignal2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignal(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4115,6 +4327,38 @@ func (ec *executionContext) _UserSeedState_avatarUrl(ctx context.Context, field 
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserState_user(ctx context.Context, field graphql.CollectedField, obj *model.UserState) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserState",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -5785,6 +6029,29 @@ func (ec *executionContext) unmarshalInputUserSeedStateInput(ctx context.Context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUserStateInput(ctx context.Context, obj interface{}) (model.UserStateInput, error) {
+	var it model.UserStateInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "userId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -6208,6 +6475,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_users(ctx, field)
 				return res
 			})
+		case "userState":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userState(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "feeds":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -6280,6 +6561,33 @@ func (ec *executionContext) _SeedState(ctx context.Context, sel ast.SelectionSet
 			}
 		case "feedSeedState":
 			out.Values[i] = ec._SeedState_feedSeedState(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var signalImplementors = []string{"Signal"}
+
+func (ec *executionContext) _Signal(ctx context.Context, sel ast.SelectionSet, obj *model.Signal) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, signalImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Signal")
+		case "signalType":
+			out.Values[i] = ec._Signal_signalType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6448,6 +6756,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "syncDown":
 		return ec._Subscription_syncDown(ctx, fields[0])
+	case "signal":
+		return ec._Subscription_signal(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -6539,6 +6849,30 @@ func (ec *executionContext) _UserSeedState(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var userStateImplementors = []string{"UserState"}
+
+func (ec *executionContext) _UserState(ctx context.Context, sel ast.SelectionSet, obj *model.UserState) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userStateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserState")
+		case "user":
+			out.Values[i] = ec._UserState_user(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7111,6 +7445,30 @@ func (ec *executionContext) marshalNSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnew
 	return ec._SeedState(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNSignal2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignal(ctx context.Context, sel ast.SelectionSet, v model.Signal) graphql.Marshaler {
+	return ec._Signal(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSignal2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignal(ctx context.Context, sel ast.SelectionSet, v *model.Signal) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Signal(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSignalType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignalType(ctx context.Context, v interface{}) (model.SignalType, error) {
+	var res model.SignalType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSignalType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignalType(ctx context.Context, sel ast.SelectionSet, v model.SignalType) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNSource2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSource(ctx context.Context, sel ast.SelectionSet, v model.Source) graphql.Marshaler {
 	return ec._Source(ctx, sel, &v)
 }
@@ -7379,6 +7737,25 @@ func (ec *executionContext) marshalNUserSeedState2ᚖgithubᚗcomᚋLuismorlan�
 func (ec *executionContext) unmarshalNUserSeedStateInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserSeedStateInput(ctx context.Context, v interface{}) (*model.UserSeedStateInput, error) {
 	res, err := ec.unmarshalInputUserSeedStateInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUserState2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserState(ctx context.Context, sel ast.SelectionSet, v model.UserState) graphql.Marshaler {
+	return ec._UserState(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserState(ctx context.Context, sel ast.SelectionSet, v *model.UserState) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._UserState(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUserStateInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserStateInput(ctx context.Context, v interface{}) (model.UserStateInput, error) {
+	res, err := ec.unmarshalInputUserStateInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx context.Context, v interface{}) (model.Visibility, error) {
@@ -7998,6 +8375,13 @@ func (ec *executionContext) marshalOUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsm
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

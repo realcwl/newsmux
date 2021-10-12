@@ -1,0 +1,11 @@
+# Each SignalType instruct the client side application to do some certain thing.
+enum SignalType {
+  # Instruct client side to pull seed state. This is the first signal send to
+  # client side application.
+  SEED_STATE
+}
+
+type Signal @goModel(model: "model.Signal") {
+  signalType: SignalType!
+  # Some signal also need params, adding all custom params below this line.
+}

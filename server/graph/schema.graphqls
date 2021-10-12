@@ -10,60 +10,6 @@ enum Visibility {
   PRIVATE
 }
 
-# TODO(jamie): more documentations on all APIs
-type Query {
-  allFeeds: [Feed!]
-  posts: [Post!]
-  users: [User!]
-
-  # Feeds is the main API for newsfeed
-  # WARNING: if you do not pass feedUpdatedTime, your curosr/direction will be ignored
-  # WARNING: please pass the cursor based on returned posts cursor, otherwise the republish will skip some posts
-
-  # It is used to return posts for a feed
-  # It can be called with a list of following queries, each query represent a feed
-  # Caller can specify only 1 or more feeds
-
-  # FeedID          string					Feed id to fetch posts
-  # Limit           int						Max amount of posts shall the API return, at most 30
-  # Cursor          int						The cursor of the pivot post
-  # Direction       FeedRefreshDirection	NEW or OLD description below
-  # FeedUpdatedTime *time.Time				Time stamp used to represent feed version description below
-
-  # Returns: Feeds
-  # 	caller can get each feed's FeedUpdatedTime and its posts, and each post has a cursor
-
-  # How to use cursor and direction?
-  # 	Direction = NEW:    load feed new posts with cursor larger than cursor A (default -1), from newest one, no more than Limit
-  # 	Direction = OLD: load feed old posts with cursor smaller than cursor B (default -1), from newest one, no more than Limit
-
-  # 	If not specified, use NEW as direction, -1 as cursor to give newest Posts
-
-  # 	How is cursor defined:
-  # 		it is an auto-increament index Posts
-
-  # What if feed is changed, and front end doesn't know?
-  # Feed updates are not pushed to frontend, backend pass a turn-around field FeedUpdatedTime
-  # 	to frontend, and API call will carry this timestamp. Once feed is updated, API will know the
-  # 	input timestamp is not same as the updated "FeedUpdatedTime", thus, will not respect the cursor
-
-  # If frontend disconnected for a while, how do front end know it gets all posts up until latest?
-  # In this case, front end can still query {Feeds} with its stored NEWest cursor
-  # 	{Feeds} will return the most recent N post up to N=Limit
-  # 	Front end can check if the N == Limit, if so, it indicate there is very likely to be more posts
-  # 	need to be fetched. And frontend can send another {Feeds} request. It can also choose not
-  # 	to fetch so many posts.
-
-  # What if the data expression filter or subsource are changed
-  # Chaging feed is on {upsertFeed}
-  # For {feeds} we will handle on-the-fly posts re-publish, in these conditions:
-  # 1. query OLD but can't satisfy the limit
-
-  feeds(input: FeedsGetPostsInput): [Feed!]!
-  subSources(input: SubsourcesInput): [SubSource!]!
-  sources(input: SourcesInput): [Source!]
-}
-
 input SourcesInput {
   subSourceFromSharedPost: Boolean!
 }
@@ -138,6 +84,63 @@ input DeleteFeedInput {
   feedId: String!
 }
 
+type Query {
+  allFeeds: [Feed!]
+  posts: [Post!]
+  users: [User!]
+
+  # State is the main API to "bootstrap" application, where it fetches required
+  # states for the given input. After receiving the StateOutput, client will
+  # then make subsequent calls to request all data.
+  userState(input: UserStateInput!): UserState!
+
+  # Feeds is the main API for newsfeed
+  # WARNING: if you do not pass feedUpdatedTime, your curosr/direction will be ignored
+  # WARNING: please pass the cursor based on returned posts cursor, otherwise the republish will skip some posts
+
+  # It is used to return posts for a feed
+  # It can be called with a list of following queries, each query represent a feed
+  # Caller can specify only 1 or more feeds
+
+  # FeedID          string					Feed id to fetch posts
+  # Limit           int						Max amount of posts shall the API return, at most 30
+  # Cursor          int						The cursor of the pivot post
+  # Direction       FeedRefreshDirection	NEW or OLD description below
+  # FeedUpdatedTime *time.Time				Time stamp used to represent feed version description below
+
+  # Returns: Feeds
+  # 	caller can get each feed's FeedUpdatedTime and its posts, and each post has a cursor
+
+  # How to use cursor and direction?
+  # 	Direction = NEW:    load feed new posts with cursor larger than cursor A (default -1), from newest one, no more than Limit
+  # 	Direction = OLD: load feed old posts with cursor smaller than cursor B (default -1), from newest one, no more than Limit
+
+  # 	If not specified, use NEW as direction, -1 as cursor to give newest Posts
+
+  # 	How is cursor defined:
+  # 		it is an auto-increament index Posts
+
+  # What if feed is changed, and front end doesn't know?
+  # Feed updates are not pushed to frontend, backend pass a turn-around field FeedUpdatedTime
+  # 	to frontend, and API call will carry this timestamp. Once feed is updated, API will know the
+  # 	input timestamp is not same as the updated "FeedUpdatedTime", thus, will not respect the cursor
+
+  # If frontend disconnected for a while, how do front end know it gets all posts up until latest?
+  # In this case, front end can still query {Feeds} with its stored NEWest cursor
+  # 	{Feeds} will return the most recent N post up to N=Limit
+  # 	Front end can check if the N == Limit, if so, it indicate there is very likely to be more posts
+  # 	need to be fetched. And frontend can send another {Feeds} request. It can also choose not
+  # 	to fetch so many posts.
+
+  # What if the data expression filter or subsource are changed
+  # Chaging feed is on {upsertFeed}
+  # For {feeds} we will handle on-the-fly posts re-publish, in these conditions:
+  # 1. query OLD but can't satisfy the limit
+  feeds(input: FeedsGetPostsInput): [Feed!]!
+  subSources(input: SubsourcesInput): [SubSource!]!
+  sources(input: SourcesInput): [Source!]
+}
+
 type Mutation {
   createUser(input: NewUserInput!): User!
   upsertFeed(input: UpsertFeedInput!): Feed!
@@ -149,11 +152,19 @@ type Mutation {
 
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
+
   syncUp(input: SeedStateInput): SeedState
 }
 
 type Subscription {
+  # DEPRACATED - New code should not rely on this API! It's waiting to be
+  # removed. This is to be replaced with (signal + userState)
   syncDown(userId: String!): SeedState!
+
+  # Subscribe to signals sending from server side. Client side should handle
+  # signals properly. The first time this is called will always return
+  # SEED_STATE signal.
+  signal: Signal!
 }
 
 scalar Time
