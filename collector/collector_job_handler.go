@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/Luismorlan/newsmux/utils/flag"
+	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
@@ -24,7 +24,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	}
 	Logger.Log.Info("ip address", ip)
 
-	if flag.IsDevelopment {
+	if !utils.IsProdEnv() {
 		sink = NewStdErrSink()
 	} else {
 		sink, err = NewSnsSink()

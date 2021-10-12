@@ -7,6 +7,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	ProdEnv = "prod"
+)
+
 // Load loads the .env file following the convention: https://github.com/bkeepers/dotenv#what-other-env-files-can-i-use
 // It only need to be called once in main function, other code can use env through os.Getenv('ENV_NAME') during runtime
 func LoadDotEnvs() error {

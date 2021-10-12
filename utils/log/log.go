@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/Luismorlan/newsmux/utils/flag"
 	ddhook "github.com/bin3377/logrus-datadog-hook"
 	"github.com/sirupsen/logrus"
@@ -44,6 +45,6 @@ func initLogger() {
 	logger.SetOutput(os.Stderr)
 
 	Log = logger.WithFields(
-		logrus.Fields{"service": flag.ServiceName, "is_development": flag.IsDevelopment},
+		logrus.Fields{"service": flag.ServiceName, "is_development": os.Getenv("NEWSMUX_ENV") != dotenv.ProdEnv},
 	)
 }

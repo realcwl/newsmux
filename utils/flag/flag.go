@@ -23,8 +23,7 @@ const (
 )
 
 var (
-	IsDevelopment bool
-	ServiceName   string
+	ServiceName string
 	// if true, no authentication will be performed for the incoming request
 	ByPassAuth bool
 )
@@ -36,7 +35,6 @@ func init() {
 	// Temporary init testing before flag.Parse
 	testing.Init()
 
-	flag.BoolVar(&IsDevelopment, "dev", true, "set to true if the current run is for development. default value is true")
 	flag.StringVar(&ServiceName, "service", APIServer, "'api_server' or 'feed_publisher'")
 	flag.BoolVar(&ByPassAuth, "no_auth", false, "set to true if local development")
 	flag.Parse()

@@ -10,7 +10,7 @@ func init() {
 	// Datadog tracer
 
 	env := "development"
-	if !IsDevelopment {
+	if IsProdEnv() {
 		env = "production"
 	}
 
