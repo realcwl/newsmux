@@ -1,8 +1,10 @@
 SRC=$(shell find . -name "*.go")
 .PHONY: fmt install_deps run_dev run_test run_prod
 
-IMAGE_NAME = data_collector
-ECR_ARN = 213288384225.dkr.ecr.us-west-1.amazonaws.com/data_collector
+PROD_COLLECTOR_IMAGE_NAME = data_collector
+TEST_COLLECTOR_IMAGE_NAME = data_collector_test
+PROD_ECR_ARN = 213288384225.dkr.ecr.us-west-1.amazonaws.com/data_collector
+TEST_ECR_ARN = 213288384225.dkr.ecr.us-west-1.amazonaws.com/data_collector_test
 
 install_deps:
 	$(info ******************** downloading dependencies ********************)
@@ -26,15 +28,22 @@ run_devpublisher:
 
 run_collector_lambda_locally:
 	$(info ******************** running dev collector ********************)
-	docker build -t $(IMAGE_NAME) -f cmd/collector/Dockerfile .
-	docker run --env _LAMBDA_SERVER_PORT=9000 --env AWS_LAMBDA_RUNTIME_API=localhost --env NEWSMUX_ENV=dev -p 9000:8080 $(IMAGE_NAME)
+	docker build -t $(PROD_COLLECTOR_IMAGE_NAME) -f cmd/collector/Dockerfile .
+	docker run --env _LAMBDA_SERVER_PORT=9000 --env AWS_LAMBDA_RUNTIME_API=localhost --env NEWSMUX_ENV=dev -p 9000:8080 $(PROD_COLLECTOR_IMAGE_NAME)
 
 build_collector_and_push_image:
 	$(info ******************** building and push collector image to ECR ********************)
-	aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin $(ECR_ARN)
-	docker build -t $(IMAGE_NAME) -f cmd/collector/Dockerfile .
-	docker tag $(IMAGE_NAME):latest $(ECR_ARN):latest
-	docker push $(ECR_ARN):latest
+	aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin $(PROD_ECR_ARN)
+	docker build -t $(PROD_COLLECTOR_IMAGE_NAME) -f cmd/collector/Dockerfile .
+	docker tag $(PROD_COLLECTOR_IMAGE_NAME):latest $(PROD_ECR_ARN):latest
+	docker push $(PROD_ECR_ARN):latest
+
+test_build_collector_and_push_image:
+	$(info ******************** building and push collector image to ECR ********************)
+	aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin $(TEST_ECR_ARN)
+	docker build -t $(TEST_COLLECTOR_IMAGE_NAME) -f cmd/collector/Dockerfile .
+	docker tag $(TEST_COLLECTOR_IMAGE_NAME):latest $(TEST_ECR_ARN):latest
+	docker push $(TEST_ECR_ARN):latest
 
 run_panoptic:
 	$(info ******************** running dev panoptic ********************)
