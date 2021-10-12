@@ -234,7 +234,7 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 		if err = collector.sink.Push(workingContext.Result); err != nil {
 			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 			metadata.TotalMessageFailed++
-			Logger.Log.Errorf("fail to publish message %s to SNS. Task: %s", workingContext.Result.String(), task.String())
+			Logger.Log.Errorf("fail to publish message %s to SNS. Task: %s, Error: %s", workingContext.Result.String(), task.String(), err)
 			return
 		}
 		metadata.TotalMessageCollected++

@@ -40,10 +40,13 @@ func (s *SnsSink) Push(msg *protocol.CrawlerMessage) error {
 		return nil
 	}
 	serializedMsg := msg.String()
+	messageGroup := "global_queue"
 	// ignore the returned seq number for FIFO
 	_, err := s.client.Publish(&sns.PublishInput{
-		Message:  &serializedMsg,
-		TopicArn: &s.arn,
+		Message:                &serializedMsg,
+		TopicArn:               &s.arn,
+		MessageGroupId:         &messageGroup,
+		MessageDeduplicationId: &msg.Post.DeduplicateId,
 	})
 	return err
 }
