@@ -79,11 +79,23 @@ func ReportTaskMessages(task *protocol.PanopticTask, statsdClient *statsd.Client
 	}
 }
 
+// Report how many seconds the given task took to execute.
+func ReportTaskExecutionTime(task *protocol.PanopticTask, statsdClient *statsd.Client) {
+	statsdClient.Distribution(panoptic.DDOG_TASK_EXECUTION_TIME_DISTRIBUTION,
+		float64(task.TaskMetadata.TaskEndTime.Seconds-task.TaskMetadata.TaskStartTime.Seconds),
+		[]string{
+			task.TaskMetadata.ConfigName,
+			task.DataCollectorId.String(),
+			task.TaskMetadata.ResultState.String(),
+		}, 1)
+}
+
 // Report task level tracking information.
 func (r *Reporter) ReportTask(job *protocol.PanopticJob) {
 	for _, task := range job.Tasks {
 		ReportTaskResultState(task, r.Statsd)
 		ReportTaskMessages(task, r.Statsd)
+		ReportTaskExecutionTime(task, r.Statsd)
 	}
 }
 

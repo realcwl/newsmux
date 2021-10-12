@@ -10,9 +10,10 @@ const (
 	AWS_REGION           = "us-west-1"
 
 	// Datadog related
-	DDOG_TASK_STATE_COUNTER           = "task_state_counter"
-	DDOG_TASK_SUCCESS_MESSAGE_COUNTER = "task_crawled_message_counter"
-	DDOG_TASK_FAILURE_MESSAGE_COUNTER = "task_failure_message_counter"
+	DDOG_TASK_STATE_COUNTER               = "task_state_counter"
+	DDOG_TASK_SUCCESS_MESSAGE_COUNTER     = "task_crawled_message_counter"
+	DDOG_TASK_FAILURE_MESSAGE_COUNTER     = "task_failure_message_counter"
+	DDOG_TASK_EXECUTION_TIME_DISTRIBUTION = "task_execution_time_distribution"
 )
 
 type LambdaExecutorState int64
