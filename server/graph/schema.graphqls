@@ -92,6 +92,7 @@ type Query {
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
+  # UserState will substitute syncDown as the mechanism for fetching SeedState.
   userState(input: UserStateInput!): UserState!
 
   # Feeds is the main API for newsfeed
