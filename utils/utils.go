@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"math/rand"
 	"os"
@@ -109,4 +111,13 @@ func GetRandomNumberInRangeStandardDeviation(mean float64, radius float64) float
 
 func IsProdEnv() bool {
 	return os.Getenv("NEWSMUX_ENV") == dotenv.ProdEnv
+}
+
+func TextToMd5Hash(input string) (string, error) {
+	hasher := md5.New()
+	_, err := hasher.Write([]byte(input))
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }

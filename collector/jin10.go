@@ -1,14 +1,13 @@
 package collector
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
@@ -99,12 +98,11 @@ func (collector Jin10Crawler) UpdateExternalPostId(workingContext *CrawlerWorkin
 }
 
 func (collector Jin10Crawler) UpdateDedupId(workingContext *CrawlerWorkingContext) error {
-	hasher := md5.New()
-	_, err := hasher.Write([]byte(workingContext.ExternalPostId))
+	md5, err := utils.TextToMd5Hash(workingContext.ExternalPostId)
 	if err != nil {
 		return err
 	}
-	workingContext.Result.Post.DeduplicateId = hex.EncodeToString(hasher.Sum(nil))
+	workingContext.Result.Post.DeduplicateId = md5
 	return nil
 }
 

@@ -9,6 +9,10 @@ type CollectedDataSink interface {
 	Push(msg *protocol.CrawlerMessage) error
 }
 
+type CollectedFileStore interface {
+	FetchAndStore(url string) error
+}
+
 // This is the contxt we keep to be used for all the steps
 // Initialized with task and element
 // All steps can put additional information into this object to pass down to next step

@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	testArn = "arn:aws:sns:us-west-1:213288384225:test_sns"
-	prodArn = "arn:aws:sns:us-west-1:213288384225:newsfeed.fifo"
+	testSnsArn = "arn:aws:sns:us-west-1:213288384225:test_sns"
+	prodSnsArn = "arn:aws:sns:us-west-1:213288384225:newsfeed.fifo"
 )
 
 type SnsSink struct {
@@ -29,7 +29,7 @@ func NewSnsSink() (*SnsSink, error) {
 	svc := sns.New(sess)
 
 	return &SnsSink{
-		arn:    prodArn,
+		arn:    prodSnsArn,
 		client: svc,
 	}, nil
 }
