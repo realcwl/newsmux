@@ -320,6 +320,10 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return users, result.Error
 }
 
+func (r *queryResolver) UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error) {
 	feedRefreshInputs := input.FeedRefreshInputs
 	if len(feedRefreshInputs) == 0 {
@@ -362,6 +366,10 @@ func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-c
 	r.SeedStateChans.PushSeedStateToSingleChannelForUser(ss, chId, userID)
 
 	return ch, nil
+}
+
+func (r *subscriptionResolver) Signal(ctx context.Context) (<-chan *model.Signal, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.

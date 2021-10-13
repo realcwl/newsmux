@@ -1,0 +1,7 @@
+input UserStateInput {
+  userId: String!
+}
+
+type UserState @goModel(model: "model.UserState") {
+  user: User
+}
