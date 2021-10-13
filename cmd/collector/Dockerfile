@@ -13,14 +13,15 @@ RUN go mod download
 
 # build
 ADD . .
-RUN go build -o /main cmd/collector/main.go
+RUN GOOS=linux GOARCH=amd64 go build -o /main cmd/collector/main.go
 
 # copy artifacts to a clean image
 FROM public.ecr.aws/lambda/provided:al2
 COPY --from=build /main /main
 
-ENV NEWSMUX_ENV="prod"
+ARG ENV_ARG
+ENV NEWSMUX_ENV=${ENV_ARG}
 
 # switch to prod when roll out to prod
 # dev will send all msgs into stderr
-ENTRYPOINT [ "/main", "-dev=false", "-service=collector" ]
+ENTRYPOINT [ "/main", "-service=collector" ]

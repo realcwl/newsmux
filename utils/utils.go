@@ -3,11 +3,13 @@ package utils
 import (
 	"encoding/json"
 	"math/rand"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/pkg/errors"
 	"gonum.org/v1/gonum/stat/distuv"
 )
@@ -103,4 +105,8 @@ func GetRandomNumberInRangeStandardDeviation(mean float64, radius float64) float
 			return num*radius/deviation + mean
 		}
 	}
+}
+
+func IsProdEnv() bool {
+	return os.Getenv("NEWSMUX_ENV") == dotenv.ProdEnv
 }

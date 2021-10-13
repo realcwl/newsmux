@@ -4,9 +4,9 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Luismorlan/newsmux/server"
 	"github.com/Luismorlan/newsmux/server/middlewares"
+	"github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
-	"github.com/Luismorlan/newsmux/utils/flag"
 	. "github.com/Luismorlan/newsmux/utils/flag"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gin-contrib/cors"
@@ -50,7 +50,7 @@ func main() {
 	router.GET("/api/healthcheck", server.HealthcheckHandler())
 
 	// Setup graphql playground for debugging
-	if flag.IsDevelopment {
+	if !utils.IsProdEnv() {
 		router.GET("/playground", func(c *gin.Context) {
 			playground.Handler("GraphQL", "/api/graphql").ServeHTTP(c.Writer, c.Request)
 		})
