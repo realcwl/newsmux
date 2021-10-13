@@ -25,6 +25,7 @@ func PrepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &Resolver{
 		DB:             db,
 		SeedStateChans: NewSeedStateChannels(),
+		SignalChans:    NewSignalChannels(),
 	}})))
 	return client
 }
@@ -250,7 +251,7 @@ func checkFeedPosts(
 		  updatedAt
 		  posts {
 			id
-			title 
+			title
 			content
 			cursor
 		  }
@@ -304,7 +305,7 @@ func checkFeedTopPostsMultipleFeeds(
 		  updatedAt
 		  posts {
 			id
-			title 
+			title
 			content
 			cursor
 		  }
@@ -357,7 +358,7 @@ func checkFeedBottomPostsMultipleFeeds(
 		  updatedAt
 		  posts {
 			id
-			title 
+			title
 			content
 			cursor
 		  }
@@ -403,7 +404,7 @@ func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne 
 		  updatedAt
 		  posts {
 			id
-			title 
+			title
 			content
 			cursor
 		  }
@@ -461,7 +462,7 @@ func checkFeedTopPostsUpdateTimeChanged(t *testing.T, userId string, feedId stri
 			  updatedAt
 			  posts {
 				id
-				title 
+				title
 				content
 				cursor
 			  }
@@ -615,4 +616,18 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
 			[]string{postCommnetId}, db, client)
 	})
+}
+
+func TestUserState(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	client := PrepareTestForGraphQLAPIs(db)
+
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "default_user_id", db, client)
+	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
+	feedIdTwo, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+	utils.TestUserSubscribeFeedAndValidate(t, userId, feedIdOne, db, client)
+	utils.TestUserSubscribeFeedAndValidate(t, userId, feedIdTwo, db, client)
+
+	utils.TestQueryUserState(t, userId, []string{feedIdOne, feedIdTwo}, client)
 }

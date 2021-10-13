@@ -148,7 +148,7 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		Signal   func(childComplexity int) int
+		Signal   func(childComplexity int, userID string) int
 		SyncDown func(childComplexity int, userID string) int
 	}
 
@@ -211,7 +211,7 @@ type SubSourceResolver interface {
 }
 type SubscriptionResolver interface {
 	SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error)
-	Signal(ctx context.Context) (<-chan *model.Signal, error)
+	Signal(ctx context.Context, userID string) (<-chan *model.Signal, error)
 }
 type UserResolver interface {
 	DeletedAt(ctx context.Context, obj *model.User) (*time.Time, error)
@@ -752,7 +752,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Subscription.Signal(childComplexity), true
+		args, err := ec.field_Subscription_signal_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.Signal(childComplexity, args["userId"].(string)), true
 
 	case "Subscription.syncDown":
 		if e.complexity.Subscription.SyncDown == nil {
@@ -1095,6 +1100,7 @@ type Query {
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
+  # UserState will substitute syncDown as the mechanism for fetching SeedState.
   userState(input: UserStateInput!): UserState!
 
   # Feeds is the main API for newsfeed
@@ -1155,18 +1161,19 @@ type Mutation {
 
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
+
   syncUp(input: SeedStateInput): SeedState
 }
 
 type Subscription {
   # DEPRACATED - New code should not rely on this API! It's waiting to be
-  # removed.
+  # removed. This is to be replaced with (signal + userState)
   syncDown(userId: String!): SeedState!
 
   # Subscribe to signals sending from server side. Client side should handle
   # signals properly. The first time this is called will always return
   # SEED_STATE signal.
-  signal: Signal!
+  signal(userId: String!): Signal!
 }
 
 scalar Time
@@ -1201,14 +1208,6 @@ type Signal @goModel(model: "model.Signal") {
   name: String!
   domain: String
   subsources: [SubSource!]!
-}
-`, BuiltIn: false},
-	{Name: "graph/state.graphqls", Input: `input UserStateInput {
-  userId: String!
-}
-
-type UserState @goModel(model: "model.UserState") {
-  user: User
 }
 `, BuiltIn: false},
 	{Name: "graph/subsource.graphqls", Input: `type SubSource @goModel(model: "model.SubSource") {
@@ -1249,6 +1248,14 @@ interface UserSeedStateInterface {
   id: String!
   name: String!
   avatarUrl: String!
+}
+`, BuiltIn: false},
+	{Name: "graph/userState.graphqls", Input: `input UserStateInput {
+  userId: String!
+}
+
+type UserState @goModel(model: "model.UserState") {
+  user: User
 }
 `, BuiltIn: false},
 }
@@ -1450,6 +1457,21 @@ func (ec *executionContext) field_Query_userState_args(ctx context.Context, rawA
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_signal_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -3956,9 +3978,16 @@ func (ec *executionContext) _Subscription_signal(ctx context.Context, field grap
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_signal_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().Signal(rctx)
+		return ec.resolvers.Subscription().Signal(rctx, args["userId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

@@ -13,4 +13,5 @@ const (
 type Resolver struct {
 	DB             *gorm.DB
 	SeedStateChans *SeedStateChannels
+	SignalChans    *SignalChannels
 }
