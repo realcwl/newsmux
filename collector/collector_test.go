@@ -212,7 +212,6 @@ func TestJin10CollectorHandler(t *testing.T) {
 	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
-	require.Equal(t, job.Tasks[0].TaskMetadata.ResultState, protocol.TaskMetadata_STATE_SUCCESS)
 }
 
 func TestIpAddressFetch(t *testing.T) {
