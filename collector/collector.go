@@ -62,3 +62,8 @@ type RssCollector interface {
 	DataCollector
 	// TODO: implement rss collector
 }
+
+// Shared Func type for file stores
+type ProcessUrlBeforeFetchFuncType func(string) string
+type CustomizeFileNameFuncType func(string) string
+type CustomizeFileExtFuncType func(string) string
