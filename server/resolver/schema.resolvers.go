@@ -247,9 +247,28 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 		return nil, result.Error
 	}
 
-	// The join table is ready after this associate, do not need to do for feed model
-	// Doing that will change the UpdateTime, which is not expected and breaks when feed setting is updated
-	if err := r.DB.Model(&user).Association("SubscribedFeeds").Append(&feed); err != nil {
+	count := r.DB.Model(&user).Association("SubscribedFeeds").Count()
+
+	if err := r.DB.Transaction(
+		func(tx *gorm.DB) error {
+			// The join table is ready after this associate, do not need to do for
+			// feed model. Doing that will change the UpdateTime, which is not
+			// expected and breaks when feed setting is updated
+			if err := r.DB.Model(&user).
+				Association("SubscribedFeeds").
+				Append(&feed); err != nil {
+				return err
+			}
+			// The newly subscribed feed must be at the last order, instead of using
+			// order_in_panel == 0
+			if err := r.DB.Model(&model.UserFeedSubscription{}).
+				Where("user_id = ? AND feed_id = ?", userId, feedId).
+				Update("order_in_panel", count).Error; err != nil {
+				return err
+			}
+			// return nil will commit the whole transaction
+			return nil
+		}); err != nil {
 		return nil, err
 	}
 

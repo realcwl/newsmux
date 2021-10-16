@@ -149,9 +149,24 @@ func TestUserSubscribeFeed(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
-		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
+		userId := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
+		feedId1, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+		utils.TestUserSubscribeFeedAndValidate(t, userId, feedId1, db, client)
+		// Validate the first Feed's order
+		subscription1 := &model.UserFeedSubscription{}
+		db.Model(&model.UserFeedSubscription{}).
+			Where("user_id = ? AND feed_id = ?", userId, feedId1).
+			First(subscription1)
+		require.Equal(t, subscription1.OrderInPanel, 0)
+
+		feedId2, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+		utils.TestUserSubscribeFeedAndValidate(t, userId, feedId2, db, client)
+		// Validate the second Feed's order
+		subscription2 := &model.UserFeedSubscription{}
+		db.Model(&model.UserFeedSubscription{}).
+			Where("user_id = ? AND feed_id = ?", userId, feedId2).
+			First(subscription2)
+		require.Equal(t, subscription2.OrderInPanel, 1)
 	})
 }
 
