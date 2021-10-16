@@ -321,9 +321,9 @@ func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInp
 	return ss, err
 }
 
-func (r *queryResolver) AllFeeds(ctx context.Context) ([]*model.Feed, error) {
+func (r *queryResolver) AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
-	result := r.DB.Preload(clause.Associations).Find(&feeds)
+	result := r.DB.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds)
 	return feeds, result.Error
 }
 
