@@ -24,7 +24,6 @@ func TestMain(m *testing.M) {
 func PrepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &Resolver{
 		DB:             db,
-		SeedStateChans: NewSeedStateChannels(),
 		SignalChans:    NewSignalChannels(),
 	}})))
 	return client

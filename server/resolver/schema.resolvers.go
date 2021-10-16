@@ -159,12 +159,10 @@ func (r *mutationResolver) DeleteFeed(ctx context.Context, input model.DeleteFee
 	}
 
 	// Feed deletion updates seed state.
-	ss, err := getSeedStateById(r.DB, input.UserID)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(r.SeedStateChans)
-	go func() { r.SeedStateChans.PushSeedStateToUser(ss, input.UserID) }()
+	go func() {
+		r.SignalChans.PushSignalToUser(&model.Signal{
+			SignalType: model.SignalTypeSeedState}, input.UserID)
+	}()
 
 	return &feed, nil
 }
@@ -316,7 +314,11 @@ func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInp
 	}
 
 	// Asynchronously push to user's all other channels.
-	go func() { r.SeedStateChans.PushSeedStateToUser(ss, input.UserSeedState.ID) }()
+	// Feed deletion updates seed state.
+	go func() {
+		r.SignalChans.PushSignalToUser(&model.Signal{
+			SignalType: model.SignalTypeSeedState}, input.UserSeedState.ID)
+	}()
 
 	return ss, err
 }
@@ -391,18 +393,6 @@ func (r *queryResolver) Sources(ctx context.Context, input *model.SourcesInput) 
 	var sources []*model.Source
 	result := r.DB.Preload("SubSources", "is_from_shared_post = ?", input.SubSourceFromSharedPost).Find(&sources)
 	return sources, result.Error
-}
-
-func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error) {
-	ss, err := getSeedStateById(r.DB, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	ch, chId := r.SeedStateChans.AddNewConnection(ctx, userID)
-	r.SeedStateChans.PushSeedStateToSingleChannelForUser(ss, chId, userID)
-
-	return ch, nil
 }
 
 func (r *subscriptionResolver) Signal(ctx context.Context, userID string) (<-chan *model.Signal, error) {
