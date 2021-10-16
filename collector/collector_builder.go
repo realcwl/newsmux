@@ -7,12 +7,10 @@ func (CollectorBuilder) NewJin10Crawler(s CollectedDataSink) CrawlerCollector {
 	return &Jin10Crawler{sink: s}
 }
 
-// // API Collectors
-// func (CollectorBuilder) NewKuailansiCrawler(s CollectedDataSink) ApiCollector {
-// 	return &SomeAPICollector{sink: s}
-// }
+func (CollectorBuilder) NewWeiboApiCollector(s CollectedDataSink, store CollectedFileStore) ApiCollector {
+	return &WeiboApiCollector{sink: s, imageStore: store}
+}
 
-// // RSS Collectors
-// func (CollectorBuilder) NewXXXXCrawler(s CollectedDataSink) RssCollector {
-// 	return &SomeRssCollector{sink: s}
+// func (CollectorBuilder) NewKuailansiCrawler(s CollectedDataSink) RssCollector {
+// 	return &SomeAPICollector{sink: s}
 // }

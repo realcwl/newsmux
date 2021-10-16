@@ -10,10 +10,11 @@ type CollectedDataSink interface {
 }
 
 type CollectedFileStore interface {
-	FetchAndStore(url string) error
+	FetchAndStore(url string) (key string, err error)
 }
 
 // This is the contxt we keep to be used for all the steps
+// for a post
 // Initialized with task and element
 // All steps can put additional information into this object to pass down to next step
 type CrawlerWorkingContext struct {
@@ -24,6 +25,21 @@ type CrawlerWorkingContext struct {
 	NewsType       protocol.PanopticSubSource_SubSourceType
 	// final result of crawled message for each news
 	Result *protocol.CrawlerMessage
+}
+
+type PaginationInfoType struct {
+	CurrentPageCount int
+	NextPageId       string
+}
+
+// This is the context we keep to be used for all steps
+// for a post
+type ApiCollectorWorkingContext struct {
+	Task           *protocol.PanopticTask
+	PaginationInfo PaginationInfoType
+	ApiUrl         string
+	Result         *protocol.CrawlerMessage
+	Subsource      *protocol.PanopticSubSource
 }
 
 type DataCollector interface {
@@ -53,9 +69,20 @@ type CrawlerCollector interface {
 	IsRequested(workingContext *CrawlerWorkingContext) bool
 }
 
+// In API collector API, not like Crawler where we usually
+// only know what is the subsource(s) after checking the crawled page
+// API usually able to explicitly ask for subsource, thus in the APIs
+// we often can pass explicit subsource
 type ApiCollector interface {
 	DataCollector
-	// TODO: implement api collector
+	CollectOneSubsource(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) error
+	CollectOneSubsourceOnePage(
+		task *protocol.PanopticTask,
+		subsource *protocol.PanopticSubSource,
+		paginationInfo PaginationInfoType,
+	) error
+	UpdateFileUrls(workingContext *ApiCollectorWorkingContext) error
+	ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo PaginationInfoType) string
 }
 
 type RssCollector interface {

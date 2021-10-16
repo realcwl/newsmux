@@ -56,11 +56,11 @@ func (s *LocalFileStore) GenerateFileNameFromUrl(url string) (key string, err er
 	return key, err
 }
 
-func (s *LocalFileStore) FetchAndStore(url string) error {
+func (s *LocalFileStore) FetchAndStore(url string) (string, error) {
 	// Download file
 	response, err := http.Get(s.processUrlBeforeFetchFunc(url))
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer response.Body.Close()
 
@@ -69,15 +69,15 @@ func (s *LocalFileStore) FetchAndStore(url string) error {
 	//open a file for writing
 	file, err := os.Create(fileName)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer file.Close()
 
 	// Use io.Copy to just dump the response body to the file. This supports huge files
 	_, err = io.Copy(file, response.Body)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return err
+	return fileName, err
 }

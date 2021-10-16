@@ -2,6 +2,7 @@ package collector
 
 import (
 	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -28,8 +29,13 @@ func NewSnsSink() (*SnsSink, error) {
 	}
 	svc := sns.New(sess)
 
+	arn := testSnsArn
+	if utils.IsProdEnv() {
+		arn = prodSnsArn
+	}
+
 	return &SnsSink{
-		arn:    prodSnsArn,
+		arn:    arn,
 		client: svc,
 	}, nil
 }

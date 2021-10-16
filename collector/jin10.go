@@ -11,12 +11,11 @@ import (
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
-	jin10DateFormat = "20060102-15:04:05"
+	Jin10DateFormat = "20060102-15:04:05"
 )
 
 type Jin10Crawler struct {
@@ -79,7 +78,7 @@ func (collector Jin10Crawler) UpdateGeneratedTime(workingContext *CrawlerWorking
 	}
 
 	dateStr := id[5:13] + "-" + timeText
-	generatedTime, err := time.Parse(jin10DateFormat, dateStr)
+	generatedTime, err := time.Parse(Jin10DateFormat, dateStr)
 	if err != nil {
 		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
 		return err
@@ -145,16 +144,7 @@ func (collector Jin10Crawler) UpdateSubsourceName(workingContext *CrawlerWorking
 }
 
 func (collector Jin10Crawler) GetMessage(workingContext *CrawlerWorkingContext) error {
-	workingContext.Result = &protocol.CrawlerMessage{Post: &protocol.CrawlerMessage_CrawledPost{}}
-	// context per element crawl
-	workingContext.Result.Post.SubSource = &protocol.CrawledSubSource{}
-	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
-	//todo: put in central place
-	workingContext.Result.Post.SubSource.AvatarUrl = "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jin10.png"
-	workingContext.Result.CrawledAt = &timestamp.Timestamp{}
-	workingContext.Result.CrawlerVersion = "1"
-	workingContext.Result.IsTest = false
-	workingContext.Result.Post.OriginUrl = workingContext.OriginUrl
+	InitializeCrawlerResult(workingContext)
 
 	err := collector.UpdateContent(workingContext)
 	if err != nil {
@@ -250,14 +240,8 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	})
 
 	c.OnScraped(func(_ *colly.Response) {
-		if task.TaskMetadata.TotalMessageCollected == 0 {
-			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-			Logger.Log.Error("Finished crawl Jin10 with 0 success msg, Task ", task.String(), " failCount ", task.TaskMetadata.TotalMessageFailed, " path ", collector.GetQueryPath())
-			return
-		}
-		if task.TaskMetadata.TotalMessageFailed > 0 {
-			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-		}
+		// Set Fail/Success in task meta based on number of message succeeded
+		SetErrorBasedOnCounts(task, collector.GetStartUri(), fmt.Sprintf(" path: %s", collector.GetQueryPath()))
 	})
 
 	c.Visit(collector.GetStartUri())

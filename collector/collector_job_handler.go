@@ -15,6 +15,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	Logger.Log.Info("Collect() with request: ", job)
 	var (
 		sink       CollectedDataSink
+		imageStore CollectedFileStore
 		wg         sync.WaitGroup
 		httpClient HttpClient
 	)
@@ -26,9 +27,15 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 
 	if !utils.IsProdEnv() {
 		sink = NewStdErrSink()
+		if imageStore, err = NewLocalFileStore("test"); err != nil {
+			return err
+		}
 	} else {
 		sink, err = NewSnsSink()
 		if err != nil {
+			return err
+		}
+		if imageStore, err = NewS3FileStore(ProdS3ImageBucket); err != nil {
 			return err
 		}
 	}
@@ -38,7 +45,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 		wg.Add(1)
 		go func(t *protocol.PanopticTask) {
 			defer wg.Done()
-			if err := handler.processTask(t, sink); err != nil {
+			if err := handler.processTask(t, sink, imageStore); err != nil {
 				Logger.Log.Errorf("fail to process task: %s", err)
 			}
 			t.TaskMetadata.IpAddr = ip
@@ -49,7 +56,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	return nil
 }
 
-func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink CollectedDataSink) error {
+func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink CollectedDataSink, imageStore CollectedFileStore) error {
 	var (
 		collector DataCollector
 		builder   CollectorBuilder
@@ -59,6 +66,8 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 	case protocol.PanopticTask_COLLECTOR_JINSHI:
 		// please follow this patter to get collector
 		collector = builder.NewJin10Crawler(sink)
+	case protocol.PanopticTask_COLLECTOR_WEIBO:
+		collector = builder.NewWeiboApiCollector(sink, imageStore)
 	default:
 		return errors.New("unknown task data collector id")
 	}

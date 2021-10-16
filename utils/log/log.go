@@ -35,11 +35,13 @@ func initLogger() {
 		apiKey,
 		syncFrequencySec*time.Second,
 		syncRetry,
-		logrus.TraceLevel,
+		logrus.InfoLevel,
 		&logrus.JSONFormatter{},
 		ddhook.Options{},
 	)
-	logger.Hooks.Add(hook)
+	if os.Getenv("NEWSMUX_ENV") == dotenv.ProdEnv {
+		logger.Hooks.Add(hook)
+	}
 
 	// Also send log to stderr, without json formatter for better readability
 	logger.SetOutput(os.Stderr)
