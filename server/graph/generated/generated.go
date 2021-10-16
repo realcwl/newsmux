@@ -107,13 +107,13 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AllFeeds   func(childComplexity int) int
-		Feeds      func(childComplexity int, input *model.FeedsGetPostsInput) int
-		Posts      func(childComplexity int) int
-		Sources    func(childComplexity int, input *model.SourcesInput) int
-		SubSources func(childComplexity int, input *model.SubsourcesInput) int
-		UserState  func(childComplexity int, input model.UserStateInput) int
-		Users      func(childComplexity int) int
+		AllVisibleFeeds func(childComplexity int) int
+		Feeds           func(childComplexity int, input *model.FeedsGetPostsInput) int
+		Posts           func(childComplexity int) int
+		Sources         func(childComplexity int, input *model.SourcesInput) int
+		SubSources      func(childComplexity int, input *model.SubsourcesInput) int
+		UserState       func(childComplexity int, input model.UserStateInput) int
+		Users           func(childComplexity int) int
 	}
 
 	SeedState struct {
@@ -193,7 +193,7 @@ type PostResolver interface {
 	FileUrls(ctx context.Context, obj *model.Post) ([]string, error)
 }
 type QueryResolver interface {
-	AllFeeds(ctx context.Context) ([]*model.Feed, error)
+	AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error)
@@ -545,12 +545,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PostInFeedOutput.Post(childComplexity), true
 
-	case "Query.allFeeds":
-		if e.complexity.Query.AllFeeds == nil {
+	case "Query.allVisibleFeeds":
+		if e.complexity.Query.AllVisibleFeeds == nil {
 			break
 		}
 
-		return e.complexity.Query.AllFeeds(childComplexity), true
+		return e.complexity.Query.AllVisibleFeeds(childComplexity), true
 
 	case "Query.feeds":
 		if e.complexity.Query.Feeds == nil {
@@ -1093,7 +1093,7 @@ input DeleteFeedInput {
 }
 
 type Query {
-  allFeeds: [Feed!]
+  allVisibleFeeds: [Feed!]
   posts: [Post!]
   users: [User!]
 
@@ -2925,7 +2925,7 @@ func (ec *executionContext) _PostInFeedOutput_cursor(ctx context.Context, field 
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_allFeeds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_allVisibleFeeds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2943,7 +2943,7 @@ func (ec *executionContext) _Query_allFeeds(ctx context.Context, field graphql.C
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AllFeeds(rctx)
+		return ec.resolvers.Query().AllVisibleFeeds(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6471,7 +6471,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "allFeeds":
+		case "allVisibleFeeds":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -6479,7 +6479,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_allFeeds(ctx, field)
+				res = ec._Query_allVisibleFeeds(ctx, field)
 				return res
 			})
 		case "posts":

@@ -85,7 +85,7 @@ input DeleteFeedInput {
 }
 
 type Query {
-  allFeeds: [Feed!]
+  allVisibleFeeds: [Feed!]
   posts: [Post!]
   users: [User!]
 
