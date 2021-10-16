@@ -2,6 +2,7 @@ package collector
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -220,4 +221,41 @@ func TestIpAddressFetch(t *testing.T) {
 	require.NoError(t, err)
 	fmt.Println("ip: ", ip)
 	require.Greater(t, len(ip), 0)
+}
+
+func TestS3Store(t *testing.T) {
+	s, err := NewS3FileStore(TestS3Bucket)
+	require.NoError(t, err)
+
+	s.SetCustomizeFileNameFunc(func(in string) string {
+		return "test"
+	}).SetCustomizeFileExtFunc(func(in string) string {
+		return "jpg"
+	})
+	key, err := s.GenerateS3KeyFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
+	require.NoError(t, err)
+	require.Equal(t, "test.jpg", key)
+	// err = s.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
+	// require.NoError(t, err)
+}
+
+func TestLocalStore(t *testing.T) {
+	s, err := NewLocalFileStore(TestS3Bucket)
+	require.NoError(t, err)
+
+	s.SetCustomizeFileNameFunc(func(in string) string {
+		return "test"
+	}).SetCustomizeFileExtFunc(func(in string) string {
+		return "jpg"
+	})
+	key, err := s.GenerateFileNameFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
+	require.NoError(t, err)
+	require.Equal(t, "test.jpg", key)
+	err = s.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
+	require.NoError(t, err)
+	require.FileExists(t, "test.jpg")
+	err = os.Remove("test.jpg")
+	if err != nil {
+		log.Fatal(err)
+	}
 }

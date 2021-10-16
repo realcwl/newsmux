@@ -9,6 +9,10 @@ type CollectedDataSink interface {
 	Push(msg *protocol.CrawlerMessage) error
 }
 
+type CollectedFileStore interface {
+	FetchAndStore(url string) error
+}
+
 // This is the contxt we keep to be used for all the steps
 // Initialized with task and element
 // All steps can put additional information into this object to pass down to next step
@@ -58,3 +62,8 @@ type RssCollector interface {
 	DataCollector
 	// TODO: implement rss collector
 }
+
+// Shared Func type for file stores
+type ProcessUrlBeforeFetchFuncType func(string) string
+type CustomizeFileNameFuncType func(string) string
+type CustomizeFileExtFuncType func(string) string
