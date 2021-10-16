@@ -17,6 +17,10 @@ message PanopticJob {
 
   // Multiple heterogeneous tasks this job contains.
   repeated PanopticTask tasks = 2;
+
+  // Whether this job is a debug only job. A debug only job will not call Lambda
+  // at all.
+  bool debug = 3;
 }
 
 // TaskParams defines the shared/domain specific parameters that customize the 
