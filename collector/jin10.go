@@ -215,7 +215,6 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	metadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
 
 	c := colly.NewCollector()
-	Logger.Log.Info("Starting crawl Jin10, Task ", task.String())
 	// each crawled card(news) will go to this
 	// for each page loaded, there are multiple calls into this func
 	c.OnHTML(collector.GetQueryPath(), func(elem *colly.HTMLElement) {
@@ -245,10 +244,6 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 		// todo: error should be put into metadata
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		Logger.Log.Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", collector.GetQueryPath())
-	})
-
-	c.OnResponse(func(_ *colly.Response) {
-		Logger.Log.Info("Finished crawl one page for Jin10, Task ", task.String())
 	})
 
 	c.OnScraped(func(_ *colly.Response) {

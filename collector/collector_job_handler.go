@@ -22,7 +22,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	if err != nil {
 		Logger.Log.Error("ip fetching error: ", err)
 	}
-	Logger.Log.Info("ip address", ip)
+	Logger.Log.Info("ip address: ", ip)
 
 	if !utils.IsProdEnv() {
 		sink = NewStdErrSink()
