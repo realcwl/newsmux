@@ -5,6 +5,7 @@ import (
 
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
@@ -42,11 +43,13 @@ func (d *SchedulerJobDoer) Do(job *SchedulerJob) error {
 			ConfigName: job.panopticConfig.Name,
 		},
 	})
+	panopticJob.Debug = utils.IsProdEnv()
 
 	data, err := proto.Marshal(panopticJob)
 	if err != nil {
 		return err
 	}
+
 	msg := message.NewMessage(watermill.NewUUID(), data)
 	d.EventBus.Publish(panoptic.TOPIC_PENDING_JOB, msg)
 

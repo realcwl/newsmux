@@ -143,7 +143,7 @@ func MakeDataCollectorRpc(ctx context.Context, job *protocol.PanopticJob, functi
 		return nil, err
 	}
 
-	// If timeout
+	// If timeout.
 	if res.FunctionError != nil {
 		return nil, errors.New(*res.FunctionError)
 	}
@@ -423,6 +423,12 @@ func (l *LambdaExecutor) GetRandomActiveFunction(job *protocol.PanopticJob) *Lam
 // Lambda. It returns the input job with additional metadata describing the
 // execution result.
 func (l *LambdaExecutor) Execute(ctx context.Context, job *protocol.PanopticJob) (*protocol.PanopticJob, error) {
+	// For debugging job, we don't actually execute the Lambda, but return
+	// directly.
+	if job.Debug {
+		return job, nil
+	}
+
 	// Get a active Lambda function with gracefully retry.
 	var f *LambdaFunction
 	for {

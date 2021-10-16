@@ -10,13 +10,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Luismorlan/newsmux/app_config"
 	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/encoding/prototext"
 )
+
+var AppConfig *app_config.PanopticAppConfig
 
 // A valid job batch must not contains duplicate job name.
 func ValidateJobs(jobs []*SchedulerJob) error {
@@ -61,7 +65,10 @@ type Scheduler struct {
 
 // Return a new instance of Scheduler.
 func NewScheduler(
-	config SchedulerConfig, e *gochannel.GoChannel, doer JobDoer, ctx context.Context) *Scheduler {
+	panopticAppConfig *app_config.PanopticAppConfig, config SchedulerConfig,
+	e *gochannel.GoChannel, doer JobDoer, ctx context.Context) *Scheduler {
+	AppConfig = panopticAppConfig
+
 	scheduler := &Scheduler{
 		Config:   config,
 		ctx:      ctx,
@@ -114,10 +121,9 @@ func (s *Scheduler) UpsertJobs(jobs []*SchedulerJob) {
 
 // Read config either from local workspace (dev) or from Github (production)
 func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, error) {
-	env := os.Getenv("NEWSMUX_ENV")
 	configs := &protocol.PanopticConfigs{}
 
-	if env == "prod" {
+	if AppConfig.FORCE_REMOTE_SCHEDULE_PULL || utils.IsProdEnv() {
 		Logger.Log.Infoln("read config from Github project: https://github.com/Luismorlan/panoptic_config")
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: os.Getenv("GITHUB_ACCESS_TOKEN")},
@@ -151,12 +157,12 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, error) {
 
 func (s *Scheduler) ParseAndUpsertJobs() error {
 	configs, err := s.ReadConfig()
-
-	Logger.Log.Infof("initial PanopticConfigs: %s", configs.String())
-
 	if err != nil {
 		return err
 	}
+
+	Logger.Log.Infof("initial PanopticConfigs: %s", configs.String())
+
 	jobs := NewSchedulerJobs(configs, s.ctx)
 	err = ValidateJobs(jobs)
 	if err != nil {

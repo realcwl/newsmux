@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
-	"os"
 
 	"github.com/DataDog/datadog-go/statsd"
+	"github.com/Luismorlan/newsmux/app_config"
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/panoptic/modules"
+	"github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
@@ -15,10 +17,23 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 )
 
+var (
+	AppConfigPath *string
+	// Configuration to customize binary startup.
+	AppConfig app_config.PanopticAppConfig
+)
+
+// init() will always be called on before the execution of main function.
+func init() {
+	AppConfigPath = flag.String("app_config_path", "cmd/panoptic/config.yaml", "path to panoptic app config")
+	if err := dotenv.LoadDotEnvs(); err != nil {
+		panic(err)
+	}
+}
+
 func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 	var client *lambda.Client
-	env := os.Getenv("NEWSMUX_ENV")
-	if env == "prod" {
+	if utils.IsProdEnv() {
 		client = lambda.New(lambda.Options{Region: panoptic.AWS_REGION})
 	} else {
 		cfg, err := config.LoadDefaultConfig(context.TODO(),
@@ -31,9 +46,9 @@ func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 	}
 
 	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
-		LambdaPoolSize:       10,
-		LambdaLifeSpanSecond: 300,
-		MaintainEverySecond:  30,
+		LambdaPoolSize:       AppConfig.LAMBDA_POOL_SIZE,
+		LambdaLifeSpanSecond: AppConfig.LAMBDA_LIFE_SPAN_SECOND,
+		MaintainEverySecond:  AppConfig.MAINTAIN_EVERY_SECOND,
 	})
 	if err := executor.Init(); err != nil {
 		panic(err)
@@ -50,9 +65,7 @@ func NewDogStatsdClient() *statsd.Client {
 }
 
 func main() {
-	if err := dotenv.LoadDotEnvs(); err != nil {
-		log.Fatalln(err)
-	}
+	AppConfig = app_config.ParsePanopticAppConfig(*AppConfigPath)
 
 	eventbus := gochannel.NewGoChannel(
 		gochannel.Config{
@@ -70,6 +83,7 @@ func main() {
 		// Scheduler parses data collector configs, fanout into multiple tasks and
 		// pushes onto EventBus.
 		modules.NewScheduler(
+			&AppConfig,
 			modules.SchedulerConfig{Name: "scheduler",
 				PanopticConfigPath: "panoptic/data/testing_panoptic_config.textproto"},
 			eventbus,
