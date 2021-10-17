@@ -40,6 +40,7 @@ type Feed struct {
 	SubSources           []*SubSource `json:"subSources" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
 	Visibility           Visibility   `json:"visibility" gorm:"default:'PRIVATE';"`
 	FilterDataExpression datatypes.JSON
+	SubscriberCount      int32 `gorm:"-"`
 }
 
 func (Feed) IsFeedSeedStateInterface() {}

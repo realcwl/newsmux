@@ -330,8 +330,12 @@ func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInp
 
 func (r *queryResolver) AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
-	result := r.DB.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds)
-	return feeds, result.Error
+
+	if err := r.DB.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds).Error; err != nil {
+		return nil, err
+	}
+
+	return feeds, nil
 }
 
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
