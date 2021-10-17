@@ -576,7 +576,17 @@ func TestDeleteFeedAndValidate(t *testing.T, userId string, feedId string, owner
 	if owner {
 		require.Equal(t, feedId, resp.DeleteFeed.Id)
 	} else {
-		require.NotNil(t, err)
+		// Non owner should not delete owner's feed, but should still unsubscribe.
+		require.Nil(t, err)
+		sub := model.UserFeedSubscription{}
+		rows := db.Model(&model.UserFeedSubscription{}).
+			Where("user_id = ? AND feed_id = ?", userId, feedId).
+			Find(&sub).RowsAffected
+		require.Equal(t, rows, int64(0))
+		feed := &model.Feed{}
+		require.Equal(t, db.Model(&model.Feed{}).
+			Where("id = ?", feedId).
+			First(&feed).RowsAffected, int64(1))
 	}
 }
 

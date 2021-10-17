@@ -148,11 +148,18 @@ func (r *mutationResolver) DeleteFeed(ctx context.Context, input model.DeleteFee
 		return nil, result.Error
 	}
 
-	// Check ownership
+	// Check ownership, if the deletion operation is not initiated from the Feed
+	// owner, this is just unsubscribe. This is used in Feed sharing, where the
+	// non-owner unsubscribes a feed.
 	if feed.CreatorID != userId {
-		return nil, errors.New("cannot delete a non-owned feed")
+		sub := model.UserFeedSubscription{}
+		if err := r.DB.Model(&model.UserFeedSubscription{}).
+			Where("user_id = ? AND feed_id = ?", userId, feedId).
+			Delete(&sub).Error; err != nil {
+			return nil, err
+		}
+		return &feed, nil
 	}
-
 	// Delete automatically cascade to join tables according to the schema.
 	if err := r.DB.Delete(&feed).Error; err != nil {
 		return nil, err
