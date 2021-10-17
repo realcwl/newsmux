@@ -37,4 +37,12 @@ type Module interface {
 	// that if there are multiple instances of the same module, each instance
 	// should have a unique name instead of using the same name.
 	Name() string
+
+	// Optionally define the cleanup logic for each module. In most cases if your
+	// module doesn't produce any garbage if shut down forcefully, you don't need
+	// to do anything, otherwise you'll need to clean up resources. Shutdown()
+	// should be a blocking call, return only when all resources has been cleaned
+	// up. All parallism should be handled on the Engine.
+	// e.g. Orchestrator needs to clean up lambda functions.
+	Shutdown()
 }

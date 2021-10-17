@@ -238,3 +238,15 @@ func (s *Scheduler) RunModule(ctx context.Context) error {
 func (s *Scheduler) Name() string {
 	return s.Config.Name
 }
+
+func (s *Scheduler) Shutdown() {
+	// There's no need to free this lock because it doesn't really matter if we
+	// are shutting down. Also it's a good practice that no additional internal
+	// state change can happen.
+	s.m.Lock()
+	// Cancel all jobs
+	for _, job := range s.Jobs {
+		job.cancel()
+	}
+	Logger.Log.Infoln("Module ", s.Config.Name, " gracefully shutdown")
+}
