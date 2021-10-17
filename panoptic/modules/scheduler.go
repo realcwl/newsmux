@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Luismorlan/newsmux/app_config"
+	"github.com/Luismorlan/newsmux/app_setting"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
-var AppConfig *app_config.PanopticAppConfig
+var AppSetting *app_setting.PanopticAppSetting
 
 // A valid job batch must not contains duplicate job name.
 func ValidateJobs(jobs []*SchedulerJob) error {
@@ -66,9 +66,9 @@ type Scheduler struct {
 
 // Return a new instance of Scheduler.
 func NewScheduler(
-	panopticAppConfig *app_config.PanopticAppConfig, config SchedulerConfig,
+	panopticAppSetting *app_setting.PanopticAppSetting, config SchedulerConfig,
 	e *gochannel.GoChannel, doer JobDoer, ctx context.Context) *Scheduler {
-	AppConfig = panopticAppConfig
+	AppSetting = panopticAppSetting
 
 	scheduler := &Scheduler{
 		Config:         config,
@@ -128,7 +128,7 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
 	configs := &protocol.PanopticConfigs{}
 	digest := ""
 
-	if AppConfig.FORCE_REMOTE_SCHEDULE_PULL || utils.IsProdEnv() {
+	if AppSetting.FORCE_REMOTE_SCHEDULE_PULL || utils.IsProdEnv() {
 		Logger.Log.Infoln("read PanopticConfig from Github project: https://github.com/Luismorlan/panoptic_config")
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: os.Getenv("GITHUB_ACCESS_TOKEN")},
@@ -148,8 +148,8 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
 		}
 		digest = *content.SHA
 	} else {
-		Logger.Log.Infoln("read PanopticConfig from local workspace, file", AppConfig.LOCAL_PANOPTIC_CONFIG_PATH)
-		in, err := ioutil.ReadFile(AppConfig.LOCAL_PANOPTIC_CONFIG_PATH)
+		Logger.Log.Infoln("read PanopticConfig from local workspace, file", AppSetting.LOCAL_PANOPTIC_CONFIG_PATH)
+		in, err := ioutil.ReadFile(AppSetting.LOCAL_PANOPTIC_CONFIG_PATH)
 		if err != nil {
 			return nil, digest, err
 		}
@@ -264,7 +264,7 @@ func (s *Scheduler) WatchConfigAndMaybeReschedule() {
 			go s.ScheduleJobs()
 		}
 
-		time.Sleep(time.Duration(AppConfig.SCHEDULER_CONFIG_POLL_INTERVAL_SECOND) * time.Second)
+		time.Sleep(time.Duration(AppSetting.SCHEDULER_CONFIG_POLL_INTERVAL_SECOND) * time.Second)
 	}
 }
 

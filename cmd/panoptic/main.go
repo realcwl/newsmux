@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/DataDog/datadog-go/statsd"
-	"github.com/Luismorlan/newsmux/app_config"
+	"github.com/Luismorlan/newsmux/app_setting"
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/panoptic/modules"
 	"github.com/Luismorlan/newsmux/utils"
@@ -21,14 +21,14 @@ import (
 )
 
 var (
-	AppConfigPath *string
+	AppSettingPath *string
 	// Configuration to customize binary startup.
-	AppConfig app_config.PanopticAppConfig
+	AppSetting app_setting.PanopticAppSetting
 )
 
 // init() will always be called on before the execution of main function.
 func init() {
-	AppConfigPath = flag.String("app_config_path", "cmd/panoptic/config.yaml", "path to panoptic app config")
+	AppSettingPath = flag.String("app_setting_path", "cmd/panoptic/config.yaml", "path to panoptic app setting")
 	if err := dotenv.LoadDotEnvs(); err != nil {
 		panic(err)
 	}
@@ -49,9 +49,9 @@ func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 	}
 
 	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
-		LambdaPoolSize:       AppConfig.LAMBDA_POOL_SIZE,
-		LambdaLifeSpanSecond: AppConfig.LAMBDA_LIFE_SPAN_SECOND,
-		MaintainEverySecond:  AppConfig.MAINTAIN_EVERY_SECOND,
+		LambdaPoolSize:       AppSetting.LAMBDA_POOL_SIZE,
+		LambdaLifeSpanSecond: AppSetting.LAMBDA_LIFE_SPAN_SECOND,
+		MaintainEverySecond:  AppSetting.MAINTAIN_EVERY_SECOND,
 	})
 	if err := executor.Init(); err != nil {
 		panic(err)
@@ -68,7 +68,7 @@ func NewDogStatsdClient() *statsd.Client {
 }
 
 func main() {
-	AppConfig = app_config.ParsePanopticAppConfig(*AppConfigPath)
+	AppSetting = app_setting.ParsePanopticAppSetting(*AppSettingPath)
 
 	eventbus := gochannel.NewGoChannel(
 		gochannel.Config{
@@ -88,7 +88,7 @@ func main() {
 		// Scheduler parses data collector configs, fanout into multiple tasks and
 		// pushes onto EventBus.
 		modules.NewScheduler(
-			&AppConfig,
+			&AppSetting,
 			modules.SchedulerConfig{Name: "scheduler"},
 			eventbus,
 			modules.NewSchedulerJobDoer(eventbus),
