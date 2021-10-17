@@ -58,6 +58,15 @@ func NewSchedulerJob(config *protocol.PanopticConfig, ctx context.Context) *Sche
 	}
 }
 
+func (j *SchedulerJob) RefreshContext(parent context.Context) {
+	// Protectively cancel this job.
+	j.cancel()
+
+	ctx, cancel := context.WithCancel(parent)
+	j.ctx = ctx
+	j.cancel = cancel
+}
+
 func (j *SchedulerJob) HasRunBefore() bool {
 	j.m.RLock()
 	defer j.m.RUnlock()
