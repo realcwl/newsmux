@@ -35,6 +35,7 @@ func GraphqlHandler() gin.HandlerFunc {
 	h := handler.New(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
 		DB:             db,
 		SeedStateChans: resolver.NewSeedStateChannels(),
+		SignalChans:    resolver.NewSignalChannels(),
 	}}))
 
 	h.AddTransport(transport.Websocket{

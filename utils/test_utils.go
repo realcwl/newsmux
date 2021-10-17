@@ -552,11 +552,6 @@ func TestUserSubscribeFeedAndValidate(t *testing.T, userId string, feedId string
 	require.Equal(t, userId, resp.Subscribe.Id)
 }
 
-// create user to feed subscription, do sanity checks
-func TestFeedLinkSource(t *testing.T, sourceId string, feedId string, db *gorm.DB, client *client.Client) {
-
-}
-
 func TestDeleteFeedAndValidate(t *testing.T, userId string, feedId string, owner bool, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		DeleteFeed struct {
@@ -581,7 +576,17 @@ func TestDeleteFeedAndValidate(t *testing.T, userId string, feedId string, owner
 	if owner {
 		require.Equal(t, feedId, resp.DeleteFeed.Id)
 	} else {
-		require.NotNil(t, err)
+		// Non owner should not delete owner's feed, but should still unsubscribe.
+		require.Nil(t, err)
+		sub := model.UserFeedSubscription{}
+		rows := db.Model(&model.UserFeedSubscription{}).
+			Where("user_id = ? AND feed_id = ?", userId, feedId).
+			Find(&sub).RowsAffected
+		require.Equal(t, rows, int64(0))
+		feed := &model.Feed{}
+		require.Equal(t, db.Model(&model.Feed{}).
+			Where("id = ?", feedId).
+			First(&feed).RowsAffected, int64(1))
 	}
 }
 
@@ -609,4 +614,40 @@ func TestQuerySubSources(t *testing.T, isFromSharedPost bool, db *gorm.DB, clien
 	fmt.Println(query)
 	client.MustPost(query, &resp)
 	return resp.SubSources
+}
+
+func TestQueryUserState(t *testing.T, userId string, feedIds []string, client *client.Client) {
+	var res struct {
+		UserState struct {
+			User struct {
+				Id              string `json:"id"`
+				SubscribedFeeds []struct {
+					Id string `json:"id"`
+				} `json:"subscribedFeeds"`
+			} `json:"user"`
+		} `json:"userState"`
+	}
+
+	query := fmt.Sprintf(`
+		query {
+			userState(input: { userId: "%s" }) {
+				user {
+					id
+					subscribedFeeds {
+						id
+					}
+				}
+			}
+		}
+	`, userId)
+
+	client.MustPost(query, &res)
+
+	require.Equal(t, res.UserState.User.Id, userId)
+	Ids := []string{}
+	for _, feed := range res.UserState.User.SubscribedFeeds {
+		Ids = append(Ids, feed.Id)
+	}
+
+	require.True(t, StringSlicesContainSameElements(feedIds, Ids))
 }

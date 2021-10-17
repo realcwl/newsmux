@@ -106,6 +106,7 @@ func PrepareTestDBClient(db *gorm.DB) *client.Client {
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
 		DB:             db,
 		SeedStateChans: nil,
+		SignalChans:    nil,
 	}})))
 	return client
 }

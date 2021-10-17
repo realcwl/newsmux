@@ -27,7 +27,6 @@ func HandleRequest(event model.DataCollectorRequest) (model.DataCollectorRespons
 
 	// parse job
 	job := &protocol.PanopticJob{}
-	Log.Info("Raw serialized job : ", event.SerializedJob)
 	if err := proto.Unmarshal(event.SerializedJob, job); err != nil {
 		Log.Error("Failed to parse job with error:", err)
 		return res, err

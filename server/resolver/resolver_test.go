@@ -25,6 +25,7 @@ func PrepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &Resolver{
 		DB:             db,
 		SeedStateChans: NewSeedStateChannels(),
+		SignalChans:    NewSignalChannels(),
 	}})))
 	return client
 }
@@ -148,9 +149,24 @@ func TestUserSubscribeFeed(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
-		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
+		userId := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
+		feedId1, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+		utils.TestUserSubscribeFeedAndValidate(t, userId, feedId1, db, client)
+		// Validate the first Feed's order
+		subscription1 := &model.UserFeedSubscription{}
+		db.Model(&model.UserFeedSubscription{}).
+			Where("user_id = ? AND feed_id = ?", userId, feedId1).
+			First(subscription1)
+		require.Equal(t, subscription1.OrderInPanel, 0)
+
+		feedId2, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+		utils.TestUserSubscribeFeedAndValidate(t, userId, feedId2, db, client)
+		// Validate the second Feed's order
+		subscription2 := &model.UserFeedSubscription{}
+		db.Model(&model.UserFeedSubscription{}).
+			Where("user_id = ? AND feed_id = ?", userId, feedId2).
+			First(subscription2)
+		require.Equal(t, subscription2.OrderInPanel, 1)
 	})
 }
 
@@ -166,10 +182,12 @@ func TestDeleteFeed(t *testing.T) {
 	})
 
 	t.Run("Test non owner delete Feed", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
-		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
-		utils.TestDeleteFeedAndValidate(t, "non_owner", feedId, false, db, client)
+		uid1 := utils.TestCreateUserAndValidate(t, "test_user_name", "user_id_1", db, client)
+		uid2 := utils.TestCreateUserAndValidate(t, "test_user_name", "user_id_2", db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid1, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
+		utils.TestUserSubscribeFeedAndValidate(t, uid1, feedId, db, client)
+		utils.TestUserSubscribeFeedAndValidate(t, uid2, feedId, db, client)
+		utils.TestDeleteFeedAndValidate(t, uid2, feedId, false, db, client)
 	})
 }
 
@@ -250,7 +268,7 @@ func checkFeedPosts(
 		  updatedAt
 		  posts {
 			id
-			title 
+			title
 			content
 			cursor
 		  }
@@ -304,7 +322,7 @@ func checkFeedTopPostsMultipleFeeds(
 		  updatedAt
 		  posts {
 			id
-			title 
+			title
 			content
 			cursor
 		  }
@@ -357,7 +375,7 @@ func checkFeedBottomPostsMultipleFeeds(
 		  updatedAt
 		  posts {
 			id
-			title 
+			title
 			content
 			cursor
 		  }
@@ -403,7 +421,7 @@ func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne 
 		  updatedAt
 		  posts {
 			id
-			title 
+			title
 			content
 			cursor
 		  }
@@ -461,7 +479,7 @@ func checkFeedTopPostsUpdateTimeChanged(t *testing.T, userId string, feedId stri
 			  updatedAt
 			  posts {
 				id
-				title 
+				title
 				content
 				cursor
 			  }
@@ -615,4 +633,18 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
 			[]string{postCommnetId}, db, client)
 	})
+}
+
+func TestUserState(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	client := PrepareTestForGraphQLAPIs(db)
+
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "default_user_id", db, client)
+	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
+	feedIdTwo, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+	utils.TestUserSubscribeFeedAndValidate(t, userId, feedIdOne, db, client)
+	utils.TestUserSubscribeFeedAndValidate(t, userId, feedIdTwo, db, client)
+
+	utils.TestQueryUserState(t, userId, []string{feedIdOne, feedIdTwo}, client)
 }

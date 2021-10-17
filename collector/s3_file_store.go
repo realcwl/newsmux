@@ -18,10 +18,6 @@ const (
 	ProdS3FileBucket  = "newsfeed-crawler-file-output"
 )
 
-type ProcessUrlBeforeFetchFuncType func(string) string
-type CustomizeFileNameFuncType func(string) string
-type CustomizeFileExtFuncType func(string) string
-
 type S3FileStore struct {
 	bucket                    string
 	uploader                  *s3manager.Uploader

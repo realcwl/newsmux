@@ -60,6 +60,7 @@ type ComplexityRoot struct {
 		Name                 func(childComplexity int) int
 		Posts                func(childComplexity int) int
 		SubSources           func(childComplexity int) int
+		SubscriberCount      func(childComplexity int) int
 		Subscribers          func(childComplexity int) int
 		UpdatedAt            func(childComplexity int) int
 		Visibility           func(childComplexity int) int
@@ -107,13 +108,13 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AllFeeds   func(childComplexity int) int
-		Feeds      func(childComplexity int, input *model.FeedsGetPostsInput) int
-		Posts      func(childComplexity int) int
-		Sources    func(childComplexity int, input *model.SourcesInput) int
-		SubSources func(childComplexity int, input *model.SubsourcesInput) int
-		UserState  func(childComplexity int, input model.UserStateInput) int
-		Users      func(childComplexity int) int
+		AllVisibleFeeds func(childComplexity int) int
+		Feeds           func(childComplexity int, input *model.FeedsGetPostsInput) int
+		Posts           func(childComplexity int) int
+		Sources         func(childComplexity int, input *model.SourcesInput) int
+		SubSources      func(childComplexity int, input *model.SubsourcesInput) int
+		UserState       func(childComplexity int, input model.UserStateInput) int
+		Users           func(childComplexity int) int
 	}
 
 	SeedState struct {
@@ -148,7 +149,7 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		Signal   func(childComplexity int) int
+		Signal   func(childComplexity int, userID string) int
 		SyncDown func(childComplexity int, userID string) int
 	}
 
@@ -193,7 +194,7 @@ type PostResolver interface {
 	FileUrls(ctx context.Context, obj *model.Post) ([]string, error)
 }
 type QueryResolver interface {
-	AllFeeds(ctx context.Context) ([]*model.Feed, error)
+	AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error)
@@ -211,7 +212,7 @@ type SubSourceResolver interface {
 }
 type SubscriptionResolver interface {
 	SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error)
-	Signal(ctx context.Context) (<-chan *model.Signal, error)
+	Signal(ctx context.Context, userID string) (<-chan *model.Signal, error)
 }
 type UserResolver interface {
 	DeletedAt(ctx context.Context, obj *model.User) (*time.Time, error)
@@ -280,6 +281,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Feed.SubSources(childComplexity), true
+
+	case "Feed.subscriberCount":
+		if e.complexity.Feed.SubscriberCount == nil {
+			break
+		}
+
+		return e.complexity.Feed.SubscriberCount(childComplexity), true
 
 	case "Feed.subscribers":
 		if e.complexity.Feed.Subscribers == nil {
@@ -545,12 +553,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PostInFeedOutput.Post(childComplexity), true
 
-	case "Query.allFeeds":
-		if e.complexity.Query.AllFeeds == nil {
+	case "Query.allVisibleFeeds":
+		if e.complexity.Query.AllVisibleFeeds == nil {
 			break
 		}
 
-		return e.complexity.Query.AllFeeds(childComplexity), true
+		return e.complexity.Query.AllVisibleFeeds(childComplexity), true
 
 	case "Query.feeds":
 		if e.complexity.Query.Feeds == nil {
@@ -752,7 +760,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Subscription.Signal(childComplexity), true
+		args, err := ec.field_Subscription_signal_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.Signal(childComplexity, args["userId"].(string)), true
 
 	case "Subscription.syncDown":
 		if e.complexity.Subscription.SyncDown == nil {
@@ -948,6 +961,8 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
   subSources: [SubSource!]!
   filterDataExpression: String!
   visibility: Visibility!
+  # How many users are subscribing to this Feed, used in sharedFeed.
+  subscriberCount: Int
 }
 
 type FeedSeedState implements FeedSeedStateInterface {
@@ -1088,13 +1103,14 @@ input DeleteFeedInput {
 }
 
 type Query {
-  allFeeds: [Feed!]
+  allVisibleFeeds: [Feed!]
   posts: [Post!]
   users: [User!]
 
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
+  # UserState will substitute syncDown as the mechanism for fetching SeedState.
   userState(input: UserStateInput!): UserState!
 
   # Feeds is the main API for newsfeed
@@ -1155,18 +1171,19 @@ type Mutation {
 
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
+
   syncUp(input: SeedStateInput): SeedState
 }
 
 type Subscription {
   # DEPRACATED - New code should not rely on this API! It's waiting to be
-  # removed.
+  # removed. This is to be replaced with (signal + userState)
   syncDown(userId: String!): SeedState!
 
   # Subscribe to signals sending from server side. Client side should handle
   # signals properly. The first time this is called will always return
   # SEED_STATE signal.
-  signal: Signal!
+  signal(userId: String!): Signal!
 }
 
 scalar Time
@@ -1201,14 +1218,6 @@ type Signal @goModel(model: "model.Signal") {
   name: String!
   domain: String
   subsources: [SubSource!]!
-}
-`, BuiltIn: false},
-	{Name: "graph/state.graphqls", Input: `input UserStateInput {
-  userId: String!
-}
-
-type UserState @goModel(model: "model.UserState") {
-  user: User
 }
 `, BuiltIn: false},
 	{Name: "graph/subsource.graphqls", Input: `type SubSource @goModel(model: "model.SubSource") {
@@ -1249,6 +1258,14 @@ interface UserSeedStateInterface {
   id: String!
   name: String!
   avatarUrl: String!
+}
+`, BuiltIn: false},
+	{Name: "graph/userState.graphqls", Input: `input UserStateInput {
+  userId: String!
+}
+
+type UserState @goModel(model: "model.UserState") {
+  user: User
 }
 `, BuiltIn: false},
 }
@@ -1450,6 +1467,21 @@ func (ec *executionContext) field_Query_userState_args(ctx context.Context, rawA
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_signal_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -1851,6 +1883,38 @@ func (ec *executionContext) _Feed_visibility(ctx context.Context, field graphql.
 	res := resTmp.(model.Visibility)
 	fc.Result = res
 	return ec.marshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Feed_subscriberCount(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Feed",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SubscriberCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(int32)
+	fc.Result = res
+	return ec.marshalOInt2int32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _FeedSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
@@ -2903,7 +2967,7 @@ func (ec *executionContext) _PostInFeedOutput_cursor(ctx context.Context, field 
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_allFeeds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_allVisibleFeeds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2921,7 +2985,7 @@ func (ec *executionContext) _Query_allFeeds(ctx context.Context, field graphql.C
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AllFeeds(rctx)
+		return ec.resolvers.Query().AllVisibleFeeds(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3956,9 +4020,16 @@ func (ec *executionContext) _Subscription_signal(ctx context.Context, field grap
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_signal_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().Signal(rctx)
+		return ec.resolvers.Subscription().Signal(rctx, args["userId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6173,6 +6244,8 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "subscriberCount":
+			out.Values[i] = ec._Feed_subscriberCount(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6442,7 +6515,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "allFeeds":
+		case "allVisibleFeeds":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -6450,7 +6523,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_allFeeds(ctx, field)
+				res = ec._Query_allVisibleFeeds(ctx, field)
 				return res
 			})
 		case "posts":
@@ -8102,6 +8175,15 @@ func (ec *executionContext) unmarshalOFeedsGetPostsInput2ᚖgithubᚗcomᚋLuism
 	}
 	res, err := ec.unmarshalInputFeedsGetPostsInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOInt2int32(ctx context.Context, v interface{}) (int32, error) {
+	res, err := graphql.UnmarshalInt32(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2int32(ctx context.Context, sel ast.SelectionSet, v int32) graphql.Marshaler {
+	return graphql.MarshalInt32(v)
 }
 
 func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Post) graphql.Marshaler {

@@ -11,7 +11,7 @@ import (
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
-	. "github.com/Luismorlan/newsmux/utils/log"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -122,12 +122,12 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	// If no data expression or subsources changed, skip, otherwise clear the feed's posts
 	if !needClearPosts {
 		// get posts
-		Log.Info("update feed metadata without clear published posts")
+		Logger.Log.Info("update feed metadata without clear published posts")
 		return &updatedFeed, nil
 	}
 
 	// Clear the feed's posts
-	Log.Info("changed feed clear all posts published")
+	Logger.Log.Info("changed feed clear all posts published")
 	r.DB.Where("feed_id = ?", updatedFeed.Id).Delete(&model.PostFeedPublish{})
 	updatedFeed.Posts = []*model.Post{}
 
@@ -148,11 +148,18 @@ func (r *mutationResolver) DeleteFeed(ctx context.Context, input model.DeleteFee
 		return nil, result.Error
 	}
 
-	// Check ownership
+	// Check ownership, if the deletion operation is not initiated from the Feed
+	// owner, this is just unsubscribe. This is used in Feed sharing, where the
+	// non-owner unsubscribes a feed.
 	if feed.CreatorID != userId {
-		return nil, errors.New("cannot delete a non-owned feed")
+		sub := model.UserFeedSubscription{}
+		if err := r.DB.Model(&model.UserFeedSubscription{}).
+			Where("user_id = ? AND feed_id = ?", userId, feedId).
+			Delete(&sub).Error; err != nil {
+			return nil, err
+		}
+		return &feed, nil
 	}
-
 	// Delete automatically cascade to join tables according to the schema.
 	if err := r.DB.Delete(&feed).Error; err != nil {
 		return nil, err
@@ -233,7 +240,7 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 
 	result := r.DB.First(&user, "id = ?", userId)
 	if result.RowsAffected != 1 {
-		return nil, errors.New(fmt.Sprintf("no valid user found %s", userId))
+		return nil, fmt.Errorf("no valid user found %s", userId)
 	}
 	if result.Error != nil {
 		return nil, result.Error
@@ -241,15 +248,34 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 
 	result = r.DB.First(&feed, "id = ?", feedId)
 	if result.RowsAffected != 1 {
-		return nil, errors.New(fmt.Sprintf("no valid feed found %s", feedId))
+		return nil, fmt.Errorf("no valid feed found %s", feedId)
 	}
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	// The join table is ready after this associate, do not need to do for feed model
-	// Doing that will change the UpdateTime, which is not expected and breaks when feed setting is updated
-	if err := r.DB.Model(&user).Association("SubscribedFeeds").Append(&feed); err != nil {
+	count := r.DB.Model(&user).Association("SubscribedFeeds").Count()
+
+	if err := r.DB.Transaction(
+		func(tx *gorm.DB) error {
+			// The join table is ready after this associate, do not need to do for
+			// feed model. Doing that will change the UpdateTime, which is not
+			// expected and breaks when feed setting is updated
+			if err := r.DB.Model(&user).
+				Association("SubscribedFeeds").
+				Append(&feed); err != nil {
+				return err
+			}
+			// The newly subscribed feed must be at the last order, instead of using
+			// order_in_panel == 0
+			if err := r.DB.Model(&model.UserFeedSubscription{}).
+				Where("user_id = ? AND feed_id = ?", userId, feedId).
+				Update("order_in_panel", count).Error; err != nil {
+				return err
+			}
+			// return nil will commit the whole transaction
+			return nil
+		}); err != nil {
 		return nil, err
 	}
 
@@ -302,10 +328,14 @@ func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInp
 	return ss, err
 }
 
-func (r *queryResolver) AllFeeds(ctx context.Context) ([]*model.Feed, error) {
+func (r *queryResolver) AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
-	result := r.DB.Preload(clause.Associations).Find(&feeds)
-	return feeds, result.Error
+
+	if err := r.DB.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds).Error; err != nil {
+		return nil, err
+	}
+
+	return feeds, nil
 }
 
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
@@ -321,7 +351,25 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 }
 
 func (r *queryResolver) UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error) {
-	panic(fmt.Errorf("not implemented"))
+	var user model.User
+	res := r.DB.Model(&model.User{}).Where("id=?", input.UserID).First(&user)
+	if res.RowsAffected != 1 {
+		return nil, errors.New("user not found or duplicate user")
+	}
+
+	var feeds []model.Feed
+	r.DB.Model(&model.UserFeedSubscription{}).
+		Select("feeds.id", "feeds.name").
+		Joins("INNER JOIN feeds ON feeds.id = user_feed_subscriptions.feed_id").
+		Where("user_feed_subscriptions.user_id = ?", input.UserID).
+		Order("order_in_panel").
+		Find(&feeds)
+
+	for idx := range feeds {
+		user.SubscribedFeeds = append(user.SubscribedFeeds, &feeds[idx])
+	}
+
+	return &model.UserState{User: &user}, nil
 }
 
 func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error) {
@@ -368,8 +416,14 @@ func (r *subscriptionResolver) SyncDown(ctx context.Context, userID string) (<-c
 	return ch, nil
 }
 
-func (r *subscriptionResolver) Signal(ctx context.Context) (<-chan *model.Signal, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *subscriptionResolver) Signal(ctx context.Context, userID string) (<-chan *model.Signal, error) {
+	ch, chId := r.SignalChans.AddNewConnection(ctx, userID)
+	// Initially, user by default will receive SeedState signal.
+	r.SignalChans.PushSignalToSingleChannelForUser(
+		&model.Signal{SignalType: model.SignalTypeSeedState},
+		chId,
+		userID)
+	return ch, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

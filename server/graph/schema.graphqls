@@ -85,7 +85,7 @@ input DeleteFeedInput {
 }
 
 type Query {
-  allFeeds: [Feed!]
+  allVisibleFeeds: [Feed!]
   posts: [Post!]
   users: [User!]
 
@@ -165,7 +165,7 @@ type Subscription {
   # Subscribe to signals sending from server side. Client side should handle
   # signals properly. The first time this is called will always return
   # SEED_STATE signal.
-  signal: Signal!
+  signal(userId: String!): Signal!
 }
 
 scalar Time
