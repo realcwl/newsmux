@@ -20,6 +20,10 @@ type PanopticAppConfig struct {
 	// Otherwise, we use remote fetch for production config, and use local for
 	// dev and testing.
 	FORCE_REMOTE_SCHEDULE_PULL bool `yaml:"FORCE_REMOTE_SCHEDULE_PULL"`
+	// Scheduler config polling interval in seconds
+	SCHEDULER_CONFIG_POLL_INTERVAL_SECOND int64 `yaml:"SCHEDULER_CONFIG_POLL_INTERVAL_SECOND"`
+	// Path pointing to local panoptic config
+	LOCAL_PANOPTIC_CONFIG_PATH string `yaml:"LOCAL_PANOPTIC_CONFIG_PATH"`
 }
 
 func ParsePanopticAppConfig(path string) PanopticAppConfig {

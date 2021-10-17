@@ -89,8 +89,7 @@ func main() {
 		// pushes onto EventBus.
 		modules.NewScheduler(
 			&AppConfig,
-			modules.SchedulerConfig{Name: "scheduler",
-				PanopticConfigPath: "panoptic/data/testing_panoptic_config.textproto"},
+			modules.SchedulerConfig{Name: "scheduler"},
 			eventbus,
 			modules.NewSchedulerJobDoer(eventbus),
 			ctx,
