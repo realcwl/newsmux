@@ -3,6 +3,7 @@ package collector
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
@@ -124,4 +125,8 @@ func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext 
 			moreContext,
 		)
 	}
+}
+
+func CleanWeiboContent(content string) string {
+	return strings.ReplaceAll(content, "\n", " ")
 }

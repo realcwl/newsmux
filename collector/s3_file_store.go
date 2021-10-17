@@ -119,6 +119,10 @@ func (s *S3FileStore) IsKeyExisted(key string) bool {
 	return true
 }
 
-func (s *S3FileStore) GetS3UrlFromKey(key string) string {
+func (s *S3FileStore) GetUrlFromKey(key string) string {
 	return fmt.Sprintf("https://d20uffqoe1h0vv.cloudfront.net/%s", key)
+}
+
+func (s *S3FileStore) CleanUp() {
+	// do nothing for s3
 }

@@ -238,7 +238,7 @@ func TestS3Store(t *testing.T) {
 }
 
 func TestLocalStore(t *testing.T) {
-	s, err := NewLocalFileStore(TestS3Bucket)
+	s, err := NewLocalFileStore("unit_test")
 	require.NoError(t, err)
 
 	s.SetCustomizeFileNameFunc(func(in string) string {
@@ -251,11 +251,13 @@ func TestLocalStore(t *testing.T) {
 	require.Equal(t, "test.jpg", key)
 	_, err = s.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
 	require.NoError(t, err)
-	require.FileExists(t, "test.jpg")
-	err = os.Remove("test.jpg")
+	require.FileExists(t, TmpFileDirPrefix+"unit_test/test.jpg")
+	err = os.Remove(TmpFileDirPrefix + "unit_test/test.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
+	s.CleanUp()
+	require.NoDirExists(t, TmpFileDirPrefix+"unit_test")
 }
 
 func TestWeiboCollectorHandler(t *testing.T) {

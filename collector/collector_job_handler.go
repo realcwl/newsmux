@@ -30,6 +30,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 		if imageStore, err = NewLocalFileStore("test"); err != nil {
 			return err
 		}
+		defer imageStore.CleanUp()
 	} else {
 		sink, err = NewSnsSink()
 		if err != nil {

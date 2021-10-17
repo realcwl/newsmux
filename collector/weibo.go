@@ -126,40 +126,27 @@ func (collector WeiboApiCollector) GetFullText(url string) (string, error) {
 		return "", utils.ImmediatePrintError(
 			errors.New(fmt.Sprintf("fail to convert full rich-html text to node: %v", res.Data.LongTextContent)))
 	}
-	return strings.ReplaceAll(doc.Text(), "\n", " "), nil
+	// goquery Text() will not replace br with newline
+	// to keep consistent with prod crawler, we need to
+	// add newline
+	doc.Find("br").AfterHtml("\n")
+	return doc.Text(), nil
 }
 
 func (collector WeiboApiCollector) UppdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
-	var bucket string
 	post.ImageUrls = []string{}
-	if utils.IsProdEnv() {
-		bucket = ProdS3ImageBucket
-	} else {
-		bucket = TestS3Bucket
-	}
-	store, err := NewS3FileStore(bucket)
-
-	if err != nil {
-		return utils.ImmediatePrintError(err)
-	}
-
 	for _, pic := range mBlog.Pics {
-		key, err := store.FetchAndStore(pic.URL)
+		key, err := collector.imageStore.FetchAndStore(pic.URL)
 		if err != nil {
 			return utils.ImmediatePrintError(err)
 		}
-		s3Url := store.GetS3UrlFromKey(key)
+		s3Url := collector.imageStore.GetUrlFromKey(key)
 		post.ImageUrls = append(post.ImageUrls, s3Url)
 	}
 	return nil
 }
 
 func (collector WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
-	err := collector.UpdateDedupId(post)
-
-	if err != nil {
-		return utils.ImmediatePrintError(err)
-	}
 	generatedTime, err := time.Parse(WeiboDateFormat, mBlog.CreatedAt)
 	post.ContentGeneratedAt = timestamppb.New(generatedTime)
 	if mBlog.User == nil {
@@ -185,6 +172,13 @@ func (collector WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *pro
 	} else {
 		post.Content = mBlog.Text
 	}
+	post.Content = CleanWeiboContent(post.Content)
+
+	err = collector.UpdateDedupId(post)
+	if err != nil {
+		return utils.ImmediatePrintError(err)
+	}
+
 	if mBlog.RetweetedStatus != nil {
 		fmt.Println("starting processing shared post weibo id:", mBlog.ID)
 		sharedPost := &protocol.CrawlerMessage_CrawledPost{

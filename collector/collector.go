@@ -11,6 +11,8 @@ type CollectedDataSink interface {
 
 type CollectedFileStore interface {
 	FetchAndStore(url string) (key string, err error)
+	GetUrlFromKey(key string) string
+	CleanUp()
 }
 
 // This is the contxt we keep to be used for all the steps
