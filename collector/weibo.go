@@ -80,7 +80,7 @@ func (collector WeiboApiCollector) UpdateFileUrls(workingContext *ApiCollectorWo
 	return errors.New("UpdateFileUrls not implemented, should not be called")
 }
 
-func (collector WeiboApiCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo PaginationInfoType) string {
+func (collector WeiboApiCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *PaginationInfoType) string {
 	return fmt.Sprintf("https://m.weibo.cn/api/container/getIndex?uid=%s&type=uid&page=%s&containerid=107603%s",
 		subsource.ExternalId,
 		paginationInfo.NextPageId,
@@ -199,7 +199,7 @@ func (collector WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *pro
 func (collector WeiboApiCollector) CollectOneSubsourceOnePage(
 	task *protocol.PanopticTask,
 	subsource *protocol.PanopticSubSource,
-	paginationInfo PaginationInfoType,
+	paginationInfo *PaginationInfoType,
 ) error {
 	var client HttpClient
 	url := collector.ConstructUrl(task, subsource, paginationInfo)
@@ -256,7 +256,7 @@ func (collector WeiboApiCollector) CollectOneSubsource(task *protocol.PanopticTa
 	}
 
 	for {
-		err := collector.CollectOneSubsourceOnePage(task, subsource, paginationInfo)
+		err := collector.CollectOneSubsourceOnePage(task, subsource, &paginationInfo)
 		if err != nil {
 			return err
 		}

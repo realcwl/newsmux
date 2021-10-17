@@ -38,7 +38,7 @@ type PaginationInfoType struct {
 // for a post
 type ApiCollectorWorkingContext struct {
 	Task           *protocol.PanopticTask
-	PaginationInfo PaginationInfoType
+	PaginationInfo *PaginationInfoType
 	ApiUrl         string
 	Result         *protocol.CrawlerMessage
 	Subsource      *protocol.PanopticSubSource
@@ -81,10 +81,10 @@ type ApiCollector interface {
 	CollectOneSubsourceOnePage(
 		task *protocol.PanopticTask,
 		subsource *protocol.PanopticSubSource,
-		paginationInfo PaginationInfoType,
+		paginationInfo *PaginationInfoType,
 	) error
 	UpdateFileUrls(workingContext *ApiCollectorWorkingContext) error
-	ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo PaginationInfoType) string
+	ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *PaginationInfoType) string
 }
 
 type RssCollector interface {
