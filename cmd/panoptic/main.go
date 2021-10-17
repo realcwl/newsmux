@@ -12,7 +12,6 @@ import (
 	"github.com/Luismorlan/newsmux/app_config"
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/panoptic/modules"
-	"github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
@@ -36,17 +35,14 @@ func init() {
 
 func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 	var client *lambda.Client
-	if utils.IsProdEnv() {
-		client = lambda.New(lambda.Options{Region: panoptic.AWS_REGION})
-	} else {
-		cfg, err := config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion(panoptic.AWS_REGION),
-		)
-		if err != nil {
-			panic(err)
-		}
-		client = lambda.NewFromConfig(cfg)
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(panoptic.AWS_REGION),
+	)
+	if err != nil {
+		panic(err)
 	}
+	client = lambda.NewFromConfig(cfg)
 
 	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
 		LambdaPoolSize:       AppConfig.LAMBDA_POOL_SIZE,
