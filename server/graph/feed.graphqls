@@ -9,6 +9,8 @@ type Feed implements FeedSeedStateInterface @goModel(model: "model.Feed") {
   subSources: [SubSource!]!
   filterDataExpression: String!
   visibility: Visibility!
+  # How many users are subscribing to this Feed, used in sharedFeed.
+  subscriberCount: Int
 }
 
 type FeedSeedState implements FeedSeedStateInterface {

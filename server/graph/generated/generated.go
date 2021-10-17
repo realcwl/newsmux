@@ -60,6 +60,7 @@ type ComplexityRoot struct {
 		Name                 func(childComplexity int) int
 		Posts                func(childComplexity int) int
 		SubSources           func(childComplexity int) int
+		SubscriberCount      func(childComplexity int) int
 		Subscribers          func(childComplexity int) int
 		UpdatedAt            func(childComplexity int) int
 		Visibility           func(childComplexity int) int
@@ -175,6 +176,8 @@ type ComplexityRoot struct {
 
 type FeedResolver interface {
 	FilterDataExpression(ctx context.Context, obj *model.Feed) (string, error)
+
+	SubscriberCount(ctx context.Context, obj *model.Feed) (*int, error)
 }
 type MutationResolver interface {
 	CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error)
@@ -280,6 +283,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Feed.SubSources(childComplexity), true
+
+	case "Feed.subscriberCount":
+		if e.complexity.Feed.SubscriberCount == nil {
+			break
+		}
+
+		return e.complexity.Feed.SubscriberCount(childComplexity), true
 
 	case "Feed.subscribers":
 		if e.complexity.Feed.Subscribers == nil {
@@ -953,6 +963,8 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
   subSources: [SubSource!]!
   filterDataExpression: String!
   visibility: Visibility!
+  # How many users are subscribing to this Feed, used in sharedFeed.
+  subscriberCount: Int
 }
 
 type FeedSeedState implements FeedSeedStateInterface {
@@ -1873,6 +1885,38 @@ func (ec *executionContext) _Feed_visibility(ctx context.Context, field graphql.
 	res := resTmp.(model.Visibility)
 	fc.Result = res
 	return ec.marshalNVisibility2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐVisibility(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Feed_subscriberCount(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Feed",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Feed().SubscriberCount(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _FeedSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
@@ -6202,6 +6246,17 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "subscriberCount":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Feed_subscriberCount(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8131,6 +8186,21 @@ func (ec *executionContext) unmarshalOFeedsGetPostsInput2ᚖgithubᚗcomᚋLuism
 	}
 	res, err := ec.unmarshalInputFeedsGetPostsInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalInt(*v)
 }
 
 func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Post) graphql.Marshaler {
