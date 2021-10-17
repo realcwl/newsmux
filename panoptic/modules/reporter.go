@@ -137,3 +137,7 @@ func (r *Reporter) RunModule(ctx context.Context) error {
 func (r *Reporter) Name() string {
 	return r.Config.Name
 }
+
+func (r *Reporter) Shutdown() {
+	Logger.Log.Infoln("Module ", r.Config.Name, " gracefully shutdown")
+}

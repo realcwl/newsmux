@@ -4,6 +4,9 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/Luismorlan/newsmux/app_config"
@@ -74,7 +77,9 @@ func main() {
 		},
 		watermill.NewStdLogger(false, false),
 	)
-	ctx := context.Background()
+
+	rootCtx := context.Background()
+	ctx, cancel := context.WithCancel(rootCtx)
 
 	// Initialize all engine modules here.
 	modules := []panoptic.Module{
@@ -100,10 +105,15 @@ func main() {
 		),
 	}
 
-	engine := panoptic.NewEngine(modules, eventbus)
+	engine := panoptic.NewEngine(modules, ctx, cancel, eventbus)
 
-	// blocking call.
-	engine.Run(ctx)
+	go engine.Run()
+
+	// Wait for ctrl+c (SIGINT) to gracefully shutdown the entire process.
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	<-sigs
+	engine.Shutdown()
 
 	log.Println("engine stopped execution.")
 }

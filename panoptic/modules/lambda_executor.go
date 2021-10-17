@@ -442,3 +442,33 @@ func (l *LambdaExecutor) Execute(ctx context.Context, job *protocol.PanopticJob)
 	defer f.DeletePendingJob(job)
 	return MakeDataCollectorRpc(ctx, job, f.name, l.lambdaClient)
 }
+
+func (l *LambdaExecutor) Shutdown() {
+	// There's no need to free this lock because it doesn't really matter if we
+	// are shutting down. Also it's a good practice that no additional internal
+	// state change can happen.
+	l.m.Lock()
+
+	// Delete all lambda functions before shuting down.
+	var wg sync.WaitGroup
+
+	l.stalePool.Range(func(key, value interface{}) bool {
+		name := key.(string)
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+			l.DeleteLambdaFunction(name)
+		}(name)
+		return true
+	})
+
+	for _, f := range l.pool {
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+			l.DeleteLambdaFunction(name)
+		}(f.name)
+	}
+
+	wg.Wait()
+}
