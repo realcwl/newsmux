@@ -1,4 +1,4 @@
-package app_config
+package app_setting
 
 import (
 	"io/ioutil"
@@ -8,7 +8,7 @@ import (
 )
 
 // This is the panoptic config for panoptic execution.
-type PanopticAppConfig struct {
+type PanopticAppSetting struct {
 	// Number of Lambdas maintained at a given time.
 	LAMBDA_POOL_SIZE int `yaml:"LAMBDA_POOL_SIZE"`
 	// Lambda life span in second. Any lambda function that exceed this
@@ -26,8 +26,8 @@ type PanopticAppConfig struct {
 	LOCAL_PANOPTIC_CONFIG_PATH string `yaml:"LOCAL_PANOPTIC_CONFIG_PATH"`
 }
 
-func ParsePanopticAppConfig(path string) PanopticAppConfig {
-	c := PanopticAppConfig{}
+func ParsePanopticAppSetting(path string) PanopticAppSetting {
+	c := PanopticAppSetting{}
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatal("yamlFile. get err: ", err.Error())
