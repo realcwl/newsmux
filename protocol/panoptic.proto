@@ -139,6 +139,8 @@ message PanopticSubSource{
 // customize Jinshi's crawler logic.
 message JinshiTaskParams {}
 
+// 1. max_pages: As weibo API is paginated, this specifies how many pages does collector look back
+//    in each task.
 message WeiboTaskParams {
-  int32 max_pages = 2;
+  int32 max_pages = 1;
 }
