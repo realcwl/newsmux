@@ -110,17 +110,6 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 		if e := r.DB.Model(&feed).Association("SubSources").Replace(subSources); e != nil {
 			return e
 		}
-
-		// If user upsert the feed's visibility to be PRIVATE, delete all
-		// subscription other than the user himself.
-		if feed.Visibility == model.VisibilityPrivate {
-			if err := r.DB.Model(&model.UserFeedSubscription{}).
-				Where("user_id != ? AND feed_id = ?", feed.Creator.Id, feed.Id).
-				Delete(model.UserFeedSubscription{}).Error; err != nil {
-				return err
-			}
-		}
-
 		return nil
 	})
 	if err != nil {
