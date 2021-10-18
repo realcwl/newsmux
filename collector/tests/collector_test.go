@@ -1,4 +1,4 @@
-package collector
+package test
 
 import (
 	"fmt"
@@ -8,6 +8,10 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/Luismorlan/newsmux/collector"
+	. "github.com/Luismorlan/newsmux/collector/builder"
+	. "github.com/Luismorlan/newsmux/collector/handler"
+	. "github.com/Luismorlan/newsmux/collector/instances"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/PuerkitoBio/goquery"

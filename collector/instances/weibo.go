@@ -1,4 +1,4 @@
-package collector
+package collector_instances
 
 import (
 	"encoding/json"
@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"sync"
 	"time"
 
+	. "github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -72,15 +72,15 @@ type WeiboApiResponse struct {
 
 // Should Construct With Collector Builder
 type WeiboApiCollector struct {
-	sink       CollectedDataSink
-	imageStore CollectedFileStore
+	Sink       CollectedDataSink
+	ImageStore CollectedFileStore
 }
 
 func (collector WeiboApiCollector) UpdateFileUrls(workingContext *ApiCollectorWorkingContext) error {
 	return errors.New("UpdateFileUrls not implemented, should not be called")
 }
 
-func (collector WeiboApiCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *PaginationInfoType) string {
+func (collector WeiboApiCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *PaginationInfo) string {
 	return fmt.Sprintf("https://m.weibo.cn/api/container/getIndex?uid=%s&type=uid&page=%s&containerid=107603%s",
 		subsource.ExternalId,
 		paginationInfo.NextPageId,
@@ -136,11 +136,11 @@ func (collector WeiboApiCollector) GetFullText(url string) (string, error) {
 func (collector WeiboApiCollector) UppdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	post.ImageUrls = []string{}
 	for _, pic := range mBlog.Pics {
-		key, err := collector.imageStore.FetchAndStore(pic.URL)
+		key, err := collector.ImageStore.FetchAndStore(pic.URL)
 		if err != nil {
 			return utils.ImmediatePrintError(err)
 		}
-		s3Url := collector.imageStore.GetUrlFromKey(key)
+		s3Url := collector.ImageStore.GetUrlFromKey(key)
 		post.ImageUrls = append(post.ImageUrls, s3Url)
 	}
 	return nil
@@ -199,7 +199,7 @@ func (collector WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *pro
 func (collector WeiboApiCollector) CollectOneSubsourceOnePage(
 	task *protocol.PanopticTask,
 	subsource *protocol.PanopticSubSource,
-	paginationInfo *PaginationInfoType,
+	paginationInfo *PaginationInfo,
 ) error {
 	var client HttpClient
 	url := collector.ConstructUrl(task, subsource, paginationInfo)
@@ -232,7 +232,7 @@ func (collector WeiboApiCollector) CollectOneSubsourceOnePage(
 		if err != nil {
 			task.TaskMetadata.TotalMessageFailed++
 			return utils.ImmediatePrintError(err)
-		} else if err = collector.sink.Push(workingContext.Result); err != nil {
+		} else if err = collector.Sink.Push(workingContext.Result); err != nil {
 			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 			task.TaskMetadata.TotalMessageFailed++
 			return utils.ImmediatePrintError(err)
@@ -250,7 +250,7 @@ func (collector WeiboApiCollector) CollectOneSubsourceOnePage(
 // Support configable multi-page API call
 func (collector WeiboApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) error {
 	// NextPageId is set from API
-	paginationInfo := PaginationInfoType{
+	paginationInfo := PaginationInfo{
 		CurrentPageCount: 1,
 		NextPageId:       "1",
 	}
@@ -270,21 +270,5 @@ func (collector WeiboApiCollector) CollectOneSubsource(task *protocol.PanopticTa
 }
 
 func (collector WeiboApiCollector) CollectAndPublish(task *protocol.PanopticTask) {
-	task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
-
-	var wg sync.WaitGroup
-	for _, subsource := range task.TaskParams.SubSources {
-		wg.Add(1)
-		ss := subsource
-		go func(ss *protocol.PanopticSubSource) {
-			defer wg.Done()
-			err := collector.CollectOneSubsource(task, ss)
-			if err != nil {
-				task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-			}
-		}(ss)
-	}
-	wg.Wait()
-	Logger.Log.Info("Finished collecting weibo users , Task", task)
-	return
+	ParallelSubsourceApiCollect(task, collector)
 }

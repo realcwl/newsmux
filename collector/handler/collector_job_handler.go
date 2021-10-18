@@ -1,9 +1,11 @@
-package collector
+package collector_handler_test
 
 import (
 	"errors"
 	"sync"
 
+	. "github.com/Luismorlan/newsmux/collector"
+	. "github.com/Luismorlan/newsmux/collector/builder"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"

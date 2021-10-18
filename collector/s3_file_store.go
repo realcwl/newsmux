@@ -2,7 +2,6 @@ package collector
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/Luismorlan/newsmux/utils"
@@ -16,6 +15,7 @@ const (
 	TestS3Bucket      = "collector-dev-bucket"
 	ProdS3ImageBucket = "newsfeed-crawler-image-output"
 	ProdS3FileBucket  = "newsfeed-crawler-file-output"
+	CouldFrontPrefix  = "https://d20uffqoe1h0vv.cloudfront.net/"
 )
 
 type S3FileStore struct {
@@ -120,7 +120,7 @@ func (s *S3FileStore) IsKeyExisted(key string) bool {
 }
 
 func (s *S3FileStore) GetUrlFromKey(key string) string {
-	return fmt.Sprintf("https://d20uffqoe1h0vv.cloudfront.net/%s", key)
+	return CouldFrontPrefix + key
 }
 
 func (s *S3FileStore) CleanUp() {

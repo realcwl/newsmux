@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"sync"
 
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
@@ -11,6 +12,11 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	Jin10SourceId = "a882eb0d-0bde-401a-b708-a7ce352b7392"
+	WeiboSourceId = "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
 )
 
 // Hard code subsource type to name
@@ -57,10 +63,10 @@ func GetCurrentIpAddress(client HttpClient) (ip string, err error) {
 func GetSourceLogoUrl(sourceId string) string {
 	switch sourceId {
 	// Jin10
-	case "a882eb0d-0bde-401a-b708-a7ce352b7392":
+	case Jin10SourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jin10.png"
 	// Weibo
-	case "0129417c-4987-45c9-86ac-d6a5c89fb4f7":
+	case WeiboSourceId:
 		return ""
 	default:
 		return ""
@@ -129,4 +135,24 @@ func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext 
 
 func CleanWeiboContent(content string) string {
 	return strings.ReplaceAll(content, "\n", " ")
+}
+
+func ParallelSubsourceApiCollect(task *protocol.PanopticTask, collector ApiCollector) {
+	task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
+
+	var wg sync.WaitGroup
+	for _, subsource := range task.TaskParams.SubSources {
+		wg.Add(1)
+		ss := subsource
+		go func(ss *protocol.PanopticSubSource) {
+			defer wg.Done()
+			err := collector.CollectOneSubsource(task, ss)
+			if err != nil {
+				task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
+			}
+		}(ss)
+	}
+	wg.Wait()
+	Logger.Log.Info("Finished collecting weibo users , Task", task)
+	return
 }

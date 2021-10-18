@@ -1,4 +1,4 @@
-package collector
+package collector_instances
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -19,7 +20,7 @@ const (
 )
 
 type Jin10Crawler struct {
-	sink CollectedDataSink
+	Sink CollectedDataSink
 }
 
 func (collector Jin10Crawler) UpdateFileUrls(workingContext *CrawlerWorkingContext) error {
@@ -219,7 +220,7 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 		if workingContext.Result == nil {
 			return
 		}
-		if err = collector.sink.Push(workingContext.Result); err != nil {
+		if err = collector.Sink.Push(workingContext.Result); err != nil {
 			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 			metadata.TotalMessageFailed++
 			Logger.Log.Errorf("fail to publish message %s to SNS. Task: %s, Error: %s", workingContext.Result.String(), task.String(), err)
