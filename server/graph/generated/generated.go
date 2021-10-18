@@ -149,8 +149,7 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		Signal   func(childComplexity int, userID string) int
-		SyncDown func(childComplexity int, userID string) int
+		Signal func(childComplexity int, userID string) int
 	}
 
 	User struct {
@@ -213,7 +212,6 @@ type SubSourceResolver interface {
 	Source(ctx context.Context, obj *model.SubSource) (*model.Source, error)
 }
 type SubscriptionResolver interface {
-	SyncDown(ctx context.Context, userID string) (<-chan *model.SeedState, error)
 	Signal(ctx context.Context, userID string) (<-chan *model.Signal, error)
 }
 type UserResolver interface {
@@ -769,18 +767,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.Signal(childComplexity, args["userId"].(string)), true
 
-	case "Subscription.syncDown":
-		if e.complexity.Subscription.SyncDown == nil {
-			break
-		}
-
-		args, err := ec.field_Subscription_syncDown_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Subscription.SyncDown(childComplexity, args["userId"].(string)), true
-
 	case "User.avatarUrl":
 		if e.complexity.User.AvatarUrl == nil {
 			break
@@ -1112,7 +1098,6 @@ type Query {
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
-  # UserState will substitute syncDown as the mechanism for fetching SeedState.
   userState(input: UserStateInput!): UserState!
 
   # Feeds is the main API for newsfeed
@@ -1178,10 +1163,6 @@ type Mutation {
 }
 
 type Subscription {
-  # DEPRACATED - New code should not rely on this API! It's waiting to be
-  # removed. This is to be replaced with (signal + userState)
-  syncDown(userId: String!): SeedState!
-
   # Subscribe to signals sending from server side. Client side should handle
   # signals properly. The first time this is called will always return
   # SEED_STATE signal.
@@ -1473,21 +1454,6 @@ func (ec *executionContext) field_Query_userState_args(ctx context.Context, rawA
 }
 
 func (ec *executionContext) field_Subscription_signal_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["userId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["userId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Subscription_syncDown_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -3952,58 +3918,6 @@ func (ec *executionContext) _SubSource_isFromSharedPost(ctx context.Context, fie
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Subscription_syncDown(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = nil
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Subscription_syncDown_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().SyncDown(rctx, args["userId"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return nil
-	}
-	return func() graphql.Marshaler {
-		res, ok := <-resTmp.(<-chan *model.SeedState)
-		if !ok {
-			return nil
-		}
-		return graphql.WriterFunc(func(w io.Writer) {
-			w.Write([]byte{'{'})
-			graphql.MarshalString(field.Alias).MarshalGQL(w)
-			w.Write([]byte{':'})
-			ec.marshalNSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx, field.Selections, res).MarshalGQL(w)
-			w.Write([]byte{'}'})
-		})
-	}
 }
 
 func (ec *executionContext) _Subscription_signal(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
@@ -6838,8 +6752,6 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 
 	switch fields[0].Name {
-	case "syncDown":
-		return ec._Subscription_syncDown(ctx, fields[0])
 	case "signal":
 		return ec._Subscription_signal(ctx, fields[0])
 	default:
@@ -7513,20 +7425,6 @@ func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._Post(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNSeedState2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx context.Context, sel ast.SelectionSet, v model.SeedState) graphql.Marshaler {
-	return ec._SeedState(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx context.Context, sel ast.SelectionSet, v *model.SeedState) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._SeedState(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNSignal2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignal(ctx context.Context, sel ast.SelectionSet, v model.Signal) graphql.Marshaler {

@@ -104,9 +104,8 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 
 func PrepareTestDBClient(db *gorm.DB) *client.Client {
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
-		DB:             db,
-		SeedStateChans: nil,
-		SignalChans:    nil,
+		DB:          db,
+		SignalChans: nil,
 	}})))
 	return client
 }
