@@ -1,26 +1,28 @@
 package utils
 
-import (
-	. "github.com/Luismorlan/newsmux/utils/flag"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-)
+// Disable Tracer because we don't use it.
 
-func init() {
-	// Datadog tracer
+// import (
+// 	. "github.com/Luismorlan/newsmux/utils/flag"
+// 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+// )
 
-	env := "development"
-	if IsProdEnv() {
-		env = "production"
-	}
+// func init() {
+// 	// Datadog tracer
 
-	tracer.Start(
-		tracer.WithService(ServiceName),
-		tracer.WithEnv(env),
-	)
-}
+// 	env := "development"
+// 	if IsProdEnv() {
+// 		env = "production"
+// 	}
 
-// Stop tracer, OK to be closed multiple times
-func CloseTracer() {
-	// Datadog tracer
-	tracer.Stop()
-}
+// 	tracer.Start(
+// 		tracer.WithService(ServiceName),
+// 		tracer.WithEnv(env),
+// 	)
+// }
+
+// // Stop tracer, OK to be closed multiple times
+// func CloseTracer() {
+// 	// Datadog tracer
+// 	tracer.Stop()
+// }

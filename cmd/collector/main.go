@@ -5,7 +5,6 @@ import (
 	collector_hander "github.com/Luismorlan/newsmux/collector/handler"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
-	. "github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -17,8 +16,6 @@ func init() {
 }
 
 func cleanup() {
-	CloseProfiler()
-	CloseTracer()
 	Log.Info("data collector shutdown")
 }
 

@@ -5,7 +5,6 @@ import (
 	"github.com/Luismorlan/newsmux/server"
 	"github.com/Luismorlan/newsmux/server/middlewares"
 	"github.com/Luismorlan/newsmux/utils"
-	. "github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	. "github.com/Luismorlan/newsmux/utils/flag"
 	. "github.com/Luismorlan/newsmux/utils/log"
@@ -22,8 +21,6 @@ func init() {
 }
 
 func cleanup() {
-	CloseProfiler()
-	CloseTracer()
 	Log.Info("api server shutdown")
 }
 

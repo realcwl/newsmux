@@ -1,39 +1,41 @@
 package utils
 
-import (
-	. "github.com/Luismorlan/newsmux/utils/flag"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
-)
+// Disable profiler because we don't use it.
 
-func init() {
-	// Datadog profiler
+// import (
+// 	. "github.com/Luismorlan/newsmux/utils/flag"
+// 	Logger "github.com/Luismorlan/newsmux/utils/log"
+// 	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
+// )
 
-	env := "development"
-	if IsProdEnv() {
-		env = "production"
-	}
+// func init() {
+// 	// Datadog profiler
 
-	if err := profiler.Start(
-		profiler.WithService(ServiceName),
-		profiler.WithEnv(env),
-		profiler.WithProfileTypes(
-			profiler.CPUProfile,
-			profiler.HeapProfile,
-			// The profiles below are disabled by
-			// default to keep overhead low, but
-			// can be enabled as needed.
-			// profiler.BlockProfile,
-			// profiler.MutexProfile,
-			// profiler.GoroutineProfile,
-		),
-	); err != nil {
-		Logger.Log.Fatal(err)
-	}
-}
+// 	env := "development"
+// 	if IsProdEnv() {
+// 		env = "production"
+// 	}
 
-// Stop profiler, OK to be closed multiple times
-func CloseProfiler() {
-	// Datadog profiler
-	profiler.Stop()
-}
+// 	if err := profiler.Start(
+// 		profiler.WithService(ServiceName),
+// 		profiler.WithEnv(env),
+// 		profiler.WithProfileTypes(
+// 			profiler.CPUProfile,
+// 			profiler.HeapProfile,
+// 			// The profiles below are disabled by
+// 			// default to keep overhead low, but
+// 			// can be enabled as needed.
+// 			// profiler.BlockProfile,
+// 			// profiler.MutexProfile,
+// 			// profiler.GoroutineProfile,
+// 		),
+// 	); err != nil {
+// 		Logger.Log.Fatal(err)
+// 	}
+// }
+
+// // Stop profiler, OK to be closed multiple times
+// func CloseProfiler() {
+// 	// Datadog profiler
+// 	profiler.Stop()
+// }
