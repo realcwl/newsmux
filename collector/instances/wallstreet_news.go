@@ -93,7 +93,6 @@ func (collector WallstreetApiCollector) CollectOneSubsourceOnePage(
 	}
 
 	for _, item := range res.Data.Items {
-		fmt.Println("============= item============= ")
 		// working context for each message
 		workingContext := &ApiCollectorWorkingContext{
 			Task:           task,

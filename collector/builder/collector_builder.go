@@ -16,7 +16,7 @@ func (CollectorBuilder) NewWeiboApiCollector(s CollectedDataSink, store Collecte
 	return &WeiboApiCollector{Sink: s, ImageStore: store}
 }
 
-func (CollectorBuilder) NewWallstreetNewsApiCollector(s CollectedDataSink, store CollectedFileStore) ApiCollector {
+func (CollectorBuilder) NewWallstreetNewsApiCollector(s CollectedDataSink) ApiCollector {
 	return &WallstreetApiCollector{Sink: s}
 }
 
