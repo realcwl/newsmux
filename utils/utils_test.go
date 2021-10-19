@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateCoinbase(t *testing.T) {
@@ -46,4 +47,8 @@ func TestMd5Hash(t *testing.T) {
 	res, err := TextToMd5Hash("123")
 	assert.NoError(t, err)
 	assert.Equal(t, "202cb962ac59075b964b07152d234b70", res)
+}
+
+func TestGetUrlExtNameWithDot(t *testing.T) {
+	require.Equal(t, ".jpg", GetUrlExtNameWithDot("https://wx2.sinaimg.cn/orj360/001SZvN4gy1gvf09rkb6rj61kp0u0th602.jpg"))
 }

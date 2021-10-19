@@ -44,6 +44,7 @@ message TaskParams {
   // of the task param.
   oneof params {
     JinshiTaskParams jinshi_task_params = 20;
+    WeiboTaskParams weibo_task_params = 21;
   }
 }
 
@@ -86,6 +87,7 @@ message PanopticTask {
     COLLECTOR_UNSPECIFIED = 0;
     COLLECTOR_JINSHI = 1;
     COLLECTOR_KUAILANSI = 2;
+    COLLECTOR_WEIBO = 3;
     // ...
   }
 
@@ -133,7 +135,12 @@ message PanopticSubSource{
   string external_id = 3;
 }
 
-
 // Created empty param here in case we need to pass in additional parameters to
 // customize Jinshi's crawler logic.
 message JinshiTaskParams {}
+
+// 1. max_pages: As weibo API is paginated, this specifies how many pages does collector look back
+//    in each task.
+message WeiboTaskParams {
+  int32 max_pages = 1;
+}

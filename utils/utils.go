@@ -4,9 +4,12 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -120,4 +123,18 @@ func TextToMd5Hash(input string) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+func ImmediatePrintError(err error) error {
+	if err != nil {
+		// notice that we're using 1, so it will actually log the where
+		// the error happened, 0 = this function, we don't want that.
+		_, fn, line, _ := runtime.Caller(1)
+		fmt.Printf("\n[%s:%d] %v\n", fn, line, err)
+	}
+	return err
+}
+
+func GetUrlExtNameWithDot(url string) string {
+	return filepath.Ext(url)
 }

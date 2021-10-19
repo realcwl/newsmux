@@ -2,7 +2,7 @@ package main
 
 import (
 	ddlambda "github.com/DataDog/datadog-lambda-go"
-	"github.com/Luismorlan/newsmux/collector"
+	collector_hander "github.com/Luismorlan/newsmux/collector/handler"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
 	. "github.com/Luismorlan/newsmux/utils"
@@ -34,7 +34,7 @@ func HandleRequest(event model.DataCollectorRequest) (model.DataCollectorRespons
 	Log.Info("Processing job with job id : ", job.JobId)
 
 	// handle
-	var handler collector.DataCollectJobHandler
+	var handler collector_hander.DataCollectJobHandler
 	err := handler.Collect(job)
 	if err != nil {
 		Log.Error("Failed to execute job with error:", err)

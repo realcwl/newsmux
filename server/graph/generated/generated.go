@@ -175,8 +175,6 @@ type ComplexityRoot struct {
 
 type FeedResolver interface {
 	FilterDataExpression(ctx context.Context, obj *model.Feed) (string, error)
-
-	SubscriberCount(ctx context.Context, obj *model.Feed) (*int, error)
 }
 type MutationResolver interface {
 	CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error)
@@ -1864,14 +1862,14 @@ func (ec *executionContext) _Feed_subscriberCount(ctx context.Context, field gra
 		Object:     "Feed",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Feed().SubscriberCount(rctx, obj)
+		return obj.SubscriberCount, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1880,9 +1878,9 @@ func (ec *executionContext) _Feed_subscriberCount(ctx context.Context, field gra
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*int)
+	res := resTmp.(int32)
 	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+	return ec.marshalOInt2int32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _FeedSeedState_id(ctx context.Context, field graphql.CollectedField, obj *model.FeedSeedState) (ret graphql.Marshaler) {
@@ -6161,16 +6159,7 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "subscriberCount":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Feed_subscriberCount(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._Feed_subscriberCount(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8086,19 +8075,13 @@ func (ec *executionContext) unmarshalOFeedsGetPostsInput2ᚖgithubᚗcomᚋLuism
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalInt(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
+func (ec *executionContext) unmarshalOInt2int32(ctx context.Context, v interface{}) (int32, error) {
+	res, err := graphql.UnmarshalInt32(v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return graphql.MarshalInt(*v)
+func (ec *executionContext) marshalOInt2int32(ctx context.Context, sel ast.SelectionSet, v int32) graphql.Marshaler {
+	return graphql.MarshalInt32(v)
 }
 
 func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Post) graphql.Marshaler {

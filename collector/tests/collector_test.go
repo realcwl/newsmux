@@ -1,4 +1,4 @@
-package collector
+package test
 
 import (
 	"fmt"
@@ -8,6 +8,10 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/Luismorlan/newsmux/collector"
+	. "github.com/Luismorlan/newsmux/collector/builder"
+	. "github.com/Luismorlan/newsmux/collector/handler"
+	. "github.com/Luismorlan/newsmux/collector/instances"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/PuerkitoBio/goquery"
@@ -106,7 +110,7 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 		require.Equal(t, "a.com", msg.Post.OriginUrl)
 		require.Equal(t, sourceId, msg.Post.SubSource.SourceId)
 
-		tm, _ := time.Parse(jin10DateFormat, "20210926-13:29:04")
+		tm, _ := time.Parse(Jin10DateFormat, "20210926-13:29:04")
 		require.Equal(t, tm.Unix(), msg.Post.ContentGeneratedAt.AsTime().Unix())
 	})
 }
@@ -141,7 +145,7 @@ func TestJin10CrawlerWithImage(t *testing.T) {
 		require.Equal(t, "a.com", msg.Post.OriginUrl)
 		require.Equal(t, sourceId, msg.Post.SubSource.SourceId)
 
-		tm, _ := time.Parse(jin10DateFormat, "20210925-21:50:15")
+		tm, _ := time.Parse(Jin10DateFormat, "20210925-21:50:15")
 		require.Equal(t, tm.Unix(), msg.Post.ContentGeneratedAt.AsTime().Unix())
 	})
 }
@@ -235,12 +239,10 @@ func TestS3Store(t *testing.T) {
 	key, err := s.GenerateS3KeyFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
 	require.NoError(t, err)
 	require.Equal(t, "test.jpg", key)
-	// err = s.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
-	// require.NoError(t, err)
 }
 
 func TestLocalStore(t *testing.T) {
-	s, err := NewLocalFileStore(TestS3Bucket)
+	s, err := NewLocalFileStore("unit_test")
 	require.NoError(t, err)
 
 	s.SetCustomizeFileNameFunc(func(in string) string {
@@ -251,11 +253,62 @@ func TestLocalStore(t *testing.T) {
 	key, err := s.GenerateFileNameFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
 	require.NoError(t, err)
 	require.Equal(t, "test.jpg", key)
-	err = s.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
+	_, err = s.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
 	require.NoError(t, err)
-	require.FileExists(t, "test.jpg")
-	err = os.Remove("test.jpg")
+	require.FileExists(t, TmpFileDirPrefix+"unit_test/test.jpg")
+	err = os.Remove(TmpFileDirPrefix + "unit_test/test.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
+	s.CleanUp()
+	require.NoDirExists(t, TmpFileDirPrefix+"unit_test")
+}
+
+func TestWeiboCollectorHandler(t *testing.T) {
+	job := protocol.PanopticJob{
+		Tasks: []*protocol.PanopticTask{{
+			TaskId:          "123",
+			DataCollectorId: protocol.PanopticTask_COLLECTOR_WEIBO,
+			TaskParams: &protocol.TaskParams{
+				HeaderParams: []*protocol.KeyValuePair{},
+				Cookies:      []*protocol.KeyValuePair{},
+				SourceId:     "0129417c-4987-45c9-86ac-d6a5c89fb4f7",
+				SubSources: []*protocol.PanopticSubSource{
+					{
+						Name:       "庄时利和",
+						Type:       protocol.PanopticSubSource_USERS,
+						ExternalId: "1728715190",
+					},
+					{
+						Name:       "子陵在听歌",
+						Type:       protocol.PanopticSubSource_USERS,
+						ExternalId: "1251560221",
+					},
+					{
+						Name:       "一水亦方",
+						Type:       protocol.PanopticSubSource_USERS,
+						ExternalId: "2349367491",
+					},
+				},
+				Params: &protocol.TaskParams_WeiboTaskParams{
+					WeiboTaskParams: &protocol.WeiboTaskParams{
+						MaxPages: 2,
+					},
+				},
+			},
+			TaskMetadata: &protocol.TaskMetadata{},
+		},
+		},
+	}
+	var handler DataCollectJobHandler
+	err := handler.Collect(&job)
+	fmt.Println("job", job.String())
+	require.NoError(t, err)
+	require.Equal(t, 1, len(job.Tasks))
+	require.Equal(t, "123", job.Tasks[0].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
+	require.Equal(t, job.Tasks[0].TaskMetadata.ResultState, protocol.TaskMetadata_STATE_SUCCESS)
 }
