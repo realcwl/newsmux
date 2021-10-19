@@ -42,6 +42,7 @@ type ApiCollectorWorkingContext struct {
 	ApiUrl         string
 	Result         *protocol.CrawlerMessage
 	Subsource      *protocol.PanopticSubSource
+	NewsType       protocol.PanopticSubSource_SubSourceType
 }
 
 type DataCollector interface {
@@ -67,8 +68,6 @@ type CrawlerCollector interface {
 	UpdateNewsType(workingContext *CrawlerWorkingContext) error
 	UpdateImageUrls(workingContext *CrawlerWorkingContext) error
 	UpdateFileUrls(workingContext *CrawlerWorkingContext) error
-
-	IsRequested(workingContext *CrawlerWorkingContext) bool
 }
 
 // In API collector API, not like Crawler where we usually

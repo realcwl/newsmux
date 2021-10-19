@@ -312,3 +312,48 @@ func TestWeiboCollectorHandler(t *testing.T) {
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
 	require.Equal(t, job.Tasks[0].TaskMetadata.ResultState, protocol.TaskMetadata_STATE_SUCCESS)
 }
+
+func TestWallstreetNewsCollectorHandler(t *testing.T) {
+	job := protocol.PanopticJob{
+		Tasks: []*protocol.PanopticTask{{
+			TaskId:          "123",
+			DataCollectorId: protocol.PanopticTask_COLLECTOR_WALLSTREET_NEWS,
+			TaskParams: &protocol.TaskParams{
+				HeaderParams: []*protocol.KeyValuePair{},
+				Cookies:      []*protocol.KeyValuePair{},
+				SourceId:     "66251821-ef9a-464c-bde9-8b2fd8ef2405",
+				SubSources: []*protocol.PanopticSubSource{
+					{
+						Name:       "要闻",
+						Type:       protocol.PanopticSubSource_KEYNEWS,
+						ExternalId: "",
+					},
+					{
+						Name:       "快讯",
+						Type:       protocol.PanopticSubSource_FLASHNEWS,
+						ExternalId: "",
+					},
+				},
+				Params: &protocol.TaskParams_WallstreetNewsTaskParams{
+					WallstreetNewsTaskParams: &protocol.WallstreetNewsTaskParams{
+						Channels: []string{"a-stock-channel", "us-stock-channel", "hk-stock-channel", "goldc-channel%2Coil-channel%2Ccommodity-channel"},
+						Limit:    3,
+					},
+				},
+			},
+			TaskMetadata: &protocol.TaskMetadata{},
+		},
+		},
+	}
+	var handler DataCollectJobHandler
+	err := handler.Collect(&job)
+	fmt.Println("job", job.String())
+	require.NoError(t, err)
+	require.Equal(t, 1, len(job.Tasks))
+	require.Equal(t, "123", job.Tasks[0].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
+	require.Equal(t, job.Tasks[0].TaskMetadata.ResultState, protocol.TaskMetadata_STATE_SUCCESS)
+}

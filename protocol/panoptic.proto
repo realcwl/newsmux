@@ -45,6 +45,7 @@ message TaskParams {
   oneof params {
     JinshiTaskParams jinshi_task_params = 20;
     WeiboTaskParams weibo_task_params = 21;
+    WallstreetNewsTaskParams wallstreet_news_task_params = 22; 
   }
 }
 
@@ -88,6 +89,7 @@ message PanopticTask {
     COLLECTOR_JINSHI = 1;
     COLLECTOR_KUAILANSI = 2;
     COLLECTOR_WEIBO = 3;
+    COLLECTOR_WALLSTREET_NEWS= 4;
     // ...
   }
 
@@ -143,4 +145,9 @@ message JinshiTaskParams {}
 //    in each task.
 message WeiboTaskParams {
   int32 max_pages = 1;
+}
+
+message WallstreetNewsTaskParams {
+  repeated string channels= 1;
+  int32 limit = 2;
 }
