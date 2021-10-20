@@ -1,4 +1,4 @@
-package collector_handler_test
+package collector_job_handler
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 
 	. "github.com/Luismorlan/newsmux/collector"
 	. "github.com/Luismorlan/newsmux/collector/builder"
+	. "github.com/Luismorlan/newsmux/collector/instances"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -64,6 +65,13 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector DataCollector
 		builder   CollectorBuilder
 	)
+	zsxqFileStore, err := NewS3FileStore(TestS3Bucket)
+	if err != nil {
+		return err
+	}
+	zsxqFileStore.SetCustomizeFileExtFunc(GetZsxqFileExtMethod())
+	zsxqFileStore.SetCustomizeFileNameFunc(GetZsxqFileNameMethod())
+
 	// forward task to corresponding collector
 	switch t.DataCollectorId {
 	case protocol.PanopticTask_COLLECTOR_JINSHI:
@@ -71,6 +79,8 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector = builder.NewJin10Crawler(sink)
 	case protocol.PanopticTask_COLLECTOR_WEIBO:
 		collector = builder.NewWeiboApiCollector(sink, imageStore)
+	case protocol.PanopticTask_COLLECTOR_ZSXQ:
+		collector = builder.NewZsxqApiCollector(sink, imageStore, zsxqFileStore)
 	default:
 		return errors.New("unknown task data collector id")
 	}

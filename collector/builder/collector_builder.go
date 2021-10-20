@@ -12,8 +12,12 @@ func (CollectorBuilder) NewJin10Crawler(s CollectedDataSink) CrawlerCollector {
 	return &Jin10Crawler{Sink: s}
 }
 
-func (CollectorBuilder) NewWeiboApiCollector(s CollectedDataSink, store CollectedFileStore) ApiCollector {
-	return &WeiboApiCollector{Sink: s, ImageStore: store}
+func (CollectorBuilder) NewWeiboApiCollector(s CollectedDataSink, imageStore CollectedFileStore) ApiCollector {
+	return &WeiboApiCollector{Sink: s, ImageStore: imageStore}
+}
+
+func (CollectorBuilder) NewZsxqApiCollector(s CollectedDataSink, imageStore CollectedFileStore, fileStore CollectedFileStore) ApiCollector {
+	return &ZsxqApiCollector{Sink: s, ImageStore: imageStore, FileStore: fileStore}
 }
 
 // func (CollectorBuilder) NewKuailansiCrawler(s CollectedDataSink) RssCollector {

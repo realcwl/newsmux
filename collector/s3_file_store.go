@@ -48,25 +48,22 @@ func NewS3FileStore(bucket string) (*S3FileStore, error) {
 	}, nil
 }
 
-func (s *S3FileStore) SetProcessUrlBeforeFetchFunc(f ProcessUrlBeforeFetchFuncType) *S3FileStore {
+func (s *S3FileStore) SetProcessUrlBeforeFetchFunc(f ProcessUrlBeforeFetchFuncType) {
 	s.processUrlBeforeFetchFunc = f
-	return s
 }
 
-func (s *S3FileStore) SetCustomizeFileNameFunc(f CustomizeFileNameFuncType) *S3FileStore {
+func (s *S3FileStore) SetCustomizeFileNameFunc(f CustomizeFileNameFuncType) {
 	s.customizeFileNameFunc = f
-	return s
 }
 
-func (s *S3FileStore) SetCustomizeFileExtFunc(f CustomizeFileExtFuncType) *S3FileStore {
+func (s *S3FileStore) SetCustomizeFileExtFunc(f CustomizeFileExtFuncType) {
 	s.customizeFileExtFunc = f
-	return s
 }
 
 // S3 key is the file name
-func (s *S3FileStore) GenerateS3KeyFromUrl(url string) (key string, err error) {
+func (s *S3FileStore) GenerateS3KeyFromUrl(url, fileName string) (key string, err error) {
 	if s.customizeFileNameFunc != nil {
-		key = s.customizeFileNameFunc(url)
+		key = s.customizeFileNameFunc(url, fileName)
 	} else {
 		key, err = utils.TextToMd5Hash(url)
 	}
@@ -75,24 +72,29 @@ func (s *S3FileStore) GenerateS3KeyFromUrl(url string) (key string, err error) {
 		err = errors.New("generate empty s3 key, invalid")
 	}
 
+	// TODO: merge with customizeFileNameFunc
 	if s.customizeFileExtFunc != nil {
-		key = key + "." + s.customizeFileExtFunc(url)
+		key = key + s.customizeFileExtFunc(url, fileName)
 	} else {
-		key = key + utils.GetUrlExtNameWithDot(url)
+		if fileName != "" {
+			key = key + utils.GetUrlExtNameWithDot(fileName)
+		} else {
+			key = key + utils.GetUrlExtNameWithDot(url)
+		}
 	}
 
 	return key, err
 }
 
 // If url key existed, just return the existing key without update file
-func (s *S3FileStore) FetchAndStore(url string) (key string, err error) {
+func (s *S3FileStore) FetchAndStore(url, fileName string) (key string, err error) {
 	// Download file
 	response, err := http.Get(s.processUrlBeforeFetchFunc(url))
 	if err != nil {
 		return "", err
 	}
 
-	key, err = s.GenerateS3KeyFromUrl(url)
+	key, err = s.GenerateS3KeyFromUrl(url, fileName)
 	if err != nil {
 		return "", err
 	}

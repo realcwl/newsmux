@@ -10,9 +10,12 @@ type CollectedDataSink interface {
 }
 
 type CollectedFileStore interface {
-	FetchAndStore(url string) (key string, err error)
+	FetchAndStore(url, fileName string) (key string, err error)
 	GetUrlFromKey(key string) string
 	CleanUp()
+	SetProcessUrlBeforeFetchFunc(f ProcessUrlBeforeFetchFuncType)
+	SetCustomizeFileNameFunc(f CustomizeFileNameFuncType)
+	SetCustomizeFileExtFunc(f CustomizeFileExtFuncType)
 }
 
 // This is the contxt we keep to be used for all the steps
@@ -37,11 +40,12 @@ type PaginationInfo struct {
 // This is the context we keep to be used for all steps
 // for a post
 type ApiCollectorWorkingContext struct {
-	Task           *protocol.PanopticTask
-	PaginationInfo *PaginationInfo
-	ApiUrl         string
-	Result         *protocol.CrawlerMessage
-	Subsource      *protocol.PanopticSubSource
+	Task            *protocol.PanopticTask
+	PaginationInfo  *PaginationInfo
+	ApiUrl          string
+	Result          *protocol.CrawlerMessage
+	Subsource       *protocol.PanopticSubSource
+	ApiResponseItem interface{}
 }
 
 type DataCollector interface {
@@ -94,5 +98,5 @@ type RssCollector interface {
 
 // Shared Func type for file stores
 type ProcessUrlBeforeFetchFuncType func(string) string
-type CustomizeFileNameFuncType func(string) string
-type CustomizeFileExtFuncType func(string) string
+type CustomizeFileNameFuncType func(string, string) string
+type CustomizeFileExtFuncType func(string, string) string

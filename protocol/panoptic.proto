@@ -45,6 +45,7 @@ message TaskParams {
   oneof params {
     JinshiTaskParams jinshi_task_params = 20;
     WeiboTaskParams weibo_task_params = 21;
+    ZsxqTaskParams zsxq_task_params = 22;
   }
 }
 
@@ -88,6 +89,7 @@ message PanopticTask {
     COLLECTOR_JINSHI = 1;
     COLLECTOR_KUAILANSI = 2;
     COLLECTOR_WEIBO = 3;
+    COLLECTOR_ZSXQ = 4;
     // ...
   }
 
@@ -141,4 +143,8 @@ message JinshiTaskParams {}
 
 message WeiboTaskParams {
   int32 max_pages = 2;
+}
+
+message ZsxqTaskParams {
+  int32 count_per_request = 1;
 }
