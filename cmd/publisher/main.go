@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"time"
 
 	. "github.com/Luismorlan/newsmux/publisher"
@@ -28,6 +29,7 @@ func getNewBackOff(backOff float64) float64 {
 }
 
 func main() {
+	flag.Parse()
 	if err := dotenv.LoadDotEnvs(); err != nil {
 		Log.Fatal("fail to load env : ", err)
 	}
