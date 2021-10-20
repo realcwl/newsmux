@@ -14,6 +14,15 @@ func (r *feedResolver) FilterDataExpression(ctx context.Context, obj *model.Feed
 	return string(obj.FilterDataExpression), nil
 }
 
+func (r *feedResolver) SubscriberCount(ctx context.Context, obj *model.Feed) (*int, error) {
+	var count int64
+	r.DB.Model(&model.UserFeedSubscription{}).
+		Where("feed_id = ?", obj.Id).
+		Count(&count)
+	res := int(count)
+	return &res, nil
+}
+
 // Feed returns generated.FeedResolver implementation.
 func (r *Resolver) Feed() generated.FeedResolver { return &feedResolver{r} }
 
