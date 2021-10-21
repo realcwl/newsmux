@@ -16,6 +16,13 @@ func (CollectorBuilder) NewWeiboApiCollector(s CollectedDataSink, store Collecte
 	return &WeiboApiCollector{Sink: s, ImageStore: store}
 }
 
- func (CollectorBuilder) NewKuailansiApiCollector(s CollectedDataSink) DataCollector {
- 	return &KuailansiApiCrawler{Sink: s}
- }
+func (CollectorBuilder) NewWallstreetNewsApiCollector(s CollectedDataSink) ApiCollector {
+	return &WallstreetApiCollector{Sink: s}
+}
+
+// func (CollectorBuilder) NewKuailansiCrawler(s CollectedDataSink) RssCollector {
+// 	return &SomeAPICollector{sink: s}
+// }
+func (CollectorBuilder) NewKuailansiApiCollector(s CollectedDataSink) DataCollector {
+	return &KuailansiApiCrawler{Sink: s}
+}

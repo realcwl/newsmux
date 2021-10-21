@@ -157,6 +157,7 @@ func (collector WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *pro
 		post.SubSource.ExternalId = fmt.Sprint(mBlog.User.ID)
 	}
 	collector.UppdateImages(mBlog, post)
+	// overwrite task level url by post url
 	post.OriginUrl = "https://m.weibo.cn/detail/" + mBlog.ID
 	if strings.Contains(mBlog.Text, ">全文<") {
 		allTextUrl := "https://m.weibo.cn/statuses/extend?id=" + mBlog.ID

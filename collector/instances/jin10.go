@@ -122,23 +122,6 @@ func (collector Jin10Crawler) UpdateImageUrls(workingContext *CrawlerWorkingCont
 	return nil
 }
 
-// Process each html selection to get content
-func (collector Jin10Crawler) IsRequested(workingContext *CrawlerWorkingContext) bool {
-	requestedTypes := make(map[protocol.PanopticSubSource_SubSourceType]bool)
-
-	for _, subsource := range workingContext.Task.TaskParams.SubSources {
-		s := subsource
-		requestedTypes[s.Type] = true
-	}
-
-	if _, ok := requestedTypes[workingContext.NewsType]; !ok {
-		fmt.Println("Not requested, actual level: ", workingContext.NewsType, " requested ", requestedTypes)
-		return false
-	}
-
-	return true
-}
-
 func (collector Jin10Crawler) UpdateSubsourceName(workingContext *CrawlerWorkingContext) error {
 	workingContext.Result.Post.SubSource.Name = SubsourceTypeToName(workingContext.NewsType)
 	return nil
@@ -167,7 +150,7 @@ func (collector Jin10Crawler) GetMessage(workingContext *CrawlerWorkingContext) 
 		return err
 	}
 
-	if !collector.IsRequested(workingContext) {
+	if !IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
 		workingContext.Result = nil
 		return nil
 	}

@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	Jin10SourceId     = "a882eb0d-0bde-401a-b708-a7ce352b7392"
-	WeiboSourceId     = "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
-	KuailansiSourceId = "6e1f6734-985b-4a52-865f-fc39a9daa2e8"
+	Jin10SourceId          = "a882eb0d-0bde-401a-b708-a7ce352b7392"
+	WeiboSourceId          = "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
+	KuailansiSourceId      = "6e1f6734-985b-4a52-865f-fc39a9daa2e8"
+	WallstreetNewsSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
 )
 
 // Hard code subsource type to name
@@ -70,6 +71,8 @@ func GetSourceLogoUrl(sourceId string) string {
 	// Weibo
 	case WeiboSourceId:
 		return ""
+	case WallstreetNewsSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wallstrt.png"
 	default:
 		return ""
 	}
@@ -107,6 +110,7 @@ func InitializeApiCollectorResult(workingContext *ApiCollectorWorkingContext) {
 	// like weibo
 	workingContext.Result.Post.SubSource.AvatarUrl = GetSourceLogoUrl(workingContext.Task.TaskParams.SourceId)
 	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
+	workingContext.Result.Post.OriginUrl = workingContext.ApiUrl
 
 	var httpClient HttpClient
 	ip, err := GetCurrentIpAddress(httpClient)
@@ -157,6 +161,23 @@ func ParallelSubsourceApiCollect(task *protocol.PanopticTask, collector ApiColle
 	wg.Wait()
 	Logger.Log.Info("Finished collecting weibo users , Task", task)
 	return
+}
+
+// Process each html selection to get content
+func IsRequestedNewsType(subSources []*protocol.PanopticSubSource, newstype protocol.PanopticSubSource_SubSourceType) bool {
+	requestedTypes := make(map[protocol.PanopticSubSource_SubSourceType]bool)
+
+	for _, subsource := range subSources {
+		s := subsource
+		requestedTypes[s.Type] = true
+	}
+
+	if _, ok := requestedTypes[newstype]; !ok {
+		fmt.Println("Not requested, actual level: ", newstype, " requested ", requestedTypes)
+		return false
+	}
+
+	return true
 }
 
 func PrettyPrint(data interface{}) {

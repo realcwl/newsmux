@@ -72,6 +72,8 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector = builder.NewJin10Crawler(sink)
 	case protocol.PanopticTask_COLLECTOR_WEIBO:
 		collector = builder.NewWeiboApiCollector(sink, imageStore)
+	case protocol.PanopticTask_COLLECTOR_WALLSTREET_NEWS:
+		collector = builder.NewWallstreetNewsApiCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_KUAILANSI:
 		collector = builder.NewKuailansiApiCollector(sink)
 	default:
