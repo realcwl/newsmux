@@ -40,8 +40,9 @@ func (collector WallstreetApiCollector) UpdateFileUrls(workingContext *ApiCollec
 }
 
 func (collector WallstreetApiCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *PaginationInfo) string {
-	return fmt.Sprintf("https://api.wallstcn.com/apiv1/content/lives?channel=%s&client=pc&limit=3",
+	return fmt.Sprintf("https://api.wallstcn.com/apiv1/content/lives?channel=%s&client=pc&limit=%d",
 		paginationInfo.NextPageId,
+		task.TaskParams.GetWallstreetNewsTaskParams().Limit,
 	)
 }
 

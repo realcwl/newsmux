@@ -777,6 +777,12 @@ func (x *WeiboTaskParams) GetMaxPages() int32 {
 	return 0
 }
 
+// 1. list channels to crawl
+// 2. number of news items in each crawled API
+// Example : WallstreetNewsTaskParams: &protocol.WallstreetNewsTaskParams{
+//   Channels: []string{"a-stock-channel", "us-stock-channel", "hk-stock-channel", "goldc-channel%2Coil-channel%2Ccommodity-channel"},
+//   Limit:    3,
+// },
 type WallstreetNewsTaskParams struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
