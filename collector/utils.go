@@ -2,6 +2,7 @@ package collector
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -139,7 +141,7 @@ func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext 
 	}
 }
 
-func CleanWeiboContent(content string) string {
+func LineBreakerToSpace(content string) string {
 	return strings.ReplaceAll(content, "\n", " ")
 }
 
@@ -189,4 +191,18 @@ func PrettyPrint(data interface{}) {
 		return
 	}
 	fmt.Printf("%s \n", p)
+}
+
+func HtmlToText(html string) (string, error) {
+	reader := strings.NewReader(html)
+	doc, err := goquery.NewDocumentFromReader(reader)
+	if err != nil {
+		return "", utils.ImmediatePrintError(
+			errors.New(fmt.Sprintf("fail to convert full rich-html text to node: %v", html)))
+	}
+	// goquery Text() will not replace br with newline
+	// to keep consistent with prod crawler, we need to
+	// add newline
+	doc.Find("br").AfterHtml("\n")
+	return doc.Text(), nil
 }
