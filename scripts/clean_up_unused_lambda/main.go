@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"strings"
 	"time"
@@ -47,6 +48,7 @@ func deleteLambdaFunctions(client *lambda.Client, ctx context.Context) int {
 }
 
 func main() {
+	flag.Parse()
 	var client *lambda.Client
 	ctx := context.Background()
 

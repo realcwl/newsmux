@@ -9,12 +9,13 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/golang/protobuf/proto"
 )
 
 type DataCollectJobHandler struct{}
 
 func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err error) {
-	Logger.Log.Info("Collect() with request: ", job)
+	Logger.Log.Info("Collect() with request: \n", proto.MarshalTextString(job))
 	var (
 		sink       CollectedDataSink
 		imageStore CollectedFileStore
@@ -27,7 +28,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	}
 	Logger.Log.Info("ip address: ", ip)
 
-	if !utils.IsProdEnv() {
+	if !utils.IsProdEnv() || job.Debug {
 		sink = NewStdErrSink()
 		if imageStore, err = NewLocalFileStore("test"); err != nil {
 			return err
@@ -55,7 +56,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 		}(t)
 	}
 	wg.Wait()
-	Logger.Log.Info("Collect() response: ", job)
+	Logger.Log.Info("Collect() response: \n", proto.MarshalTextString(job))
 	return nil
 }
 
@@ -71,6 +72,8 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector = builder.NewJin10Crawler(sink)
 	case protocol.PanopticTask_COLLECTOR_WEIBO:
 		collector = builder.NewWeiboApiCollector(sink, imageStore)
+	case protocol.PanopticTask_COLLECTOR_KUAILANSI:
+		collector = builder.NewKuailansiApiCollector(sink)
 	default:
 		return errors.New("unknown task data collector id")
 	}

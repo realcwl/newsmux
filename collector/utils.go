@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -15,8 +16,9 @@ import (
 )
 
 const (
-	Jin10SourceId = "a882eb0d-0bde-401a-b708-a7ce352b7392"
-	WeiboSourceId = "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
+	Jin10SourceId     = "a882eb0d-0bde-401a-b708-a7ce352b7392"
+	WeiboSourceId     = "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
+	KuailansiSourceId = "6e1f6734-985b-4a52-865f-fc39a9daa2e8"
 )
 
 // Hard code subsource type to name
@@ -155,4 +157,15 @@ func ParallelSubsourceApiCollect(task *protocol.PanopticTask, collector ApiColle
 	wg.Wait()
 	Logger.Log.Info("Finished collecting weibo users , Task", task)
 	return
+}
+
+func PrettyPrint(data interface{}) {
+	var p []byte
+	//    var err := error
+	p, err := json.MarshalIndent(data, "", "\t")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("%s \n", p)
 }
