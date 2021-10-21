@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Luismorlan/newsmux/server"
 	"github.com/Luismorlan/newsmux/server/middlewares"
@@ -25,6 +27,7 @@ func cleanup() {
 }
 
 func main() {
+	flag.Parse()
 	defer cleanup()
 
 	if err := dotenv.LoadDotEnvs(); err != nil {

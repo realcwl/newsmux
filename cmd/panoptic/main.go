@@ -64,6 +64,7 @@ func NewDogStatsdClient() *statsd.Client {
 }
 
 func main() {
+	flag.Parse()
 	AppSetting = app_setting.ParsePanopticAppSetting(*AppSettingPath)
 
 	eventbus := gochannel.NewGoChannel(

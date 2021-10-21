@@ -23,6 +23,11 @@ message PanopticJob {
   bool debug = 3;
 }
 
+// Used for testing, where multiple jobs can be parse at once.
+message PanopticJobs {
+  repeated PanopticJob jobs = 1;
+}
+
 // TaskParams defines the shared/domain specific parameters that customize the 
 // execution behavior.
 message TaskParams {

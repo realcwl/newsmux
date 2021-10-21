@@ -23,3 +23,6 @@ func (CollectorBuilder) NewWallstreetNewsApiCollector(s CollectedDataSink) ApiCo
 // func (CollectorBuilder) NewKuailansiCrawler(s CollectedDataSink) RssCollector {
 // 	return &SomeAPICollector{sink: s}
 // }
+func (CollectorBuilder) NewKuailansiApiCollector(s CollectedDataSink) DataCollector {
+	return &KuailansiApiCrawler{Sink: s}
+}

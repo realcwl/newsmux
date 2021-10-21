@@ -552,6 +552,35 @@ func TestUserSubscribeFeedAndValidate(t *testing.T, userId string, feedId string
 	require.Equal(t, userId, resp.Subscribe.Id)
 }
 
+// create user to feed subscription, do sanity checks
+func TestGetSubscriberCountAndValidate(t *testing.T, feedId string, count int, db *gorm.DB, client *client.Client) {
+	var resp struct {
+		AllVisibleFeeds []struct {
+			Id              string `json:"id"`
+			SubscriberCount int    `json:"subscriberCount"`
+		} `json:"allVisibleFeeds"`
+	}
+
+	client.MustPost(`
+		query {
+			allVisibleFeeds {
+				id
+				subscriberCount
+			}
+		}
+	`, &resp)
+
+	fmt.Printf("\nResponse from resolver: %+v\n", resp)
+
+	for _, feed := range resp.AllVisibleFeeds {
+		if feed.Id != feedId {
+			continue
+		}
+		require.Equal(t, count, feed.SubscriberCount)
+		break
+	}
+}
+
 func TestDeleteFeedAndValidate(t *testing.T, userId string, feedId string, owner bool, db *gorm.DB, client *client.Client) {
 	var resp struct {
 		DeleteFeed struct {

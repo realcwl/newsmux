@@ -1,0 +1,27 @@
+# This file should contain all Kuailansi job variations, each of different 
+# job_id, please do not add non-Kuailansi jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "kuailansi_job"
+	tasks: [
+		{
+			task_id: "kuailansi_task"
+			data_collector_id: COLLECTOR_KUAILANSI
+			task_params: {
+				source_id: "6e1f6734-985b-4a52-865f-fc39a9daa2e8"
+				sub_sources: [{
+					name: "快讯"
+					type: FLASHNEWS
+				}, {
+					name: "要闻"
+					type: KEYNEWS
+				}]
+			}
+			task_metadata: {
+				config_name: "kuailansi_config"
+			}
+		}
+	]
+	debug: true
+}
