@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 	"time"
 
@@ -49,11 +48,6 @@ type ZsxqTalk struct {
 		} `json:"thumbnail"`
 		Type string `json:"type"`
 	} `json:"images"`
-	Owner struct {
-		AvatarURL string `json:"avatar_url"`
-		Name      string `json:"name"`
-		UserID    int64  `json:"user_id"`
-	} `json:"owner"`
 	Text  string `json:"text"`
 	Files []struct {
 		CreateTime    string `json:"create_time"`
@@ -67,71 +61,21 @@ type ZsxqTalk struct {
 }
 
 type ZsxqTopic struct {
-	CommentsCount int64  `json:"comments_count"`
-	CreateTime    string `json:"create_time"`
-	Digested      bool   `json:"digested"`
-	Group         struct {
+	CreateTime string `json:"create_time"`
+	Group      struct {
 		GroupID int64  `json:"group_id"`
 		Name    string `json:"name"`
 		Type    string `json:"type"`
 	} `json:"group"`
-	LatestLikes []struct {
-		CreateTime string `json:"create_time"`
-		Owner      struct {
-			AvatarURL string `json:"avatar_url"`
-			Name      string `json:"name"`
-			UserID    int64  `json:"user_id"`
-		} `json:"owner"`
-	} `json:"latest_likes"`
-	LikesCount   int64 `json:"likes_count"`
-	ReadersCount int64 `json:"readers_count"`
-	ReadingCount int64 `json:"reading_count"`
-	RewardsCount int64 `json:"rewards_count"`
-	ShowComments []struct {
-		CommentID  int64  `json:"comment_id"`
-		CreateTime string `json:"create_time"`
-		LikesCount int64  `json:"likes_count"`
-		Owner      struct {
-			AvatarURL string `json:"avatar_url"`
-			Name      string `json:"name"`
-			UserID    int64  `json:"user_id"`
-		} `json:"owner"`
-		RewardsCount int64  `json:"rewards_count"`
-		Text         string `json:"text"`
-	} `json:"show_comments"`
-	Sticky       bool     `json:"sticky"`
-	Talk         ZsxqTalk `json:"talk"`
-	TopicID      int64    `json:"topic_id"`
-	Type         string   `json:"type"`
-	UserSpecific struct {
-		Liked      bool `json:"liked"`
-		Subscribed bool `json:"subscribed"`
-	} `json:"user_specific"`
+	Talk     ZsxqTalk `json:"talk"`
+	TopicID  int64    `json:"topic_id"`
+	Type     string   `json:"type"`
 	Question struct {
-		Owner struct {
-			UserID    int64  `json:"user_id"`
-			Name      string `json:"name"`
-			AvatarURL string `json:"avatar_url"`
-		} `json:"owner"`
-		Questionee struct {
-			UserID    int64  `json:"user_id"`
-			Name      string `json:"name"`
-			AvatarURL string `json:"avatar_url"`
-		} `json:"questionee"`
-		Text      string `json:"text"`
-		Expired   bool   `json:"expired"`
-		Anonymous bool   `json:"anonymous"`
+		Text string `json:"text"`
 	} `json:"question,omitempty"`
 	Answer struct {
-		Owner struct {
-			UserID    int64  `json:"user_id"`
-			Name      string `json:"name"`
-			AvatarURL string `json:"avatar_url"`
-		} `json:"owner"`
 		Text string `json:"text"`
 	} `json:"answer,omitempty"`
-	Answered bool `json:"answered,omitempty"`
-	Silenced bool `json:"silenced,omitempty"`
 }
 
 type ZsxqApiResponse struct {
@@ -139,6 +83,68 @@ type ZsxqApiResponse struct {
 		Topics []ZsxqTopic `json:"topics"`
 	} `json:"resp_data"`
 	Succeeded bool `json:"succeeded"`
+}
+
+type ZsxqFileDownloadApiResponse struct {
+	Succeeded bool `json:"succeeded"`
+	RespData  struct {
+		DownloadURL string `json:"download_url"`
+	} `json:"resp_data"`
+}
+
+func GetZsxqS3FileStore(t *protocol.PanopticTask, isProd bool) (*S3FileStore, error) {
+	bucketName := TestS3Bucket
+	if isProd {
+		bucketName = ProdS3FileBucket
+	}
+	zsxqFileStore, err := NewS3FileStore(bucketName)
+	if err != nil {
+		return nil, err
+	}
+	zsxqFileStore.SetCustomizeFileExtFunc(GetZsxqFileExtMethod())
+	zsxqFileStore.SetCustomizeFileNameFunc(GetZsxqFileNameMethod())
+	zsxqFileStore.SetCustomizeUploadedUrlFunc(GetZsxqFileUrlMethod(isProd))
+	zsxqFileStore.SetProcessUrlBeforeFetchFunc(GetZsxqFileDownloadTransfer(t))
+
+	return zsxqFileStore, nil
+}
+
+func GetZsxqFileDownloadTransfer(task *protocol.PanopticTask) ProcessUrlBeforeFetchFuncType {
+	return func(url string) string {
+		client := NewHttpClientFromTaskParams(task)
+		resp, err := client.Get(url)
+		if err != nil {
+			utils.ImmediatePrintError(err)
+			return ""
+		}
+		body, err := io.ReadAll(resp.Body)
+
+		res := &ZsxqFileDownloadApiResponse{}
+		err = json.Unmarshal(body, res)
+		if err != nil {
+			utils.ImmediatePrintError(err)
+			return ""
+		}
+
+		if !res.Succeeded {
+			utils.ImmediatePrintError(errors.New(fmt.Sprintf("response not success: %+v", res)))
+			return ""
+		}
+
+		return res.RespData.DownloadURL
+	}
+}
+
+func GetZsxqFileUrlMethod(isProd bool) CustomizeUploadedUrlType {
+	if isProd {
+		return func(key string) string {
+			return fmt.Sprintf("https://%s.s3.us-west-1.amazonaws.com/%s", ProdS3FileBucket, key)
+		}
+	} else {
+		return func(key string) string {
+			return fmt.Sprintf("https://%s.s3.us-west-1.amazonaws.com/%s", TestS3Bucket, key)
+		}
+	}
 }
 
 func GetZsxqFileNameMethod() CustomizeFileNameFuncType {
@@ -176,8 +182,9 @@ func (collector ZsxqApiCollector) UpdateFileUrls(workingContext *ApiCollectorWor
 }
 
 func (collector ZsxqApiCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *PaginationInfo) string {
-	return fmt.Sprintf("https://api.zsxq.com/v2/groups/%s/topics?scope=all&count=20",
+	return fmt.Sprintf("https://api.zsxq.com/v2/groups/%s/topics?scope=all&count=%d",
 		subsource.ExternalId,
+		task.TaskParams.GetZsxqTaskParams().CountPerRequest,
 	)
 }
 
@@ -255,32 +262,21 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 	subsource *protocol.PanopticSubSource,
 	paginationInfo *PaginationInfo,
 ) error {
-	header := http.Header{}
-	for _, h := range task.TaskParams.HeaderParams {
-		header[h.Key] = []string{h.Value}
-	}
-	cookies := []http.Cookie{}
-	for _, c := range task.TaskParams.Cookies {
-		cookies = append(cookies, http.Cookie{Name: c.Key, Value: c.Value})
-	}
-
-	fmt.Println("111111111")
-	client := NewHttpClient(header, cookies)
+	client := NewHttpClientFromTaskParams(task)
 	url := collector.ConstructUrl(task, subsource, paginationInfo)
 	resp, err := client.Get(url)
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	fmt.Println("222222", resp)
 	body, err := io.ReadAll(resp.Body)
 	res := &ZsxqApiResponse{}
 	err = json.Unmarshal(body, res)
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	fmt.Println("33333333")
-	if res.Succeeded != true {
-		return errors.New(fmt.Sprintf("response not success: %v", res))
+
+	if !res.Succeeded {
+		return utils.ImmediatePrintError(errors.New(fmt.Sprintf("response not success: %+v", res)))
 	}
 
 	for _, topic := range res.RespData.Topics {

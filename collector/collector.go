@@ -100,3 +100,4 @@ type RssCollector interface {
 type ProcessUrlBeforeFetchFuncType func(string) string
 type CustomizeFileNameFuncType func(string, string) string
 type CustomizeFileExtFuncType func(string, string) string
+type CustomizeUploadedUrlType func(string) string

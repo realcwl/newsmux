@@ -65,13 +65,10 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector DataCollector
 		builder   CollectorBuilder
 	)
-	zsxqFileStore, err := NewS3FileStore(TestS3Bucket)
+	zsxqFileStore, err := GetZsxqS3FileStore(t, utils.IsProdEnv())
 	if err != nil {
 		return err
 	}
-	zsxqFileStore.SetCustomizeFileExtFunc(GetZsxqFileExtMethod())
-	zsxqFileStore.SetCustomizeFileNameFunc(GetZsxqFileNameMethod())
-
 	// forward task to corresponding collector
 	switch t.DataCollectorId {
 	case protocol.PanopticTask_COLLECTOR_JINSHI:
