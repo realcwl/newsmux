@@ -221,11 +221,10 @@ func (collector WeiboApiCollector) CollectOneSubsourceOnePage(
 	for _, card := range res.Data.Cards {
 		// working context for each message
 		workingContext := &ApiCollectorWorkingContext{
-			Task:           task,
+			SharedContext:  SharedContext{Task: task, Result: &protocol.CrawlerMessage{}},
 			PaginationInfo: paginationInfo,
 			ApiUrl:         url,
-			Result:         &protocol.CrawlerMessage{},
-			Subsource:      subsource,
+			SubSource:      subsource,
 		}
 		InitializeApiCollectorResult(workingContext)
 		mBlog := card.Mblog

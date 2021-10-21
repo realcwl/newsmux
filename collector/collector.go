@@ -2,7 +2,7 @@ package collector
 
 import (
 	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/gocolly/colly"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type CollectedDataSink interface {
@@ -15,34 +15,9 @@ type CollectedFileStore interface {
 	CleanUp()
 }
 
-// This is the contxt we keep to be used for all the steps
-// for a post
-// Initialized with task and element
-// All steps can put additional information into this object to pass down to next step
-type CrawlerWorkingContext struct {
-	Task           *protocol.PanopticTask
-	Element        *colly.HTMLElement
-	OriginUrl      string
-	ExternalPostId string
-	NewsType       protocol.PanopticSubSource_SubSourceType
-	// final result of crawled message for each news
-	Result *protocol.CrawlerMessage
-}
-
 type PaginationInfo struct {
 	CurrentPageCount int
 	NextPageId       string
-}
-
-// This is the context we keep to be used for all steps
-// for a post
-type ApiCollectorWorkingContext struct {
-	Task           *protocol.PanopticTask
-	PaginationInfo *PaginationInfo
-	ApiUrl         string
-	Result         *protocol.CrawlerMessage
-	Subsource      *protocol.PanopticSubSource
-	NewsType       protocol.PanopticSubSource_SubSourceType
 }
 
 type DataCollector interface {
@@ -95,3 +70,18 @@ type RssCollector interface {
 type ProcessUrlBeforeFetchFuncType func(string) string
 type CustomizeFileNameFuncType func(string) string
 type CustomizeFileExtFuncType func(string) string
+
+// This is the main entry point that runs collection. It assumes that the task
+// execution result is always SUCCESS, unless encountered error during
+// collection.
+func RunCollector(collector DataCollector, task *protocol.PanopticTask) {
+	if task.TaskMetadata == nil {
+		task.TaskMetadata = &protocol.TaskMetadata{}
+	}
+
+	task.TaskMetadata.TaskStartTime = timestamppb.Now()
+	// Initially we assume this task is going to succeed,
+	task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
+	collector.CollectAndPublish(task)
+	task.TaskMetadata.TaskEndTime = timestamppb.Now()
+}

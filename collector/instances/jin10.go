@@ -194,7 +194,7 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 			err error
 		)
 		workingContext := &CrawlerWorkingContext{
-			Task: task, Element: elem, OriginUrl: collector.GetStartUri()}
+			SharedContext: SharedContext{Task: task}, Element: elem, OriginUrl: collector.GetStartUri()}
 		if err = collector.GetMessage(workingContext); err != nil {
 			metadata.TotalMessageFailed++
 			LogHtmlParsingError(task, elem, err)

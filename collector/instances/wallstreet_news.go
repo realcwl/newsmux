@@ -96,11 +96,10 @@ func (collector WallstreetApiCollector) CollectOneSubsourceOnePage(
 	for _, item := range res.Data.Items {
 		// working context for each message
 		workingContext := &ApiCollectorWorkingContext{
-			Task:           task,
+			SharedContext:  SharedContext{Task: task, Result: &protocol.CrawlerMessage{}},
 			PaginationInfo: paginationInfo,
 			ApiUrl:         url,
-			Result:         &protocol.CrawlerMessage{},
-			Subsource:      subsource,
+			SubSource:      subsource,
 		}
 		InitializeApiCollectorResult(workingContext)
 		err := collector.UpdateResultFromItem(&item, workingContext)

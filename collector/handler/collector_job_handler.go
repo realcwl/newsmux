@@ -14,6 +14,13 @@ import (
 
 type DataCollectJobHandler struct{}
 
+func UpdateIpAddressesInTasks(ip string, job *protocol.PanopticJob) {
+	for _, task := range job.Tasks {
+		task.TaskMetadata.IpAddr = ip
+	}
+}
+
+// This is the entry point to data collector.
 func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err error) {
 	Logger.Log.Info("Collect() with request: \n", proto.MarshalTextString(job))
 	var (
@@ -23,10 +30,12 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 		httpClient HttpClient
 	)
 	ip, err := GetCurrentIpAddress(httpClient)
-	if err != nil {
+	if err == nil {
+		Logger.Log.Info("ip address: ", ip)
+		UpdateIpAddressesInTasks(ip, job)
+	} else {
 		Logger.Log.Error("ip fetching error: ", err)
 	}
-	Logger.Log.Info("ip address: ", ip)
 
 	if !utils.IsProdEnv() || job.Debug {
 		sink = NewStdErrSink()

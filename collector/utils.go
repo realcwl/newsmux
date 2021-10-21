@@ -3,7 +3,6 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"sync"
 
@@ -12,7 +11,6 @@ import (
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gocolly/colly"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -33,34 +31,9 @@ func SubsourceTypeToName(t protocol.PanopticSubSource_SubSourceType) string {
 	return "其他"
 }
 
-func RunCollector(collector DataCollector, task *protocol.PanopticTask) {
-	if task.TaskMetadata == nil {
-		task.TaskMetadata = &protocol.TaskMetadata{}
-	}
-
-	task.TaskMetadata.TaskStartTime = timestamppb.Now()
-	collector.CollectAndPublish(task)
-	task.TaskMetadata.TaskEndTime = timestamppb.Now()
-}
-
 func LogHtmlParsingError(task *protocol.PanopticTask, elem *colly.HTMLElement, err error) {
 	html, _ := elem.DOM.Html()
 	Logger.Log.Error(fmt.Sprintf("Error in data collector. [Error] %s. [Task] %s. [DOM Start] %s [DOM End].", err.Error(), task.String(), html))
-}
-
-func GetCurrentIpAddress(client HttpClient) (ip string, err error) {
-	resp, err := client.Get("https://api.ipify.org")
-	if err != nil {
-		return "", err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	resp.Body.Close()
-	return string(body), err
 }
 
 func GetSourceLogoUrl(sourceId string) string {
@@ -89,13 +62,8 @@ func InitializeCrawlerResult(workingContext *CrawlerWorkingContext) {
 	workingContext.Result.CrawlerVersion = "1"
 	workingContext.Result.IsTest = !utils.IsProdEnv()
 	workingContext.Result.Post.OriginUrl = workingContext.OriginUrl
-	var httpClient HttpClient
-	ip, err := GetCurrentIpAddress(httpClient)
-	if err != nil {
-		Logger.Log.Error("ip fetching error: ", err)
-	}
-	workingContext.Result.CrawlerIp = ip
 
+	workingContext.Result.CrawlerIp = workingContext.Task.TaskMetadata.IpAddr
 }
 
 func InitializeApiCollectorResult(workingContext *ApiCollectorWorkingContext) {
@@ -112,12 +80,7 @@ func InitializeApiCollectorResult(workingContext *ApiCollectorWorkingContext) {
 	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
 	workingContext.Result.Post.OriginUrl = workingContext.ApiUrl
 
-	var httpClient HttpClient
-	ip, err := GetCurrentIpAddress(httpClient)
-	if err != nil {
-		Logger.Log.Error("ip fetching error: ", err)
-	}
-	workingContext.Result.CrawlerIp = ip
+	workingContext.Result.CrawlerIp = workingContext.Task.TaskMetadata.IpAddr
 }
 
 func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext string) {
@@ -160,7 +123,6 @@ func ParallelSubsourceApiCollect(task *protocol.PanopticTask, collector ApiColle
 	}
 	wg.Wait()
 	Logger.Log.Info("Finished collecting weibo users , Task", task)
-	return
 }
 
 // Process each html selection to get content
@@ -180,13 +142,12 @@ func IsRequestedNewsType(subSources []*protocol.PanopticSubSource, newstype prot
 	return true
 }
 
-func PrettyPrint(data interface{}) {
+func PrettyPrint(data interface{}) string {
 	var p []byte
 	//    var err := error
 	p, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err.Error()
 	}
-	fmt.Printf("%s \n", p)
+	return fmt.Sprintf("%s \n", p)
 }
