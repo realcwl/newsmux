@@ -23,9 +23,8 @@ func TestMain(m *testing.M) {
 
 func PrepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &Resolver{
-		DB:             db,
-		SeedStateChans: NewSeedStateChannels(),
-		SignalChans:    NewSignalChannels(),
+		DB:          db,
+		SignalChans: NewSignalChannels(),
 	}})))
 	return client
 }
@@ -168,6 +167,19 @@ func TestUserSubscribeFeed(t *testing.T) {
 			First(subscription2)
 		require.Equal(t, subscription2.OrderInPanel, 1)
 	})
+}
+
+func TestSubscriberCount(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	client := PrepareTestForGraphQLAPIs(db)
+
+	userId1 := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id_1", db, client)
+	userId2 := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id_2", db, client)
+	feedId1, _ := utils.TestCreateFeedAndValidate(t, userId1, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
+	utils.TestUserSubscribeFeedAndValidate(t, userId1, feedId1, db, client)
+	utils.TestUserSubscribeFeedAndValidate(t, userId2, feedId1, db, client)
+	utils.TestGetSubscriberCountAndValidate(t, feedId1, 2, db, client)
 }
 
 func TestDeleteFeed(t *testing.T) {

@@ -20,6 +20,13 @@ func (CollectorBuilder) NewZsxqApiCollector(s CollectedDataSink, imageStore Coll
 	return &ZsxqApiCollector{Sink: s, ImageStore: imageStore, FileStore: fileStore}
 }
 
+func (CollectorBuilder) NewWallstreetNewsApiCollector(s CollectedDataSink) ApiCollector {
+	return &WallstreetApiCollector{Sink: s}
+}
+
 // func (CollectorBuilder) NewKuailansiCrawler(s CollectedDataSink) RssCollector {
 // 	return &SomeAPICollector{sink: s}
 // }
+func (CollectorBuilder) NewKuailansiApiCollector(s CollectedDataSink) DataCollector {
+	return &KuailansiApiCrawler{Sink: s}
+}

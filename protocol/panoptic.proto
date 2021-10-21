@@ -23,6 +23,11 @@ message PanopticJob {
   bool debug = 3;
 }
 
+// Used for testing, where multiple jobs can be parse at once.
+message PanopticJobs {
+  repeated PanopticJob jobs = 1;
+}
+
 // TaskParams defines the shared/domain specific parameters that customize the 
 // execution behavior.
 message TaskParams {
@@ -46,6 +51,7 @@ message TaskParams {
     JinshiTaskParams jinshi_task_params = 20;
     WeiboTaskParams weibo_task_params = 21;
     ZsxqTaskParams zsxq_task_params = 22;
+    WallstreetNewsTaskParams wallstreet_news_task_params = 23; 
   }
 }
 
@@ -90,6 +96,7 @@ message PanopticTask {
     COLLECTOR_KUAILANSI = 2;
     COLLECTOR_WEIBO = 3;
     COLLECTOR_ZSXQ = 4;
+    COLLECTOR_WALLSTREET_NEWS= 5;
     // ...
   }
 
@@ -141,8 +148,21 @@ message PanopticSubSource{
 // customize Jinshi's crawler logic.
 message JinshiTaskParams {}
 
+// 1. max_pages: As weibo API is paginated, this specifies how many pages does collector look back
+//    in each task.
 message WeiboTaskParams {
-  int32 max_pages = 2;
+  int32 max_pages = 1;
+}
+
+// 1. list channels to crawl
+// 2. number of news items in each crawled API
+// Example : WallstreetNewsTaskParams: &protocol.WallstreetNewsTaskParams{
+//   Channels: []string{"a-stock-channel", "us-stock-channel", "hk-stock-channel", "goldc-channel%2Coil-channel%2Ccommodity-channel"},
+//   Limit:    3,
+// },
+message WallstreetNewsTaskParams {
+  repeated string channels= 1;
+  int32 limit = 2;
 }
 
 message ZsxqTaskParams {

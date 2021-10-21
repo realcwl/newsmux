@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Luismorlan/newsmux/app_config"
+	"github.com/Luismorlan/newsmux/app_setting"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
-var AppConfig *app_config.PanopticAppConfig
+var AppSetting *app_setting.PanopticAppSetting
 
 // A valid job batch must not contains duplicate job name.
 func ValidateJobs(jobs []*SchedulerJob) error {
@@ -37,10 +37,6 @@ func ValidateJobs(jobs []*SchedulerJob) error {
 type SchedulerConfig struct {
 	// Name of the scheduler.
 	Name string
-
-	// Path of the schedules configs. In dev this is a local filepath, while in
-	// prod this points to a S3 path.
-	PanopticConfigPath string
 }
 
 type Scheduler struct {
@@ -48,6 +44,9 @@ type Scheduler struct {
 
 	// Config for this scheduler.
 	Config SchedulerConfig
+
+	// Hashing of the config's digest
+	ScheduleDigest string
 
 	// Context of this Scheduler.
 	ctx context.Context
@@ -58,6 +57,8 @@ type Scheduler struct {
 	// Whether this scheduler is running.
 	running bool
 
+	// JobDoer is the actual component that executes a job. In our case it's
+	// mostly emitting PanopticJob.
 	Doer JobDoer
 
 	EventBus *gochannel.GoChannel
@@ -65,24 +66,27 @@ type Scheduler struct {
 
 // Return a new instance of Scheduler.
 func NewScheduler(
-	panopticAppConfig *app_config.PanopticAppConfig, config SchedulerConfig,
+	panopticAppSetting *app_setting.PanopticAppSetting, config SchedulerConfig,
 	e *gochannel.GoChannel, doer JobDoer, ctx context.Context) *Scheduler {
-	AppConfig = panopticAppConfig
+	AppSetting = panopticAppSetting
 
 	scheduler := &Scheduler{
-		Config:   config,
-		ctx:      ctx,
-		EventBus: e,
-		Doer:     doer,
-		running:  false,
-	}
-
-	err := scheduler.ParseAndUpsertJobs()
-	if err != nil {
-		log.Fatalf("cannot initialize scheduler: %v", err)
+		Config:         config,
+		ctx:            ctx,
+		EventBus:       e,
+		ScheduleDigest: "",
+		Doer:           doer,
+		running:        false,
 	}
 
 	return scheduler
+}
+
+func (s *Scheduler) UpdateConfigDigest(digest string) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	s.ScheduleDigest = digest
 }
 
 // For existing jobs, only job's PanopticConfig is updated. Otherwise remove
@@ -120,11 +124,12 @@ func (s *Scheduler) UpsertJobs(jobs []*SchedulerJob) {
 }
 
 // Read config either from local workspace (dev) or from Github (production)
-func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, error) {
+func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
 	configs := &protocol.PanopticConfigs{}
+	digest := ""
 
-	if AppConfig.FORCE_REMOTE_SCHEDULE_PULL || utils.IsProdEnv() {
-		Logger.Log.Infoln("read config from Github project: https://github.com/Luismorlan/panoptic_config")
+	if AppSetting.FORCE_REMOTE_SCHEDULE_PULL || utils.IsProdEnv() {
+		Logger.Log.Infoln("read PanopticConfig from Github project: https://github.com/Luismorlan/panoptic_config")
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: os.Getenv("GITHUB_ACCESS_TOKEN")},
 		)
@@ -132,45 +137,56 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, error) {
 		client := github.NewClient(tc)
 		content, _, res, err := client.Repositories.GetContents(s.ctx, "Luismorlan", "panoptic_config", "config.textproto", nil)
 		if err != nil {
-			return nil, err
+			return nil, digest, err
 		}
 		if res.StatusCode != 200 {
-			return nil, fmt.Errorf("fail to get config from Github, http code %d", res.StatusCode)
+			return nil, digest, fmt.Errorf("fail to get config from Github, http code %d", res.StatusCode)
 		}
 		decode, _ := base64.StdEncoding.DecodeString(*content.Content)
 		if err := prototext.Unmarshal(decode, configs); err != nil {
-			return nil, err
+			return nil, digest, err
 		}
+		digest = *content.SHA
 	} else {
-		Logger.Log.Infoln("read config from local workspace, file panoptic/data/testing_panoptic_config.textproto")
-		in, err := ioutil.ReadFile(s.Config.PanopticConfigPath)
+		Logger.Log.Infoln("read PanopticConfig from local workspace, file", AppSetting.LOCAL_PANOPTIC_CONFIG_PATH)
+		in, err := ioutil.ReadFile(AppSetting.LOCAL_PANOPTIC_CONFIG_PATH)
 		if err != nil {
-			return nil, err
+			return nil, digest, err
 		}
 		if err := prototext.Unmarshal(in, configs); err != nil {
-			return nil, err
+			return nil, digest, err
+		}
+		if digest, err = utils.TextToMd5Hash(configs.String()); err != nil {
+			return nil, digest, err
 		}
 	}
 
-	return configs, nil
+	return configs, digest, nil
 }
 
-func (s *Scheduler) ParseAndUpsertJobs() error {
-	configs, err := s.ReadConfig()
+func (s *Scheduler) ParseAndUpsertJobs() ( /*reschedule*/ bool, error) {
+	configs, digest, err := s.ReadConfig()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	Logger.Log.Infof("initial PanopticConfigs: %s", configs.String())
+	// If config hasn't changed, do nothing.
+	if s.ScheduleDigest == digest {
+		return false, nil
+	}
+
+	Logger.Log.Infof("parsed PanopticConfigs: %s", configs.String())
 
 	jobs := NewSchedulerJobs(configs, s.ctx)
 	err = ValidateJobs(jobs)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	s.UpsertJobs(jobs)
-	return nil
+	s.UpdateConfigDigest(digest)
+
+	return true, nil
 }
 
 func (s *Scheduler) DoSingleJob(job *SchedulerJob) {
@@ -213,28 +229,62 @@ func (s *Scheduler) ScheduleSingleJob(job *SchedulerJob) {
 	}
 }
 
-// A blocking call that returns once all jobs finished running.
+// A blocking call that returns once all jobs finished running. This function
+// can be called multiple times. Each time it's called it will firstly remove
+// all previous schedules, and reschedule those new jobs.
 func (s *Scheduler) ScheduleJobs() {
-	log.Println("start scheduler jobs")
+	digest := s.ScheduleDigest
+	log.Println("SchedulerJobs started with config digest: ", digest)
 	var wg sync.WaitGroup
 
+	// Critical section.
+	s.m.RLock()
 	for _, j := range s.Jobs {
+		j.RefreshContext(s.ctx)
+
 		wg.Add(1)
 		go func(job *SchedulerJob) {
 			defer wg.Done()
 			s.ScheduleSingleJob(job)
 		}(j)
 	}
+	s.m.RUnlock()
 
 	wg.Wait()
-	log.Println("finished scheduler")
+	log.Println("SchedulerJobs ended with config digest: ", digest)
+}
+
+func (s *Scheduler) WatchConfigAndMaybeReschedule() {
+	for {
+		reschedule, err := s.ParseAndUpsertJobs()
+		if err != nil {
+			Logger.Log.Errorf("error parsing config: %s", err)
+		}
+		if reschedule {
+			go s.ScheduleJobs()
+		}
+
+		time.Sleep(time.Duration(AppSetting.SCHEDULER_CONFIG_POLL_INTERVAL_SECOND) * time.Second)
+	}
 }
 
 func (s *Scheduler) RunModule(ctx context.Context) error {
-	s.ScheduleJobs()
+	s.WatchConfigAndMaybeReschedule()
 	return nil
 }
 
 func (s *Scheduler) Name() string {
 	return s.Config.Name
+}
+
+func (s *Scheduler) Shutdown() {
+	// There's no need to free this lock because it doesn't really matter if we
+	// are shutting down. Also it's a good practice that no additional internal
+	// state change can happen.
+	s.m.Lock()
+	// Cancel all jobs
+	for _, job := range s.Jobs {
+		job.cancel()
+	}
+	Logger.Log.Infoln("Module ", s.Config.Name, " gracefully shutdown")
 }

@@ -43,7 +43,9 @@ func (d *SchedulerJobDoer) Do(job *SchedulerJob) error {
 			ConfigName: job.panopticConfig.Name,
 		},
 	})
-	panopticJob.Debug = utils.IsProdEnv()
+	
+	// In dev mode we set the PanopticJob to be debug only.
+	panopticJob.Debug = !utils.IsProdEnv()
 
 	data, err := proto.Marshal(panopticJob)
 	if err != nil {

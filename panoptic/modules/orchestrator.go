@@ -88,3 +88,8 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 func (o *Orchestrator) Name() string {
 	return o.Config.Name
 }
+
+func (o *Orchestrator) Shutdown() {
+	o.executor.Shutdown()
+	Logger.Log.Infoln("Module ", o.Config.Name, " gracefully shutdown")
+}

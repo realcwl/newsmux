@@ -37,5 +37,4 @@ func init() {
 
 	flag.StringVar(&ServiceName, "service", APIServer, "'api_server' or 'feed_publisher'")
 	flag.BoolVar(&ByPassAuth, "no_auth", false, "set to true if local development")
-	flag.Parse()
 }

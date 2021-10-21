@@ -92,7 +92,6 @@ type Query {
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
-  # UserState will substitute syncDown as the mechanism for fetching SeedState.
   userState(input: UserStateInput!): UserState!
 
   # Feeds is the main API for newsfeed
@@ -158,10 +157,6 @@ type Mutation {
 }
 
 type Subscription {
-  # DEPRACATED - New code should not rely on this API! It's waiting to be
-  # removed. This is to be replaced with (signal + userState)
-  syncDown(userId: String!): SeedState!
-
   # Subscribe to signals sending from server side. Client side should handle
   # signals properly. The first time this is called will always return
   # SEED_STATE signal.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/Luismorlan/newsmux/protocol"
@@ -9,6 +10,7 @@ import (
 
 // use this script to generate a request you can use to send in Lambda->Test
 func main() {
+	flag.Parse()
 	job := protocol.PanopticJob{
 		Tasks: []*protocol.PanopticTask{
 			{

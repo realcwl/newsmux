@@ -4,12 +4,14 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/DataDog/datadog-go/statsd"
-	"github.com/Luismorlan/newsmux/app_config"
+	"github.com/Luismorlan/newsmux/app_setting"
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/panoptic/modules"
-	"github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
@@ -18,14 +20,14 @@ import (
 )
 
 var (
-	AppConfigPath *string
+	AppSettingPath *string
 	// Configuration to customize binary startup.
-	AppConfig app_config.PanopticAppConfig
+	AppSetting app_setting.PanopticAppSetting
 )
 
 // init() will always be called on before the execution of main function.
 func init() {
-	AppConfigPath = flag.String("app_config_path", "cmd/panoptic/config.yaml", "path to panoptic app config")
+	AppSettingPath = flag.String("app_setting_path", "cmd/panoptic/config.yaml", "path to panoptic app setting")
 	if err := dotenv.LoadDotEnvs(); err != nil {
 		panic(err)
 	}
@@ -33,22 +35,19 @@ func init() {
 
 func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 	var client *lambda.Client
-	if utils.IsProdEnv() {
-		client = lambda.New(lambda.Options{Region: panoptic.AWS_REGION})
-	} else {
-		cfg, err := config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion(panoptic.AWS_REGION),
-		)
-		if err != nil {
-			panic(err)
-		}
-		client = lambda.NewFromConfig(cfg)
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(panoptic.AWS_REGION),
+	)
+	if err != nil {
+		panic(err)
 	}
+	client = lambda.NewFromConfig(cfg)
 
 	executor := modules.NewLambdaExecutor(ctx, client, &modules.LambdaExecutorConfig{
-		LambdaPoolSize:       AppConfig.LAMBDA_POOL_SIZE,
-		LambdaLifeSpanSecond: AppConfig.LAMBDA_LIFE_SPAN_SECOND,
-		MaintainEverySecond:  AppConfig.MAINTAIN_EVERY_SECOND,
+		LambdaPoolSize:       AppSetting.LAMBDA_POOL_SIZE,
+		LambdaLifeSpanSecond: AppSetting.LAMBDA_LIFE_SPAN_SECOND,
+		MaintainEverySecond:  AppSetting.MAINTAIN_EVERY_SECOND,
 	})
 	if err := executor.Init(); err != nil {
 		panic(err)
@@ -65,7 +64,8 @@ func NewDogStatsdClient() *statsd.Client {
 }
 
 func main() {
-	AppConfig = app_config.ParsePanopticAppConfig(*AppConfigPath)
+	flag.Parse()
+	AppSetting = app_setting.ParsePanopticAppSetting(*AppSettingPath)
 
 	eventbus := gochannel.NewGoChannel(
 		gochannel.Config{
@@ -74,7 +74,9 @@ func main() {
 		},
 		watermill.NewStdLogger(false, false),
 	)
-	ctx := context.Background()
+
+	rootCtx := context.Background()
+	ctx, cancel := context.WithCancel(rootCtx)
 
 	// Initialize all engine modules here.
 	modules := []panoptic.Module{
@@ -83,9 +85,8 @@ func main() {
 		// Scheduler parses data collector configs, fanout into multiple tasks and
 		// pushes onto EventBus.
 		modules.NewScheduler(
-			&AppConfig,
-			modules.SchedulerConfig{Name: "scheduler",
-				PanopticConfigPath: "panoptic/data/testing_panoptic_config.textproto"},
+			&AppSetting,
+			modules.SchedulerConfig{Name: "scheduler"},
 			eventbus,
 			modules.NewSchedulerJobDoer(eventbus),
 			ctx,
@@ -100,10 +101,15 @@ func main() {
 		),
 	}
 
-	engine := panoptic.NewEngine(modules, eventbus)
+	engine := panoptic.NewEngine(modules, ctx, cancel, eventbus)
 
-	// blocking call.
-	engine.Run(ctx)
+	go engine.Run()
+
+	// Wait for ctrl+c (SIGINT) to gracefully shutdown the entire process.
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	<-sigs
+	engine.Shutdown()
 
 	log.Println("engine stopped execution.")
 }
