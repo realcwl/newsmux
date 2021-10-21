@@ -80,7 +80,7 @@ func (s *LocalFileStore) GenerateFileNameFromUrl(url, fileName string) (key stri
 	}
 
 	if s.customizeFileExtFunc != nil {
-		key = key + "." + s.customizeFileExtFunc(url, fileName)
+		key = key + s.customizeFileExtFunc(url, fileName)
 	} else {
 		if fileName != "" {
 			key = key + utils.GetUrlExtNameWithDot(fileName)

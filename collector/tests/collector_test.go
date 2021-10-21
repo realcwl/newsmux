@@ -235,7 +235,7 @@ func TestS3Store(t *testing.T) {
 		return "test"
 	})
 	s.SetCustomizeFileExtFunc(func(in, f string) string {
-		return "jpg"
+		return ".jpg"
 	})
 	key, err := s.GenerateS3KeyFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg", "")
 	require.NoError(t, err)
@@ -250,7 +250,7 @@ func TestLocalStore(t *testing.T) {
 		return "test"
 	})
 	s.SetCustomizeFileExtFunc(func(in, f string) string {
-		return "jpg"
+		return ".jpg"
 	})
 	key, err := s.GenerateFileNameFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg", "")
 	require.NoError(t, err)
