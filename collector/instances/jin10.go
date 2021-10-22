@@ -6,7 +6,9 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/sink"
+	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -20,14 +22,14 @@ const (
 )
 
 type Jin10Crawler struct {
-	Sink CollectedDataSink
+	Sink sink.CollectedDataSink
 }
 
-func (collector Jin10Crawler) UpdateFileUrls(workingContext *CrawlerWorkingContext) error {
+func (j Jin10Crawler) UpdateFileUrls(workingContext *working_context.CrawlerWorkingContext) error {
 	return errors.New("UpdateFileUrls not implemented, should not be called")
 }
 
-func (collector Jin10Crawler) UpdateNewsType(workingContext *CrawlerWorkingContext) error {
+func (j Jin10Crawler) UpdateNewsType(workingContext *working_context.CrawlerWorkingContext) error {
 	selection := workingContext.Element.DOM.Find(".jin-flash-item")
 	if len(selection.Nodes) == 0 {
 		workingContext.NewsType = protocol.PanopticSubSource_UNSPECIFIED
@@ -41,7 +43,7 @@ func (collector Jin10Crawler) UpdateNewsType(workingContext *CrawlerWorkingConte
 	return nil
 }
 
-func (collector Jin10Crawler) UpdateContent(workingContext *CrawlerWorkingContext) error {
+func (j Jin10Crawler) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
 	var sb strings.Builder
 	selection := workingContext.Element.DOM.Find(".right-content > div")
 	if len(selection.Nodes) == 0 {
@@ -70,7 +72,7 @@ func (collector Jin10Crawler) UpdateContent(workingContext *CrawlerWorkingContex
 	return nil
 }
 
-func (collector Jin10Crawler) UpdateGeneratedTime(workingContext *CrawlerWorkingContext) error {
+func (collector Jin10Crawler) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
 	id := workingContext.Element.DOM.AttrOr("id", "")
 	timeText := workingContext.Element.DOM.Find(".item-time").Text()
 	if len(id) <= 13 {
@@ -88,7 +90,7 @@ func (collector Jin10Crawler) UpdateGeneratedTime(workingContext *CrawlerWorking
 	return nil
 }
 
-func (collector Jin10Crawler) UpdateExternalPostId(workingContext *CrawlerWorkingContext) error {
+func (j Jin10Crawler) UpdateExternalPostId(workingContext *working_context.CrawlerWorkingContext) error {
 	id := workingContext.Element.DOM.AttrOr("id", "")
 	if len(id) == 0 {
 		return errors.New("can't get external post id for the news")
@@ -97,7 +99,7 @@ func (collector Jin10Crawler) UpdateExternalPostId(workingContext *CrawlerWorkin
 	return nil
 }
 
-func (collector Jin10Crawler) UpdateDedupId(workingContext *CrawlerWorkingContext) error {
+func (j Jin10Crawler) UpdateDedupId(workingContext *working_context.CrawlerWorkingContext) error {
 	md5, err := utils.TextToMd5Hash(workingContext.ExternalPostId)
 	if err != nil {
 		return err
@@ -106,7 +108,7 @@ func (collector Jin10Crawler) UpdateDedupId(workingContext *CrawlerWorkingContex
 	return nil
 }
 
-func (collector Jin10Crawler) UpdateImageUrls(workingContext *CrawlerWorkingContext) error {
+func (c Jin10Crawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
 	// there is only one image can be in jin10
 	selection := workingContext.Element.DOM.Find(".img-container > img")
 	workingContext.Result.Post.ImageUrls = []string{}
@@ -122,50 +124,50 @@ func (collector Jin10Crawler) UpdateImageUrls(workingContext *CrawlerWorkingCont
 	return nil
 }
 
-func (collector Jin10Crawler) UpdateSubsourceName(workingContext *CrawlerWorkingContext) error {
-	workingContext.Result.Post.SubSource.Name = SubsourceTypeToName(workingContext.NewsType)
+func (j Jin10Crawler) UpdateSubsourceName(workingContext *working_context.CrawlerWorkingContext) error {
+	workingContext.Result.Post.SubSource.Name = collector.SubsourceTypeToName(workingContext.NewsType)
 	return nil
 }
 
-func (collector Jin10Crawler) GetMessage(workingContext *CrawlerWorkingContext) error {
-	InitializeCrawlerResult(workingContext)
+func (j Jin10Crawler) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
+	collector.InitializeCrawlerResult(workingContext)
 
-	err := collector.UpdateContent(workingContext)
+	err := j.UpdateContent(workingContext)
 	if err != nil {
 		return err
 	}
 
-	err = collector.UpdateExternalPostId(workingContext)
+	err = j.UpdateExternalPostId(workingContext)
 	if err != nil {
 		return err
 	}
 
-	err = collector.UpdateDedupId(workingContext)
+	err = j.UpdateDedupId(workingContext)
 	if err != nil {
 		return err
 	}
 
-	err = collector.UpdateNewsType(workingContext)
+	err = j.UpdateNewsType(workingContext)
 	if err != nil {
 		return err
 	}
 
-	if !IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
+	if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
 		workingContext.Result = nil
 		return nil
 	}
 
-	err = collector.UpdateGeneratedTime(workingContext)
+	err = j.UpdateGeneratedTime(workingContext)
 	if err != nil {
 		return err
 	}
 
-	err = collector.UpdateImageUrls(workingContext)
+	err = j.UpdateImageUrls(workingContext)
 	if err != nil {
 		return err
 	}
 
-	err = collector.UpdateSubsourceName(workingContext)
+	err = j.UpdateSubsourceName(workingContext)
 	if err != nil {
 		return err
 	}
@@ -182,47 +184,42 @@ func (collector Jin10Crawler) GetStartUri() string {
 }
 
 // todo: mock http response and test end to end Collect()
-func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
+func (j Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	metadata := task.TaskMetadata
 	metadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
 
 	c := colly.NewCollector()
 	// each crawled card(news) will go to this
 	// for each page loaded, there are multiple calls into this func
-	c.OnHTML(collector.GetQueryPath(), func(elem *colly.HTMLElement) {
+	c.OnHTML(j.GetQueryPath(), func(elem *colly.HTMLElement) {
 		var (
 			err error
 		)
-		workingContext := &CrawlerWorkingContext{
-			Task: task, Element: elem, OriginUrl: collector.GetStartUri()}
-		if err = collector.GetMessage(workingContext); err != nil {
+		workingContext := &working_context.CrawlerWorkingContext{
+			SharedContext: working_context.SharedContext{Task: task}, Element: elem, OriginUrl: j.GetStartUri()}
+		if err = j.GetMessage(workingContext); err != nil {
 			metadata.TotalMessageFailed++
-			LogHtmlParsingError(task, elem, err)
+			collector.LogHtmlParsingError(task, elem, err)
 			return
 		}
 		if workingContext.Result == nil {
 			return
 		}
-		if err = collector.Sink.Push(workingContext.Result); err != nil {
-			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-			metadata.TotalMessageFailed++
-			Logger.Log.Errorf("fail to publish message %s to SNS. Task: %s, Error: %s", workingContext.Result.String(), task.String(), err)
-			return
-		}
-		metadata.TotalMessageCollected++
+
+		sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
 	})
 
 	// Set error handler
 	c.OnError(func(r *colly.Response, err error) {
 		// todo: error should be put into metadata
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-		Logger.Log.Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", collector.GetQueryPath())
+		Logger.Log.Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", j.GetQueryPath())
 	})
 
 	c.OnScraped(func(_ *colly.Response) {
 		// Set Fail/Success in task meta based on number of message succeeded
-		SetErrorBasedOnCounts(task, collector.GetStartUri(), fmt.Sprintf(" path: %s", collector.GetQueryPath()))
+		collector.SetErrorBasedOnCounts(task, j.GetStartUri(), fmt.Sprintf(" path: %s", j.GetQueryPath()))
 	})
 
-	c.Visit(collector.GetStartUri())
+	c.Visit(j.GetStartUri())
 }

@@ -1,49 +1,10 @@
 package collector
 
 import (
+	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/gocolly/colly"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-type CollectedDataSink interface {
-	Push(msg *protocol.CrawlerMessage) error
-}
-
-type CollectedFileStore interface {
-	FetchAndStore(url string) (key string, err error)
-	GetUrlFromKey(key string) string
-	CleanUp()
-}
-
-// This is the contxt we keep to be used for all the steps
-// for a post
-// Initialized with task and element
-// All steps can put additional information into this object to pass down to next step
-type CrawlerWorkingContext struct {
-	Task           *protocol.PanopticTask
-	Element        *colly.HTMLElement
-	OriginUrl      string
-	ExternalPostId string
-	NewsType       protocol.PanopticSubSource_SubSourceType
-	// final result of crawled message for each news
-	Result *protocol.CrawlerMessage
-}
-
-type PaginationInfo struct {
-	CurrentPageCount int
-	NextPageId       string
-}
-
-// This is the context we keep to be used for all steps
-// for a post
-type ApiCollectorWorkingContext struct {
-	Task           *protocol.PanopticTask
-	PaginationInfo *PaginationInfo
-	ApiUrl         string
-	Result         *protocol.CrawlerMessage
-	Subsource      *protocol.PanopticSubSource
-	NewsType       protocol.PanopticSubSource_SubSourceType
-}
 
 type DataCollector interface {
 	CollectAndPublish(task *protocol.PanopticTask)
@@ -55,19 +16,19 @@ type DataCollector interface {
 type CrawlerCollector interface {
 	DataCollector
 
-	GetMessage(*CrawlerWorkingContext) error
+	GetMessage(*working_context.CrawlerWorkingContext) error
 
 	// All implementation functions should output error
 	// errors will be reported for debugging
 	GetQueryPath() string
 	GetStartUri() string
 
-	UpdateContent(workingContext *CrawlerWorkingContext) error
-	UpdateDedupId(workingContext *CrawlerWorkingContext) error
-	UpdateGeneratedTime(workingContext *CrawlerWorkingContext) error
-	UpdateNewsType(workingContext *CrawlerWorkingContext) error
-	UpdateImageUrls(workingContext *CrawlerWorkingContext) error
-	UpdateFileUrls(workingContext *CrawlerWorkingContext) error
+	UpdateContent(workingContext *working_context.CrawlerWorkingContext) error
+	UpdateDedupId(workingContext *working_context.CrawlerWorkingContext) error
+	UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error
+	UpdateNewsType(workingContext *working_context.CrawlerWorkingContext) error
+	UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error
+	UpdateFileUrls(workingContext *working_context.CrawlerWorkingContext) error
 }
 
 // In API collector API, not like Crawler where we usually
@@ -80,10 +41,10 @@ type ApiCollector interface {
 	CollectOneSubsourceOnePage(
 		task *protocol.PanopticTask,
 		subsource *protocol.PanopticSubSource,
-		paginationInfo *PaginationInfo,
+		paginationInfo *working_context.PaginationInfo,
 	) error
-	UpdateFileUrls(workingContext *ApiCollectorWorkingContext) error
-	ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *PaginationInfo) string
+	UpdateFileUrls(workingContext *working_context.ApiCollectorWorkingContext) error
+	ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *working_context.PaginationInfo) string
 }
 
 type RssCollector interface {
@@ -91,7 +52,17 @@ type RssCollector interface {
 	// TODO: implement rss collector
 }
 
-// Shared Func type for file stores
-type ProcessUrlBeforeFetchFuncType func(string) string
-type CustomizeFileNameFuncType func(string) string
-type CustomizeFileExtFuncType func(string) string
+// This is the main entry point that runs collection. It assumes that the task
+// execution result is always SUCCESS, unless encountered error during
+// collection.
+func RunCollector(collector DataCollector, task *protocol.PanopticTask) {
+	if task.TaskMetadata == nil {
+		task.TaskMetadata = &protocol.TaskMetadata{}
+	}
+
+	task.TaskMetadata.TaskStartTime = timestamppb.Now()
+	// Initially we assume this task is going to succeed,
+	task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
+	collector.CollectAndPublish(task)
+	task.TaskMetadata.TaskEndTime = timestamppb.Now()
+}
