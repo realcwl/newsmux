@@ -12,6 +12,7 @@ import (
 	sink "github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -135,7 +136,12 @@ func (k KuailansiApiCrawler) ProcessSinglePost(post *KuailansiPost,
 
 	name, err := k.GetCrawledSubSourceNameFromPost(post)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "cannot find post subsource")
+	}
+
+	err = k.GetDedupId(workingContext)
+	if err != nil {
+		return errors.Wrap(err, "cannot get dedup id from post.")
 	}
 
 	workingContext.Result.Post.ContentGeneratedAt = ts
@@ -144,6 +150,15 @@ func (k KuailansiApiCrawler) ProcessSinglePost(post *KuailansiPost,
 	workingContext.Result.Post.SubSource.AvatarUrl = collector.GetSourceLogoUrl(
 		workingContext.Task.TaskParams.SourceId)
 
+	return nil
+}
+
+func (k KuailansiApiCrawler) GetDedupId(workingContext *working_context.ApiCollectorWorkingContext) error {
+	md5, err := utils.TextToMd5Hash(workingContext.Result.Post.SubSource.Id + workingContext.Result.Post.Content)
+	if err != nil {
+		return err
+	}
+	workingContext.Result.Post.DeduplicateId = md5
 	return nil
 }
 
@@ -177,5 +192,5 @@ func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		}
 	}
 
-	collector.SetTaskResultState(task)
+	collector.SetErrorBasedOnCounts(task, KUAILANSI_URI)
 }

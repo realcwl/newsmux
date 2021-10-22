@@ -54,14 +54,6 @@ func GetSourceLogoUrl(sourceId string) string {
 	}
 }
 
-func SetTaskResultState(task *protocol.PanopticTask) {
-	metadata := task.TaskMetadata
-	// Fail even one single post is considered as failure for the entire task.
-	if metadata.TotalMessageFailed > 0 || metadata.TotalMessageCollected == 0 {
-		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-	}
-}
-
 func InitializeCrawlerResult(workingContext *working_context.CrawlerWorkingContext) {
 	workingContext.Result = &protocol.CrawlerMessage{Post: &protocol.CrawlerMessage_CrawledPost{}}
 	workingContext.Result.Post.SubSource = &protocol.CrawledSubSource{}
@@ -94,7 +86,7 @@ func InitializeApiCollectorResult(workingContext *working_context.ApiCollectorWo
 	workingContext.Result.CrawlerIp = workingContext.Task.TaskMetadata.IpAddr
 }
 
-func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext string) {
+func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext ...string) {
 	if task.TaskMetadata.TotalMessageCollected == 0 {
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		Logger.Log.Error(
