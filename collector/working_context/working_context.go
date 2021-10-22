@@ -1,4 +1,4 @@
-package collector
+package working_context
 
 import (
 	"github.com/Luismorlan/newsmux/protocol"
@@ -8,6 +8,11 @@ import (
 type SharedContext struct {
 	Task   *protocol.PanopticTask
 	Result *protocol.CrawlerMessage
+}
+
+type PaginationInfo struct {
+	CurrentPageCount int
+	NextPageId       string
 }
 
 // This is the contxt we keep to be used for all the steps

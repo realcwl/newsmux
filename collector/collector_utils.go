@@ -6,11 +6,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gocolly/colly"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -46,19 +47,29 @@ func GetSourceLogoUrl(sourceId string) string {
 		return ""
 	case WallstreetNewsSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wallstrt.png"
+	case KuailansiSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/kuailansi.png"
 	default:
 		return ""
 	}
 }
 
-func InitializeCrawlerResult(workingContext *CrawlerWorkingContext) {
+func AnnotateTaskResultState(task *protocol.PanopticTask) {
+	metadata := task.TaskMetadata
+	// Fail even one single post is considered as failure for the entire task.
+	if metadata.TotalMessageFailed > 0 || metadata.TotalMessageCollected == 0 {
+		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
+	}
+}
+
+func InitializeCrawlerResult(workingContext *working_context.CrawlerWorkingContext) {
 	workingContext.Result = &protocol.CrawlerMessage{Post: &protocol.CrawlerMessage_CrawledPost{}}
 	workingContext.Result.Post.SubSource = &protocol.CrawledSubSource{}
 	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
 	// subsource default logo will be source logo, unless overwirte
 	// like weibo
 	workingContext.Result.Post.SubSource.AvatarUrl = GetSourceLogoUrl(workingContext.Task.TaskParams.SourceId)
-	workingContext.Result.CrawledAt = &timestamp.Timestamp{}
+	workingContext.Result.CrawledAt = timestamppb.Now()
 	workingContext.Result.CrawlerVersion = "1"
 	workingContext.Result.IsTest = !utils.IsProdEnv()
 	workingContext.Result.Post.OriginUrl = workingContext.OriginUrl
@@ -66,10 +77,10 @@ func InitializeCrawlerResult(workingContext *CrawlerWorkingContext) {
 	workingContext.Result.CrawlerIp = workingContext.Task.TaskMetadata.IpAddr
 }
 
-func InitializeApiCollectorResult(workingContext *ApiCollectorWorkingContext) {
+func InitializeApiCollectorResult(workingContext *working_context.ApiCollectorWorkingContext) {
 	workingContext.Result = &protocol.CrawlerMessage{Post: &protocol.CrawlerMessage_CrawledPost{}}
 
-	workingContext.Result.CrawledAt = &timestamp.Timestamp{}
+	workingContext.Result.CrawledAt = timestamppb.Now()
 	workingContext.Result.CrawlerVersion = "1"
 	workingContext.Result.IsTest = !utils.IsProdEnv()
 

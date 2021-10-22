@@ -1,4 +1,4 @@
-package collector
+package sink
 
 import (
 	"github.com/Luismorlan/newsmux/protocol"
@@ -15,6 +15,6 @@ func (s *StdErrSink) Push(msg *protocol.CrawlerMessage) error {
 	if msg == nil {
 		return nil
 	}
-	Logger.Log.Info("mock pushed to SNS with msg: ", msg.String())
+	Logger.Log.Info("=== mock pushed to SNS with CrawlerMessage === \n", msg.String())
 	return nil
 }

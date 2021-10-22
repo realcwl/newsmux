@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
-	Collector "github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector"
+	sink "github.com/Luismorlan/newsmux/collector/sink"
+	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/pkg/errors"
@@ -18,10 +21,12 @@ const (
 	KUAILANSI_URI         = "http://m.fbecn.com/24h/news_fbe0406.json?newsid=0"
 	CHINA_TIMEZONE        = "Asia/Shanghai"
 	KUAILANSI_TIME_FORMAT = "2006-01-02 15:04:05"
+
+	IP_BAN_MESSAGE = "IP访问受限制"
 )
 
 type KuailansiApiCrawler struct {
-	Sink Collector.CollectedDataSink
+	Sink sink.CollectedDataSink
 }
 
 type KuailansiPost struct {
@@ -38,18 +43,16 @@ type KuailansiApiResponse struct {
 	NextPage string          `json:"nextpage"`
 }
 
-func GetKuailansiResponse(task *protocol.PanopticTask) (*KuailansiApiResponse, error) {
-	httpClient := Collector.HttpClient{}
+func (k KuailansiApiCrawler) GetKuailansiResponse(task *protocol.PanopticTask) (*KuailansiApiResponse, error) {
+	httpClient := collector.HttpClient{}
 	httpResponse, err := httpClient.Get(KUAILANSI_URI)
 
 	if err != nil {
-		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		return nil, err
 	}
 
 	body, err := io.ReadAll(httpResponse.Body)
 	if err != nil {
-		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		return nil, err
 	}
 
@@ -58,7 +61,6 @@ func GetKuailansiResponse(task *protocol.PanopticTask) (*KuailansiApiResponse, e
 	kuailansiResponse := &KuailansiApiResponse{}
 	err = json.Unmarshal(body, kuailansiResponse)
 	if err != nil {
-		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		Logger.Log.Errorln("fail to parse Kuailansi response:", body)
 		return nil, err
 	}
@@ -67,7 +69,7 @@ func GetKuailansiResponse(task *protocol.PanopticTask) (*KuailansiApiResponse, e
 }
 
 // For kuailansi, if Level == 0, it's a important update.
-func GetNewsTypeForPost(post *KuailansiPost) (protocol.PanopticSubSource_SubSourceType, error) {
+func (k KuailansiApiCrawler) GetNewsTypeForPost(post *KuailansiPost) (protocol.PanopticSubSource_SubSourceType, error) {
 	level, err := strconv.Atoi(post.Level)
 	if err != nil {
 		return protocol.PanopticSubSource_UNSPECIFIED, errors.Wrap(err, "cannot parse post.Level")
@@ -80,7 +82,15 @@ func GetNewsTypeForPost(post *KuailansiPost) (protocol.PanopticSubSource_SubSour
 	return protocol.PanopticSubSource_KEYNEWS, nil
 }
 
-func ParseGenerateTime(post *KuailansiPost) (*timestamppb.Timestamp, error) {
+func (k KuailansiApiCrawler) GetCrawledSubSourceNameFromPost(post *KuailansiPost) (string, error) {
+	t, err := k.GetNewsTypeForPost(post)
+	if err != nil {
+		return "", errors.Wrap(err, "fail to get subsource type from post"+collector.PrettyPrint(post))
+	}
+	return collector.SubsourceTypeToName(t), nil
+}
+
+func (k KuailansiApiCrawler) ParseGenerateTime(post *KuailansiPost) (*timestamppb.Timestamp, error) {
 	location, err := time.LoadLocation(CHINA_TIMEZONE)
 	if err != nil {
 		return nil, errors.Wrap(err, "fail to parse time zome: "+CHINA_TIMEZONE)
@@ -92,53 +102,69 @@ func ParseGenerateTime(post *KuailansiPost) (*timestamppb.Timestamp, error) {
 	return timestamppb.New(t), nil
 }
 
-func ProcessSinglePost(post *KuailansiPost,
-	workingContext *Collector.ApiCollectorWorkingContext) error {
-	subSourceType, err := GetNewsTypeForPost(post)
+func (k KuailansiApiCrawler) ValidatePost(post *KuailansiPost) error {
+	if strings.Contains(post.Content, IP_BAN_MESSAGE) {
+		return errors.New("IP is banned")
+	}
+	return nil
+}
+
+func (k KuailansiApiCrawler) ProcessSinglePost(post *KuailansiPost,
+	workingContext *working_context.ApiCollectorWorkingContext) error {
+	if err := k.ValidatePost(post); err != nil {
+		return err
+	}
+
+	subSourceType, err := k.GetNewsTypeForPost(post)
 	if err != nil {
 		return err
 	}
 
-	if !Collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, subSourceType) {
+	if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, subSourceType) {
 		// Return nil if the post is not of requested type. Note that this is
 		// intentionally not considered as failure.
 		return nil
 	}
 
-	ts, err := ParseGenerateTime(post)
+	collector.InitializeApiCollectorResult(workingContext)
+
+	ts, err := k.ParseGenerateTime(post)
 	if err != nil {
 		return err
 	}
 
-	res := &protocol.CrawlerMessage{
-		Post: &protocol.CrawlerMessage_CrawledPost{
-			Content:            post.Content,
-			ContentGeneratedAt: ts,
-		},
-		CrawlerIp: workingContext.Task.TaskMetadata.IpAddr,
-		CrawledAt: timestamppb.Now(),
+	name, err := k.GetCrawledSubSourceNameFromPost(post)
+	if err != nil {
+		return err
 	}
 
-	workingContext.Result = res
+	workingContext.Result.Post.ContentGeneratedAt = ts
+	workingContext.Result.Post.Content = post.Content
+	workingContext.Result.Post.SubSource.Name = name
+	workingContext.Result.Post.SubSource.AvatarUrl = collector.GetSourceLogoUrl(
+		workingContext.Task.TaskParams.SourceId)
 
 	return nil
 }
 
 func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
-	res, err := GetKuailansiResponse(task)
+	res, err := k.GetKuailansiResponse(task)
 	if err != nil {
+		Logger.Log.Errorln("fail to get Kuailansi response:", err)
+		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		return
 	}
 
 	for _, post := range res.List {
-		workingContext := &Collector.ApiCollectorWorkingContext{
-			SharedContext: Collector.SharedContext{Task: task},
+		workingContext := &working_context.ApiCollectorWorkingContext{
+			SharedContext: working_context.SharedContext{Task: task},
 			ApiUrl:        KUAILANSI_URI,
 		}
 
-		err := ProcessSinglePost(&post, workingContext)
+		err := k.ProcessSinglePost(&post, workingContext)
 		if err != nil {
-			Logger.Log.Errorln("fail to process a single Kuailansi Post: ", err)
+			Logger.Log.Errorln("fail to process a single Kuailansi Post:", err,
+				"\npost content:\n", collector.PrettyPrint(post))
 			workingContext.Task.TaskMetadata.TotalMessageFailed++
 			continue
 		}
@@ -147,8 +173,9 @@ func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		// could just be that we're skiping that post (e.g. subsource type doesn't
 		// match)
 		if workingContext.Result != nil {
-			workingContext.Task.TaskMetadata.TotalMessageCollected++
-			k.Sink.Push(workingContext.Result)
+			sink.PushResultToSinkAndRecordInTaskMetadata(k.Sink, workingContext)
 		}
 	}
+
+	collector.AnnotateTaskResultState(task)
 }

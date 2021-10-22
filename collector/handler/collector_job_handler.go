@@ -6,6 +6,8 @@ import (
 
 	. "github.com/Luismorlan/newsmux/collector"
 	. "github.com/Luismorlan/newsmux/collector/builder"
+	"github.com/Luismorlan/newsmux/collector/file_store"
+	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -24,8 +26,8 @@ func UpdateIpAddressesInTasks(ip string, job *protocol.PanopticJob) {
 func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err error) {
 	Logger.Log.Info("Collect() with request: \n", proto.MarshalTextString(job))
 	var (
-		sink       CollectedDataSink
-		imageStore CollectedFileStore
+		s          sink.CollectedDataSink
+		imageStore file_store.CollectedFileStore
 		wg         sync.WaitGroup
 		httpClient HttpClient
 	)
@@ -38,17 +40,17 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	}
 
 	if !utils.IsProdEnv() || job.Debug {
-		sink = NewStdErrSink()
-		if imageStore, err = NewLocalFileStore("test"); err != nil {
+		s = sink.NewStdErrSink()
+		if imageStore, err = file_store.NewLocalFileStore("test"); err != nil {
 			return err
 		}
 		defer imageStore.CleanUp()
 	} else {
-		sink, err = NewSnsSink()
+		s, err = sink.NewSnsSink()
 		if err != nil {
 			return err
 		}
-		if imageStore, err = NewS3FileStore(ProdS3ImageBucket); err != nil {
+		if imageStore, err = file_store.NewS3FileStore(file_store.ProdS3ImageBucket); err != nil {
 			return err
 		}
 	}
@@ -58,7 +60,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 		wg.Add(1)
 		go func(t *protocol.PanopticTask) {
 			defer wg.Done()
-			if err := handler.processTask(t, sink, imageStore); err != nil {
+			if err := handler.processTask(t, s, imageStore); err != nil {
 				Logger.Log.Errorf("fail to process task: %s", err)
 			}
 			t.TaskMetadata.IpAddr = ip
@@ -69,7 +71,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	return nil
 }
 
-func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink CollectedDataSink, imageStore CollectedFileStore) error {
+func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink sink.CollectedDataSink, imageStore file_store.CollectedFileStore) error {
 	var (
 		collector DataCollector
 		builder   CollectorBuilder

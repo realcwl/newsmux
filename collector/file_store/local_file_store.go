@@ -1,4 +1,4 @@
-package collector
+package file_store
 
 import (
 	"errors"
@@ -100,6 +100,9 @@ func (s *LocalFileStore) FetchAndStore(url string) (string, error) {
 	defer response.Body.Close()
 
 	fileName, err := s.GenerateFileNameFromUrl(url)
+	if err != nil {
+		return "", err
+	}
 	localPath := filepath.Join(s.folderName, fileName)
 
 	//open a file for writing

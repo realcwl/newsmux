@@ -1,4 +1,4 @@
-package collector
+package file_store
 
 import (
 	"errors"
@@ -113,10 +113,7 @@ func (s *S3FileStore) IsKeyExisted(key string) bool {
 		Bucket: aws.String("bucket_name"),
 		Key:    aws.String("object_key"),
 	})
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (s *S3FileStore) GetUrlFromKey(key string) string {
