@@ -54,7 +54,7 @@ func GetSourceLogoUrl(sourceId string) string {
 	}
 }
 
-func AnnotateTaskResultState(task *protocol.PanopticTask) {
+func SetTaskResultState(task *protocol.PanopticTask) {
 	metadata := task.TaskMetadata
 	// Fail even one single post is considered as failure for the entire task.
 	if metadata.TotalMessageFailed > 0 || metadata.TotalMessageCollected == 0 {

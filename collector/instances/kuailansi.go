@@ -177,5 +177,5 @@ func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		}
 	}
 
-	collector.AnnotateTaskResultState(task)
+	collector.SetTaskResultState(task)
 }
