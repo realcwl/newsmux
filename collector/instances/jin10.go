@@ -41,6 +41,21 @@ func (collector Jin10Crawler) UpdateNewsType(workingContext *CrawlerWorkingConte
 	return nil
 }
 
+// check if we should skip the message - ads for example
+func (collector Jin10Crawler) ShouldSkipMessage(workingContext *CrawlerWorkingContext, content string) bool {
+	if strings.Contains(content, "【金十") && !strings.Contains(content, "【金十图示】") {
+		return true
+	}
+	if workingContext.Task.TaskParams.GetJinshiTaskParams() != nil {
+		for _, key := range workingContext.Task.TaskParams.GetJinshiTaskParams().SkipKeyWords {
+			if strings.Contains(content, key) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (collector Jin10Crawler) UpdateContent(workingContext *CrawlerWorkingContext) error {
 	var sb strings.Builder
 	selection := workingContext.Element.DOM.Find(".right-content > div")
@@ -62,6 +77,11 @@ func (collector Jin10Crawler) UpdateContent(workingContext *CrawlerWorkingContex
 	sb.WriteString(result)
 
 	content := sb.String()
+
+	if collector.ShouldSkipMessage(workingContext, content) {
+		return utils.ImmediatePrintError(errors.New(fmt.Sprintf("jin10 news skipped for ads, content is %s", content)))
+	}
+
 	workingContext.Result.Post.Content = content
 	if len(content) == 0 {
 		Logger.Log.Warn("empty content")
@@ -190,9 +210,7 @@ func (collector Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	// each crawled card(news) will go to this
 	// for each page loaded, there are multiple calls into this func
 	c.OnHTML(collector.GetQueryPath(), func(elem *colly.HTMLElement) {
-		var (
-			err error
-		)
+		var err error
 		workingContext := &CrawlerWorkingContext{
 			Task: task, Element: elem, OriginUrl: collector.GetStartUri()}
 		if err = collector.GetMessage(workingContext); err != nil {

@@ -146,7 +146,11 @@ message PanopticSubSource{
 
 // Created empty param here in case we need to pass in additional parameters to
 // customize Jinshi's crawler logic.
-message JinshiTaskParams {}
+// skip_key_words: if content contains the following keywords, skip the message
+//                 used for ads
+message JinshiTaskParams {
+  repeated string skip_key_words = 1;
+}
 
 // 1. max_pages: As weibo API is paginated, this specifies how many pages does collector look back
 //    in each task.

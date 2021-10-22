@@ -202,6 +202,11 @@ func TestJin10CollectorHandler(t *testing.T) {
 							ExternalId: "2",
 						},
 					},
+					Params: &protocol.TaskParams_JinshiTaskParams{
+						JinshiTaskParams: &protocol.JinshiTaskParams{
+							SkipKeyWords: []string{"【黄金操作策略】"},
+						},
+					},
 				},
 			},
 		}}
