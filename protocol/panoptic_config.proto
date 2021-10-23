@@ -17,6 +17,15 @@ message PanopticConfig {
 
   // TaskSchedule defines the schedule by which this config should run.
   TaskSchedule task_schedule = 4;
+
+  // If dry_run is set to true, the actual PanopticJob generated from this
+  // config will have debug == true. When calling lambda, the data collector
+  // will not actually publish the Crawled message to SNS, but output to stdout
+  // instead.
+  // Usually, before publishing your new crawler, you want to set this field to 
+  // true, monitor it in Datadog for a while and then turn it to false to 
+  // actually enable it and publish messages into SNS.
+  bool dry_run = 5;
 }
 
 message TaskSchedule {

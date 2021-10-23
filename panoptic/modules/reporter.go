@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"google.golang.org/protobuf/proto"
@@ -120,7 +121,9 @@ func (r *Reporter) ProcessPanopticJobs(ctx context.Context) error {
 
 		Logger.Log.Infof("reporter received PanopticJob: %s", job.String())
 
-		if job.Debug {
+		// Export metrics to Datadog only if we're in prod environment, so that
+		// local testing won't pollute the Datadog dashboard.
+		if !utils.IsProdEnv() {
 			continue
 		}
 		r.ReportTask(&job)
