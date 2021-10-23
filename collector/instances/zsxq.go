@@ -16,6 +16,7 @@ import (
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -307,7 +308,7 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 			return utils.ImmediatePrintError(err)
 		}
 		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.Debug(workingContext.Result.Post.Content)
+		Logger.Log.WithFields(logrus.Fields{"source": "zsxq"}).Debug(workingContext.Result.Post.Content)
 	}
 
 	SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))

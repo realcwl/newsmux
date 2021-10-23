@@ -13,6 +13,7 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -139,7 +140,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 			}
 		}
 		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.Debug(workingContext.Result.Post.Content)
+		Logger.Log.WithFields(logrus.Fields{"source": "wallstreet"}).Debug(workingContext.Result.Post.Content)
 	}
 
 	collector.SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))

@@ -13,6 +13,7 @@ import (
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -37,7 +38,24 @@ func SubsourceTypeToName(t protocol.PanopticSubSource_SubSourceType) string {
 
 func LogHtmlParsingError(task *protocol.PanopticTask, elem *colly.HTMLElement, err error) {
 	html, _ := elem.DOM.Html()
-	Logger.Log.Error(fmt.Sprintf("Error in data collector. [Error] %s. [Task] %s. [DOM Start] %s [DOM End].", err.Error(), task.String(), html))
+
+	source := "undefined"
+	switch task.DataCollectorId {
+	case protocol.PanopticTask_COLLECTOR_JINSHI:
+		source = "jin10"
+	case protocol.PanopticTask_COLLECTOR_JINSE:
+		source = "jinse"
+	case protocol.PanopticTask_COLLECTOR_WEIBO:
+		source = "weibo"
+	case protocol.PanopticTask_COLLECTOR_KUAILANSI:
+		source = "kuailansi"
+	case protocol.PanopticTask_COLLECTOR_WALLSTREET_NEWS:
+		source = "wallstreet"
+	}
+
+	Logger.Log.WithFields(
+		logrus.Fields{"source": source},
+	).Error(fmt.Sprintf("Error in data collector. [Error] %s. [Type] %s. [Task_id] %s. [DOM Start] %s [DOM End].", err.Error(), task.DataCollectorId, task.TaskId, html))
 }
 
 func GetSourceLogoUrl(sourceId string) string {

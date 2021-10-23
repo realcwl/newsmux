@@ -8,8 +8,9 @@ import (
 )
 
 type SharedContext struct {
-	Task   *protocol.PanopticTask
-	Result *protocol.CrawlerMessage
+	Task                 *protocol.PanopticTask
+	Result               *protocol.CrawlerMessage
+	IntentionallySkipped bool
 }
 
 type PaginationInfo struct {

@@ -12,6 +12,7 @@ import (
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -45,7 +46,7 @@ type KuailansiApiResponse struct {
 func (k KuailansiApiCrawler) GetNewsTypeForPost(post *KuailansiPost) (protocol.PanopticSubSource_SubSourceType, error) {
 	level, err := strconv.Atoi(post.Level)
 	if err != nil {
-		return protocol.PanopticSubSource_UNSPECIFIED, errors.Wrap(err, "cannot parse post.Level")
+		return protocol.PanopticSubSource_UNSPECIFIED, errors.Wrap(err, "cannot parse Kuailansi post.Level")
 	}
 
 	if level >= 1 {
@@ -66,7 +67,7 @@ func (k KuailansiApiCrawler) GetCrawledSubSourceNameFromPost(post *KuailansiPost
 func (k KuailansiApiCrawler) ParseGenerateTime(post *KuailansiPost) (*timestamppb.Timestamp, error) {
 	location, err := time.LoadLocation(CHINA_TIMEZONE)
 	if err != nil {
-		return nil, errors.Wrap(err, "fail to parse time zome: "+CHINA_TIMEZONE)
+		return nil, errors.Wrap(err, "fail to parse time zome for Kuailansi: "+CHINA_TIMEZONE)
 	}
 	t, err := time.ParseInLocation(KUAILANSI_TIME_FORMAT, post.Time, location)
 	if err != nil {
@@ -77,7 +78,7 @@ func (k KuailansiApiCrawler) ParseGenerateTime(post *KuailansiPost) (*timestampp
 
 func (k KuailansiApiCrawler) ValidatePost(post *KuailansiPost) error {
 	if strings.Contains(post.Content, IP_BAN_MESSAGE) {
-		return errors.New("IP is banned")
+		return errors.New("Kuailansi IP is banned")
 	}
 	return nil
 }
@@ -138,7 +139,7 @@ func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 	res := &KuailansiApiResponse{}
 	err := collector.HttpGetAndParseJsonResponse(KUAILANSI_URI, res)
 	if err != nil {
-		Logger.Log.Errorln("fail to get Kuailansi response:", err)
+		Logger.Log.WithFields(logrus.Fields{"source": "kuailansi"}).Errorln("fail to get Kuailansi response:", err)
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		return
 	}
@@ -151,7 +152,7 @@ func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 
 		err := k.ProcessSinglePost(&post, workingContext)
 		if err != nil {
-			Logger.Log.Errorln("fail to process a single Kuailansi Post:", err,
+			Logger.Log.WithFields(logrus.Fields{"source": "kuailansi"}).Errorln("fail to process a single Kuailansi Post:", err,
 				"\npost content:\n", collector.PrettyPrint(post))
 			workingContext.Task.TaskMetadata.TotalMessageFailed++
 			continue

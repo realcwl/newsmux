@@ -13,6 +13,7 @@ import (
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -163,7 +164,7 @@ func (k JinseApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 	res := &JinseResponse{}
 	err := collector.HttpGetAndParseJsonResponse(JINSE_URI, res)
 	if err != nil {
-		Logger.Log.Errorln("fail to get Jinse response:", err)
+		Logger.Log.WithFields(logrus.Fields{"source": "jinse"}).Errorln("fail to get Jinse response:", err)
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		return
 	}
@@ -177,7 +178,7 @@ func (k JinseApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 
 			err := k.ProcessSinglePost(&post, workingContext)
 			if err != nil {
-				Logger.Log.Errorln("fail to process a single Jinse Post:", err,
+				Logger.Log.WithFields(logrus.Fields{"source": "jinse"}).Errorln("fail to process a single Jinse Post:", err,
 					"\npost content:\n", collector.PrettyPrint(post))
 				workingContext.Task.TaskMetadata.TotalMessageFailed++
 				continue
