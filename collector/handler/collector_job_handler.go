@@ -49,9 +49,19 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 
 	if !utils.IsProdEnv() || job.Debug {
 		s = sink.NewStdErrSink()
-		if imageStore, err = file_store.NewLocalFileStore("test"); err != nil {
-			return err
+		// Debug job + Prod env still download files.
+		// TODO(chenweilunster): Clean up to a simpler logic. Maybe using a Noop
+		// file store.
+		if utils.IsProdEnv() {
+			if imageStore, err = file_store.NewS3FileStore(file_store.ProdS3ImageBucket); err != nil {
+				return err
+			}
+		} else {
+			if imageStore, err = file_store.NewLocalFileStore("test"); err != nil {
+				return err
+			}
 		}
+
 		defer imageStore.CleanUp()
 	} else {
 		s, err = sink.NewSnsSink()
