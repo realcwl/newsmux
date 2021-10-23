@@ -1,6 +1,7 @@
 package collector_instances
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -17,10 +18,8 @@ import (
 
 const (
 	JINSE_URI = "https://api.jinse.com/noah/v2/lives?limit=3"
-	// CHINA_TIMEZONE        = "Asia/Shanghai"
-	// KUAILANSI_TIME_FORMAT = "2006-01-02 15:04:05"
 
-	// IP_BAN_MESSAGE = "IP访问受限制"
+	JINSE_JINXUAN = "精选"
 )
 
 type JinseApiCrawler struct {
@@ -77,83 +76,73 @@ type JinsePost struct {
 	Vote            interface{}   `json:"vote"`
 }
 
-// For kuailansi, if Level == 0, it's a important update.
-func (k JinseApiCrawler) GetNewsTypeForPost(post *KuailansiPost) (protocol.PanopticSubSource_SubSourceType, error) {
-	level, err := strconv.Atoi(post.Level)
-	if err != nil {
-		return protocol.PanopticSubSource_UNSPECIFIED, errors.Wrap(err, "cannot parse post.Level")
+// For Jinse, it's an important update iff:
+// - It has highlight color
+// - It has 精选 as attributes
+// - It's grade is greater than 4
+func (k JinseApiCrawler) GetNewsTypeForPost(post *JinsePost) protocol.PanopticSubSource_SubSourceType {
+	if post.HighlightColor != "" ||
+		post.Attribute == JINSE_JINXUAN ||
+		post.Grade > 4 {
+		return protocol.PanopticSubSource_KEYNEWS
 	}
 
-	if level >= 1 {
-		return protocol.PanopticSubSource_FLASHNEWS, nil
-	}
-
-	return protocol.PanopticSubSource_KEYNEWS, nil
+	return protocol.PanopticSubSource_FLASHNEWS
 }
 
-func (k JinseApiCrawler) GetCrawledSubSourceNameFromPost(post *KuailansiPost) (string, error) {
-	t, err := k.GetNewsTypeForPost(post)
-	if err != nil {
-		return "", errors.Wrap(err, "fail to get subsource type from post"+collector.PrettyPrint(post))
-	}
+func (k JinseApiCrawler) GetCrawledSubSourceNameFromPost(post *JinsePost) (string, error) {
+	t := k.GetNewsTypeForPost(post)
 	return collector.SubsourceTypeToName(t), nil
 }
 
-func (k JinseApiCrawler) ParseGenerateTime(post *KuailansiPost) (*timestamppb.Timestamp, error) {
-	location, err := time.LoadLocation(CHINA_TIMEZONE)
-	if err != nil {
-		return nil, errors.Wrap(err, "fail to parse time zome: "+CHINA_TIMEZONE)
-	}
-	t, err := time.ParseInLocation(KUAILANSI_TIME_FORMAT, post.Time, location)
-	if err != nil {
-		return nil, errors.Wrap(err, "fail to parse Kuailansi post time: "+post.Time)
-	}
-	return timestamppb.New(t), nil
+func (k JinseApiCrawler) ParseGenerateTime(post *JinsePost) *timestamppb.Timestamp {
+	t := time.Unix(int64(post.CreatedAt), 0)
+	return timestamppb.New(t)
 }
 
-func (k JinseApiCrawler) ValidatePost(post *KuailansiPost) error {
-	if strings.Contains(post.Content, IP_BAN_MESSAGE) {
-		return errors.New("IP is banned")
+func (k JinseApiCrawler) ValidatePost(post *JinsePost) error {
+	if post.Content == "" {
+		return errors.New("content must not be empty")
 	}
 	return nil
 }
 
-func (k JinseApiCrawler) ProcessSinglePost(post *KuailansiPost,
+func (j JinseApiCrawler) TrimmedContent(post *JinsePost) string {
+	return strings.Trim(post.Content, fmt.Sprintf("【%s】", post.ContentPrefix))
+}
+
+func (k JinseApiCrawler) ProcessSinglePost(post *JinsePost,
 	workingContext *working_context.ApiCollectorWorkingContext) error {
 	if err := k.ValidatePost(post); err != nil {
 		return err
 	}
 
-	subSourceType, err := k.GetNewsTypeForPost(post)
-	if err != nil {
-		return err
-	}
+	subSourceType := k.GetNewsTypeForPost(post)
 
 	if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, subSourceType) {
 		// Return nil if the post is not of requested type. Note that this is
-		// intentionally not considered as failure.
+		// intentionally not considered as failure, and thus will not increase
+		// failure count.
 		return nil
 	}
 
 	collector.InitializeApiCollectorResult(workingContext)
 
-	ts, err := k.ParseGenerateTime(post)
-	if err != nil {
-		return err
-	}
+	ts := k.ParseGenerateTime(post)
 
 	name, err := k.GetCrawledSubSourceNameFromPost(post)
 	if err != nil {
 		return errors.Wrap(err, "cannot find post subsource")
 	}
 
-	err = k.GetDedupId(workingContext)
+	err = k.GetDedupId(post, workingContext)
 	if err != nil {
 		return errors.Wrap(err, "cannot get dedup id from post.")
 	}
 
 	workingContext.Result.Post.ContentGeneratedAt = ts
-	workingContext.Result.Post.Content = post.Content
+	workingContext.Result.Post.Content = k.TrimmedContent(post)
+	workingContext.Result.Post.Title = post.ContentPrefix
 	workingContext.Result.Post.SubSource.Name = name
 	workingContext.Result.Post.SubSource.AvatarUrl = collector.GetSourceLogoUrl(
 		workingContext.Task.TaskParams.SourceId)
@@ -161,8 +150,8 @@ func (k JinseApiCrawler) ProcessSinglePost(post *KuailansiPost,
 	return nil
 }
 
-func (k JinseApiCrawler) GetDedupId(workingContext *working_context.ApiCollectorWorkingContext) error {
-	md5, err := utils.TextToMd5Hash(workingContext.Result.Post.SubSource.Id + workingContext.Result.Post.Content)
+func (k JinseApiCrawler) GetDedupId(post *JinsePost, workingContext *working_context.ApiCollectorWorkingContext) error {
+	md5, err := utils.TextToMd5Hash(workingContext.Task.TaskParams.SourceId + strconv.Itoa(post.ID))
 	if err != nil {
 		return err
 	}
@@ -188,7 +177,7 @@ func (k JinseApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 
 			err := k.ProcessSinglePost(&post, workingContext)
 			if err != nil {
-				Logger.Log.Errorln("fail to process a single Kuailansi Post:", err,
+				Logger.Log.Errorln("fail to process a single Jinse Post:", err,
 					"\npost content:\n", collector.PrettyPrint(post))
 				workingContext.Task.TaskMetadata.TotalMessageFailed++
 				continue
@@ -203,5 +192,5 @@ func (k JinseApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		}
 	}
 
-	collector.SetErrorBasedOnCounts(task, KUAILANSI_URI)
+	collector.SetErrorBasedOnCounts(task, JINSE_URI)
 }
