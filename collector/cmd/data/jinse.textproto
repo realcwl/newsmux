@@ -1,0 +1,27 @@
+# This file should contain all Jinse job variations, each of different 
+# job_id, please do not add non-Jinse jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+  job_id: "jinse_job"
+	tasks: [
+		{
+			task_id: "jinse_task"
+			data_collector_id: COLLECTOR_JINSE
+      task_params: {
+        source_id: "5891f435-d51e-4575-b4af-47cd4ede5607"
+        sub_sources: [{
+          name: "快讯"
+          type: FLASHNEWS
+        }, {
+          name: "要闻"
+          type: KEYNEWS
+        }]
+      }
+			task_metadata: {
+				config_name: "jinse_config"
+			}
+		}
+	]
+	debug: true
+}

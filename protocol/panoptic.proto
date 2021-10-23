@@ -97,6 +97,7 @@ message PanopticTask {
     COLLECTOR_WEIBO = 3;
     COLLECTOR_ZSXQ = 4;
     COLLECTOR_WALLSTREET_NEWS= 5;
+    COLLECTOR_JINSE = 6;
     // ...
   }
 

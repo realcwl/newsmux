@@ -29,3 +29,7 @@ func (CollectorBuilder) NewWallstreetNewsApiCollector(s sink.CollectedDataSink) 
 func (CollectorBuilder) NewKuailansiApiCollector(s sink.CollectedDataSink) DataCollector {
 	return &KuailansiApiCrawler{Sink: s}
 }
+
+func (CollectorBuilder) NewJinseApiCollector(s sink.CollectedDataSink) DataCollector {
+	return &JinseApiCrawler{Sink: s}
+}

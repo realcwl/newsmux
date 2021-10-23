@@ -1,9 +1,6 @@
 package collector_instances
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -42,31 +39,6 @@ type KuailansiPost struct {
 type KuailansiApiResponse struct {
 	List     []KuailansiPost `json:"list"`
 	NextPage string          `json:"nextpage"`
-}
-
-func (k KuailansiApiCrawler) GetKuailansiResponse(task *protocol.PanopticTask) (*KuailansiApiResponse, error) {
-	httpClient := collector.HttpClient{}
-	httpResponse, err := httpClient.Get(KUAILANSI_URI)
-
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := io.ReadAll(httpResponse.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Remove BOM before parsing, see https://en.wikipedia.org/wiki/Byte_order_mark for details.
-	body = bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))
-	kuailansiResponse := &KuailansiApiResponse{}
-	err = json.Unmarshal(body, kuailansiResponse)
-	if err != nil {
-		Logger.Log.Errorln("fail to parse Kuailansi response:", body)
-		return nil, err
-	}
-
-	return kuailansiResponse, nil
 }
 
 // For kuailansi, if Level == 0, it's a important update.
@@ -163,7 +135,8 @@ func (k KuailansiApiCrawler) GetDedupId(workingContext *working_context.ApiColle
 }
 
 func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
-	res, err := k.GetKuailansiResponse(task)
+	res := &KuailansiApiResponse{}
+	err := collector.HttpGetAndParseJsonResponse(KUAILANSI_URI, res)
 	if err != nil {
 		Logger.Log.Errorln("fail to get Kuailansi response:", err)
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
