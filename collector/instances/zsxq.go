@@ -236,7 +236,7 @@ func (collector ZsxqApiCollector) UpdateResult(wc *working_context.ApiCollectorW
 	if item.Type == "q&a" {
 		post.Content = item.Question.Text + " " + item.Answer.Text
 	} else if item.Type == "talk" {
-		post.Content = CleanWeiboContent(item.Talk.Text)
+		post.Content = LineBreakerToSpace(item.Talk.Text)
 		reader := strings.NewReader(post.Content)
 		doc, err := goquery.NewDocumentFromReader(reader)
 		if err != nil {
