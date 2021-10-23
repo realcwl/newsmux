@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -77,7 +76,7 @@ func IsNon200HttpResponse(res *http.Response) bool {
 }
 
 func LogHttpResponseBody(res *http.Response) {
-	body, err := io.ReadAll(res.Body)
+	body, err := ioutil.ReadAll(res.Body)
 	if err == nil {
 		Logger.Log.Errorln("response body is: ", string(body))
 	}
@@ -114,7 +113,7 @@ func HttpGetAndParseJsonResponse(uri string, res interface{}) error {
 		return err
 	}
 
-	body, err := io.ReadAll(httpResponse.Body)
+	body, err := ioutil.ReadAll(httpResponse.Body)
 	if err != nil {
 		return err
 	}

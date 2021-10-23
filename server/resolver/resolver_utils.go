@@ -53,7 +53,6 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRefreshInput) error {
 	var posts []*model.Post
 	// try to read published posts
-	Log.Info("read published post for feed: ", feed.Id, " query: ", query)
 	if query.Direction == model.FeedRefreshDirectionNew {
 		db.Model(&model.Post{}).
 			Preload(clause.Associations).
