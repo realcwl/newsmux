@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -109,7 +109,7 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 		return "", utils.ImmediatePrintError(err)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", utils.ImmediatePrintError(err)
 	}
@@ -207,7 +207,7 @@ func (w WeiboApiCollector) CollectOneSubsourceOnePage(
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}

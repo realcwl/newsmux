@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -122,7 +122,7 @@ func GetZsxqFileDownloadUrlTransform(task *protocol.PanopticTask) file_store.Pro
 			utils.ImmediatePrintError(err)
 			return ""
 		}
-		body, err := io.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
 
 		res := &ZsxqFileDownloadApiResponse{}
 		err = json.Unmarshal(body, res)
@@ -273,7 +273,7 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	res := &ZsxqApiResponse{}
 	err = json.Unmarshal(body, res)
 	if err != nil {
