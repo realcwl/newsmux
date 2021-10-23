@@ -15,7 +15,6 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/PuerkitoBio/goquery"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -125,17 +124,8 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 	if res.Ok != 1 {
 		return "", utils.ImmediatePrintError(fmt.Errorf("response not success: %v", res))
 	}
-	reader := strings.NewReader(res.Data.LongTextContent)
-	doc, err := goquery.NewDocumentFromReader(reader)
-	if err != nil {
-		return "", utils.ImmediatePrintError(
-			fmt.Errorf("fail to convert full rich-html text to node: %v", res.Data.LongTextContent))
-	}
-	// goquery Text() will not replace br with newline
-	// to keep consistent with prod crawler, we need to
-	// add newline
-	doc.Find("br").AfterHtml("\n")
-	return doc.Text(), nil
+
+	return collector.HtmlToText(res.Data.LongTextContent)
 }
 
 func (collector WeiboApiCollector) UppdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
@@ -181,7 +171,7 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 	} else {
 		post.Content = mBlog.Text
 	}
-	post.Content = collector.CleanWeiboContent(post.Content)
+	post.Content = collector.LineBreakerToSpace(post.Content)
 
 	err = w.UpdateDedupId(post)
 	if err != nil {

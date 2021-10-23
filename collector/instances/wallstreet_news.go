@@ -29,6 +29,10 @@ type WallstreetItem struct {
 	DisplayTime int    `json:"display_time"`
 	ID          int    `json:"id"`
 	Score       int    `json:"score"`
+	Article     *struct {
+		Title string `json:"title"`
+		URI   string `json:"uri"`
+	} `json:"article"`
 }
 
 type WallstreetApiResponse struct {
@@ -78,6 +82,10 @@ func (w WallstreetApiCollector) UpdateResultFromItem(item *WallstreetItem, worki
 	}
 	workingContext.NewsType = newsType
 	workingContext.Result.Post.SubSource.Name = collector.SubsourceTypeToName(newsType)
+	if item.Article != nil {
+		workingContext.Result.Post.Content = workingContext.Result.Post.Content + " [相关文章]: " + item.Article.URI
+		workingContext.Result.Post.OriginUrl = item.Article.URI
+	}
 	return nil
 }
 
