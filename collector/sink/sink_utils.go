@@ -1,6 +1,7 @@
 package sink
 
 import (
+	"github.com/Luismorlan/newsmux/collector/validation"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -17,6 +18,14 @@ func PushResultToSinkAndRecordInTaskMetadata(s CollectedDataSink, workingContext
 	case *working_context.ApiCollectorWorkingContext:
 		shared_context = &workingContext.SharedContext
 	}
+
+	if err := validation.ValidateSharedContext(shared_context); err != nil {
+		shared_context.Task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
+		shared_context.Task.TaskMetadata.TotalMessageFailed++
+		Logger.Log.Errorf("crawled message failed validation, Error: %s", err)
+		return
+	}
+
 	if err := s.Push(shared_context.Result); err != nil {
 		shared_context.Task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		shared_context.Task.TaskMetadata.TotalMessageFailed++

@@ -1,6 +1,8 @@
 package working_context
 
 import (
+	"fmt"
+
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/gocolly/colly"
 )
@@ -37,4 +39,8 @@ type ApiCollectorWorkingContext struct {
 	ApiUrl         string
 	SubSource      *protocol.PanopticSubSource
 	NewsType       protocol.PanopticSubSource_SubSourceType
+}
+
+func (sc *SharedContext) String() string {
+	return fmt.Sprintf("==SharedContext is==\ntask: \n%s\nresult:\n%s\n", sc.Task.String(), sc.Result.String())
 }
