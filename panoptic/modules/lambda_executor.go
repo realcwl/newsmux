@@ -425,7 +425,7 @@ func (l *LambdaExecutor) GetRandomActiveFunction(job *protocol.PanopticJob) *Lam
 func (l *LambdaExecutor) Execute(ctx context.Context, job *protocol.PanopticJob) (*protocol.PanopticJob, error) {
 	// For debugging job, we don't actually execute the Lambda, but return
 	// directly.
-	if job.Debug {
+	if job.Debug && AppSetting.DO_NOT_EXECUTE_ON_LAMBDA_FOR_DEBUG_JOB {
 		return job, nil
 	}
 

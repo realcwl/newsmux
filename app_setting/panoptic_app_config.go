@@ -24,6 +24,10 @@ type PanopticAppSetting struct {
 	SCHEDULER_CONFIG_POLL_INTERVAL_SECOND int64 `yaml:"SCHEDULER_CONFIG_POLL_INTERVAL_SECOND"`
 	// Path pointing to local panoptic config
 	LOCAL_PANOPTIC_CONFIG_PATH string `yaml:"LOCAL_PANOPTIC_CONFIG_PATH"`
+	// Do not execute job on Lambda if debug is set to true, otherwise it will
+	// execute on Lambda (though it won't be published to SNS due to Collector's
+	// debug mode handling)
+	DO_NOT_EXECUTE_ON_LAMBDA_FOR_DEBUG_JOB bool `yaml:"DO_NOT_EXECUTE_ON_LAMBDA_FOR_DEBUG_JOB"`
 }
 
 func ParsePanopticAppSetting(path string) PanopticAppSetting {
