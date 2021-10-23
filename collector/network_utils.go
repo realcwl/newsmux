@@ -7,14 +7,28 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Luismorlan/newsmux/protocol"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
-type HttpClient struct{}
+type HttpClient struct {
+	header  http.Header
+	cookies []http.Cookie
+}
 
-func (HttpClient) Get(uri string) (*http.Response, error) {
-	res, err := http.Get(uri)
+func NewHttpClient(header http.Header, cookies []http.Cookie) *HttpClient {
+	return &HttpClient{header: header, cookies: cookies}
+}
 
+func (c HttpClient) Get(uri string) (*http.Response, error) {
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", uri, nil)
+	req.Header = c.header
+	for _, cookie := range c.cookies {
+		req.AddCookie(&cookie)
+	}
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -64,4 +78,17 @@ func LogHttpResponseBody(res *http.Response) {
 	if err == nil {
 		Logger.Log.Errorln("response body is: ", string(body))
 	}
+}
+
+func NewHttpClientFromTaskParams(task *protocol.PanopticTask) *HttpClient {
+	header := http.Header{}
+	for _, h := range task.TaskParams.HeaderParams {
+		header[h.Key] = []string{h.Value}
+	}
+	cookies := []http.Cookie{}
+	for _, c := range task.TaskParams.Cookies {
+		cookies = append(cookies, http.Cookie{Name: c.Key, Value: c.Value})
+	}
+
+	return NewHttpClient(header, cookies)
 }

@@ -43,6 +43,21 @@ func (j Jin10Crawler) UpdateNewsType(workingContext *working_context.CrawlerWork
 	return nil
 }
 
+// check if we should skip the message - ads for example
+func (j Jin10Crawler) ShouldSkipMessage(workingContext *working_context.CrawlerWorkingContext, content string) bool {
+	if strings.Contains(content, "【金十") && !strings.Contains(content, "【金十图示】") {
+		return true
+	}
+	if workingContext.Task.TaskParams.GetJinshiTaskParams() != nil {
+		for _, key := range workingContext.Task.TaskParams.GetJinshiTaskParams().SkipKeyWords {
+			if strings.Contains(content, key) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (j Jin10Crawler) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
 	var sb strings.Builder
 	selection := workingContext.Element.DOM.Find(".right-content > div")
@@ -64,6 +79,11 @@ func (j Jin10Crawler) UpdateContent(workingContext *working_context.CrawlerWorki
 	sb.WriteString(result)
 
 	content := sb.String()
+
+	if j.ShouldSkipMessage(workingContext, content) {
+		return utils.ImmediatePrintError(errors.New(fmt.Sprintf("jin10 news skipped for ads, content is %s", content)))
+	}
+
 	workingContext.Result.Post.Content = content
 	if len(content) == 0 {
 		Logger.Log.Warn("empty content")
@@ -175,11 +195,11 @@ func (j Jin10Crawler) GetMessage(workingContext *working_context.CrawlerWorkingC
 	return nil
 }
 
-func (collector Jin10Crawler) GetQueryPath() string {
+func (j Jin10Crawler) GetQueryPath() string {
 	return `#jin_flash_list > .jin-flash-item-container`
 }
 
-func (collector Jin10Crawler) GetStartUri() string {
+func (j Jin10Crawler) GetStartUri() string {
 	return "https://www.jin10.com/index.html"
 }
 
@@ -192,9 +212,7 @@ func (j Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	// each crawled card(news) will go to this
 	// for each page loaded, there are multiple calls into this func
 	c.OnHTML(j.GetQueryPath(), func(elem *colly.HTMLElement) {
-		var (
-			err error
-		)
+		var err error
 		workingContext := &working_context.CrawlerWorkingContext{
 			SharedContext: working_context.SharedContext{Task: task}, Element: elem, OriginUrl: j.GetStartUri()}
 		if err = j.GetMessage(workingContext); err != nil {

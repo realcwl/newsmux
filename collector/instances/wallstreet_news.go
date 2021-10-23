@@ -23,7 +23,9 @@ type WallstreetApiCollector struct {
 }
 
 type WallstreetItem struct {
+	Title       string `json:"title"`
 	Content     string `json:"content"`
+	ContentText string `json:"content_text"`
 	DisplayTime int    `json:"display_time"`
 	ID          int    `json:"id"`
 	Score       int    `json:"score"`
@@ -42,6 +44,7 @@ func (w WallstreetApiCollector) UpdateFileUrls(workingContext *working_context.A
 }
 
 func (w WallstreetApiCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *working_context.PaginationInfo) string {
+	// backup url: https://api-one.wallstcn.com/apiv1/content/lives?channel=us-stock-channel&client=pc&limit=20
 	return fmt.Sprintf("https://api.wallstcn.com/apiv1/content/lives?channel=%s&client=pc&limit=%d",
 		paginationInfo.NextPageId,
 		task.TaskParams.GetWallstreetNewsTaskParams().Limit,
@@ -64,7 +67,11 @@ func (w WallstreetApiCollector) UpdateResultFromItem(item *WallstreetItem, worki
 	if err := w.UpdateDedupId(workingContext.Result.Post); err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	workingContext.Result.Post.Content = item.Content
+	if item.Title == "" {
+		workingContext.Result.Post.Content = item.Title + item.ContentText
+	} else {
+		workingContext.Result.Post.Content = item.Title + " " + item.ContentText
+	}
 	newsType := protocol.PanopticSubSource_FLASHNEWS
 	if item.Score != 1 {
 		newsType = protocol.PanopticSubSource_KEYNEWS

@@ -192,7 +192,7 @@ func TestJin10CollectorHandler(t *testing.T) {
 						},
 					},
 				},
-				TaskMetadata: &protocol.TaskMetadata{},
+				TaskMetadata: &protocol.TaskMetadata{ConfigName: "test_jin10_config_1"},
 			},
 			{
 				TaskId:          "456",
@@ -208,8 +208,15 @@ func TestJin10CollectorHandler(t *testing.T) {
 							ExternalId: "2",
 						},
 					},
+					Params: &protocol.TaskParams_JinshiTaskParams{
+						JinshiTaskParams: &protocol.JinshiTaskParams{
+							SkipKeyWords: []string{"【黄金操作策略】"},
+						},
+					},
 				},
-				TaskMetadata: &protocol.TaskMetadata{},
+				TaskMetadata: &protocol.TaskMetadata{
+					ConfigName: "test_jin10_config_2",
+				},
 			},
 		}}
 	var handler DataCollectJobHandler
@@ -238,12 +245,13 @@ func TestS3Store(t *testing.T) {
 	s, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
 	require.NoError(t, err)
 
-	s.SetCustomizeFileNameFunc(func(in string) string {
+	s.SetCustomizeFileNameFunc(func(in, f string) string {
 		return "test"
-	}).SetCustomizeFileExtFunc(func(in string) string {
-		return "jpg"
 	})
-	key, err := s.GenerateS3KeyFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
+	s.SetCustomizeFileExtFunc(func(in, f string) string {
+		return ".jpg"
+	})
+	key, err := s.GenerateS3KeyFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg", "")
 	require.NoError(t, err)
 	require.Equal(t, "test.jpg", key)
 }
@@ -252,15 +260,16 @@ func TestLocalStore(t *testing.T) {
 	fs, err := file_store.NewLocalFileStore("unit_test")
 	require.NoError(t, err)
 
-	fs.SetCustomizeFileNameFunc(func(in string) string {
+	fs.SetCustomizeFileNameFunc(func(in, f string) string {
 		return "test"
-	}).SetCustomizeFileExtFunc(func(in string) string {
-		return "jpg"
 	})
-	key, err := fs.GenerateFileNameFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
+	fs.SetCustomizeFileExtFunc(func(in, f string) string {
+		return ".jpg"
+	})
+	key, err := fs.GenerateFileNameFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg", "")
 	require.NoError(t, err)
 	require.Equal(t, "test.jpg", key)
-	_, err = fs.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg")
+	_, err = fs.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg", "")
 	require.NoError(t, err)
 	require.FileExists(t, file_store.TmpFileDirPrefix+"unit_test/test.jpg")
 	err = os.Remove(file_store.TmpFileDirPrefix + "unit_test/test.jpg")
@@ -303,7 +312,9 @@ func TestWeiboCollectorHandler(t *testing.T) {
 					},
 				},
 			},
-			TaskMetadata: &protocol.TaskMetadata{},
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_weibo_config",
+			},
 		},
 		},
 	}
@@ -348,7 +359,9 @@ func TestWallstreetNewsCollectorHandler(t *testing.T) {
 					},
 				},
 			},
-			TaskMetadata: &protocol.TaskMetadata{},
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_wallstreet_config",
+			},
 		},
 		},
 	}

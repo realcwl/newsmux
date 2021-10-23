@@ -90,7 +90,7 @@ func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext 
 	if task.TaskMetadata.TotalMessageCollected == 0 {
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		Logger.Log.Error(
-			"Finished crawl weibo with 0 success msg, Task ", task.TaskId,
+			"Finished crawl with 0 success msg, Task ", task.TaskId,
 			"[url]", url,
 			moreContext,
 		)
@@ -98,7 +98,7 @@ func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext 
 	if task.TaskMetadata.TotalMessageFailed > 0 {
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		Logger.Log.Error(
-			"Finished crawl weibo with >0 failed msg, Task ", task.TaskId,
+			"Finished crawl with >0 failed msg, Task ", task.TaskId,
 			"[url]", url,
 			moreContext,
 		)
@@ -125,7 +125,7 @@ func ParallelSubsourceApiCollect(task *protocol.PanopticTask, collector ApiColle
 		}(ss)
 	}
 	wg.Wait()
-	Logger.Log.Info("Finished collecting weibo users , Task", task)
+	Logger.Log.Info("Finished collecting subsources, Task", task)
 }
 
 // Process each html selection to get content

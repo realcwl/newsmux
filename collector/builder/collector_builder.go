@@ -14,6 +14,10 @@ func (CollectorBuilder) NewJin10Crawler(s sink.CollectedDataSink) CrawlerCollect
 	return &Jin10Crawler{Sink: s}
 }
 
+func (CollectorBuilder) NewZsxqApiCollector(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore, fileStore file_store.CollectedFileStore) ApiCollector {
+	return &ZsxqApiCollector{Sink: s, ImageStore: imageStore, FileStore: fileStore}
+}
+
 func (CollectorBuilder) NewWeiboApiCollector(s sink.CollectedDataSink, store file_store.CollectedFileStore) ApiCollector {
 	return &WeiboApiCollector{Sink: s, ImageStore: store}
 }
@@ -22,9 +26,6 @@ func (CollectorBuilder) NewWallstreetNewsApiCollector(s sink.CollectedDataSink) 
 	return &WallstreetApiCollector{Sink: s}
 }
 
-// func (CollectorBuilder) NewKuailansiCrawler(s CollectedDataSink) RssCollector {
-// 	return &SomeAPICollector{sink: s}
-// }
 func (CollectorBuilder) NewKuailansiApiCollector(s sink.CollectedDataSink) DataCollector {
 	return &KuailansiApiCrawler{Sink: s}
 }

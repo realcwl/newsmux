@@ -1,27 +1,30 @@
-# This file should contain all Jin10 job variations, each of different 
-# job_id, please do not add non-Jin10 jobs in this file. For all other data
+# This file should contain all jin10 job variations, each of different 
+# job_id, please do not add non-jin10 jobs in this file. For all other data
 # collectors, you should create a new file in this directory with the data
 # collector's name. They will be picked up automatically by collector/cmd/main.go
 jobs: {
-  job_id: "jinshi_job"
+	job_id: "jin10_job"
 	tasks: [
 		{
-			task_id: "jinshi_task"
-			data_collector_id: COLLECTOR_JINSHI
-      task_params: {
-        source_id: "a882eb0d-0bde-401a-b708-a7ce352b7392"
-        sub_sources: [{
-          name: "快讯"
-          type: FLASHNEWS
-        }, {
-          name: "要闻"
-          type: KEYNEWS
-        }]
-      }
-			task_metadata: {
-				config_name: "jinshi_config"
-			}
-		}
+            task_id:  "123"
+            data_collector_id:  COLLECTOR_JINSHI
+            task_params:  {
+                source_id:  "a882eb0d-0bde-401a-b708-a7ce352b7392"
+                sub_sources:  {
+                    name:  "快讯"
+                    type:  FLASHNEWS
+                    external_id:  "1"
+                }
+                sub_sources:  {
+                    name:  "要闻"
+                    type:  KEYNEWS
+                    external_id:  "2"
+                }
+                jinshi_task_params:  {
+                    skip_key_words:  "【黄金操作策略】"
+                }
+            }
+        }
 	]
 	debug: true
 }

@@ -56,24 +56,21 @@ func (s *LocalFileStore) CleanUp() {
 	DeleteFolder(s.folderName)
 }
 
-func (s *LocalFileStore) SetProcessUrlBeforeFetchFunc(f ProcessUrlBeforeFetchFuncType) *LocalFileStore {
+func (s *LocalFileStore) SetProcessUrlBeforeFetchFunc(f ProcessUrlBeforeFetchFuncType) {
 	s.processUrlBeforeFetchFunc = f
-	return s
 }
 
-func (s *LocalFileStore) SetCustomizeFileNameFunc(f CustomizeFileNameFuncType) *LocalFileStore {
+func (s *LocalFileStore) SetCustomizeFileNameFunc(f CustomizeFileNameFuncType) {
 	s.customizeFileNameFunc = f
-	return s
 }
 
-func (s *LocalFileStore) SetCustomizeFileExtFunc(f CustomizeFileExtFuncType) *LocalFileStore {
+func (s *LocalFileStore) SetCustomizeFileExtFunc(f CustomizeFileExtFuncType) {
 	s.customizeFileExtFunc = f
-	return s
 }
 
-func (s *LocalFileStore) GenerateFileNameFromUrl(url string) (key string, err error) {
+func (s *LocalFileStore) GenerateFileNameFromUrl(url, fileName string) (key string, err error) {
 	if s.customizeFileNameFunc != nil {
-		key = s.customizeFileNameFunc(url)
+		key = s.customizeFileNameFunc(url, fileName)
 	} else {
 		key, err = utils.TextToMd5Hash(url)
 	}
@@ -83,15 +80,19 @@ func (s *LocalFileStore) GenerateFileNameFromUrl(url string) (key string, err er
 	}
 
 	if s.customizeFileExtFunc != nil {
-		key = key + "." + s.customizeFileExtFunc(url)
+		key = key + s.customizeFileExtFunc(url, fileName)
 	} else {
-		key = key + utils.GetUrlExtNameWithDot(url)
+		if fileName != "" {
+			key = key + utils.GetUrlExtNameWithDot(fileName)
+		} else {
+			key = key + utils.GetUrlExtNameWithDot(url)
+		}
 	}
 
 	return key, err
 }
 
-func (s *LocalFileStore) FetchAndStore(url string) (string, error) {
+func (s *LocalFileStore) FetchAndStore(url, fileName string) (string, error) {
 	// Download file to local mainly for testing
 	response, err := http.Get(s.processUrlBeforeFetchFunc(url))
 	if err != nil {
@@ -99,11 +100,11 @@ func (s *LocalFileStore) FetchAndStore(url string) (string, error) {
 	}
 	defer response.Body.Close()
 
-	fileName, err := s.GenerateFileNameFromUrl(url)
+	localFileName, err := s.GenerateFileNameFromUrl(url, fileName)
 	if err != nil {
 		return "", err
 	}
-	localPath := filepath.Join(s.folderName, fileName)
+	localPath := filepath.Join(s.folderName, localFileName)
 
 	//open a file for writing
 	file, err := os.Create(localPath)

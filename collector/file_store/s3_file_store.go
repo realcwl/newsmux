@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -25,6 +26,7 @@ type S3FileStore struct {
 	processUrlBeforeFetchFunc ProcessUrlBeforeFetchFuncType
 	customizeFileNameFunc     CustomizeFileNameFuncType
 	customizeFileExtFunc      CustomizeFileExtFuncType
+	customizeUploadedUrlFunc  CustomizeUploadedUrlType
 }
 
 func NewS3FileStore(bucket string) (*S3FileStore, error) {
@@ -45,28 +47,30 @@ func NewS3FileStore(bucket string) (*S3FileStore, error) {
 		processUrlBeforeFetchFunc: func(s string) string { return s },
 		customizeFileNameFunc:     nil,
 		customizeFileExtFunc:      nil,
+		customizeUploadedUrlFunc:  nil,
 	}, nil
 }
 
-func (s *S3FileStore) SetProcessUrlBeforeFetchFunc(f ProcessUrlBeforeFetchFuncType) *S3FileStore {
+func (s *S3FileStore) SetProcessUrlBeforeFetchFunc(f ProcessUrlBeforeFetchFuncType) {
 	s.processUrlBeforeFetchFunc = f
-	return s
 }
 
-func (s *S3FileStore) SetCustomizeFileNameFunc(f CustomizeFileNameFuncType) *S3FileStore {
+func (s *S3FileStore) SetCustomizeFileNameFunc(f CustomizeFileNameFuncType) {
 	s.customizeFileNameFunc = f
-	return s
 }
 
-func (s *S3FileStore) SetCustomizeFileExtFunc(f CustomizeFileExtFuncType) *S3FileStore {
+func (s *S3FileStore) SetCustomizeFileExtFunc(f CustomizeFileExtFuncType) {
 	s.customizeFileExtFunc = f
-	return s
+}
+
+func (s *S3FileStore) SetCustomizeUploadedUrlFunc(f CustomizeUploadedUrlType) {
+	s.customizeUploadedUrlFunc = f
 }
 
 // S3 key is the file name
-func (s *S3FileStore) GenerateS3KeyFromUrl(url string) (key string, err error) {
+func (s *S3FileStore) GenerateS3KeyFromUrl(url, fileName string) (key string, err error) {
 	if s.customizeFileNameFunc != nil {
-		key = s.customizeFileNameFunc(url)
+		key = s.customizeFileNameFunc(url, fileName)
 	} else {
 		key, err = utils.TextToMd5Hash(url)
 	}
@@ -75,27 +79,35 @@ func (s *S3FileStore) GenerateS3KeyFromUrl(url string) (key string, err error) {
 		err = errors.New("generate empty s3 key, invalid")
 	}
 
+	// TODO: merge with customizeFileNameFunc
 	if s.customizeFileExtFunc != nil {
-		key = key + "." + s.customizeFileExtFunc(url)
+		key = key + s.customizeFileExtFunc(url, fileName)
 	} else {
-		key = key + utils.GetUrlExtNameWithDot(url)
+		if fileName != "" {
+			key = key + utils.GetUrlExtNameWithDot(fileName)
+		} else {
+			key = key + utils.GetUrlExtNameWithDot(url)
+		}
 	}
 
 	return key, err
 }
 
 // If url key existed, just return the existing key without update file
-func (s *S3FileStore) FetchAndStore(url string) (key string, err error) {
+func (s *S3FileStore) FetchAndStore(url, fileName string) (key string, err error) {
 	// Download file
-	response, err := http.Get(s.processUrlBeforeFetchFunc(url))
+	eventualUrl := s.processUrlBeforeFetchFunc(url)
+	Logger.Log.Info("Starting downloading file from url: ", eventualUrl)
+	response, err := http.Get(eventualUrl)
+	if err != nil {
+		return "", err
+	}
+	key, err = s.GenerateS3KeyFromUrl(url, fileName)
 	if err != nil {
 		return "", err
 	}
 
-	key, err = s.GenerateS3KeyFromUrl(url)
-	if err != nil {
-		return "", err
-	}
+	Logger.Log.Info("Successfully downloaded file from url: ", eventualUrl, " key: ", key)
 
 	if !s.IsKeyExisted(key) {
 		// Upload the file to S3.
@@ -117,7 +129,10 @@ func (s *S3FileStore) IsKeyExisted(key string) bool {
 }
 
 func (s *S3FileStore) GetUrlFromKey(key string) string {
-	return CouldFrontPrefix + key
+	if s.customizeUploadedUrlFunc == nil {
+		return CouldFrontPrefix + key
+	}
+	return s.customizeUploadedUrlFunc(key)
 }
 
 func (s *S3FileStore) CleanUp() {

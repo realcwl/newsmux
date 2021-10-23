@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Luismorlan/newsmux/protocol"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/prototext"
 )
 
 // use this script to generate a request you can use to send in Lambda->Test
@@ -19,17 +19,27 @@ func main() {
 				TaskParams: &protocol.TaskParams{
 					HeaderParams: []*protocol.KeyValuePair{},
 					Cookies:      []*protocol.KeyValuePair{},
-					SourceId:     "123",
+					SourceId:     "a882eb0d-0bde-401a-b708-a7ce352b7392",
 					SubSources: []*protocol.PanopticSubSource{
 						{
 							Name:       "快讯",
 							Type:       protocol.PanopticSubSource_FLASHNEWS,
 							ExternalId: "1",
 						},
+						{
+							Name:       "要闻",
+							Type:       protocol.PanopticSubSource_KEYNEWS,
+							ExternalId: "2",
+						},
+					},
+					Params: &protocol.TaskParams_JinshiTaskParams{
+						JinshiTaskParams: &protocol.JinshiTaskParams{
+							SkipKeyWords: []string{"【黄金操作策略】"},
+						},
 					},
 				},
 			},
 		}}
-	bytes, _ := proto.Marshal(&job)
-	fmt.Println("serializedJob ", bytes)
+	// bytes, _ := proto.Marshal(&job)
+	fmt.Println("serializedJob ", prototext.Format(&job))
 }

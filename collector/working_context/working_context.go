@@ -35,10 +35,11 @@ type CrawlerWorkingContext struct {
 type ApiCollectorWorkingContext struct {
 	SharedContext
 
-	PaginationInfo *PaginationInfo
-	ApiUrl         string
-	SubSource      *protocol.PanopticSubSource
-	NewsType       protocol.PanopticSubSource_SubSourceType
+	PaginationInfo  *PaginationInfo
+	ApiUrl          string
+	SubSource       *protocol.PanopticSubSource
+	NewsType        protocol.PanopticSubSource_SubSourceType
+	ApiResponseItem interface{}
 }
 
 func (sc *SharedContext) String() string {

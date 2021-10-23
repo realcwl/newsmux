@@ -141,7 +141,7 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 func (collector WeiboApiCollector) UppdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	post.ImageUrls = []string{}
 	for _, pic := range mBlog.Pics {
-		key, err := collector.ImageStore.FetchAndStore(pic.URL)
+		key, err := collector.ImageStore.FetchAndStore(pic.URL, "")
 		if err != nil {
 			return utils.ImmediatePrintError(err)
 		}
