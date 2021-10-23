@@ -15,6 +15,7 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -222,7 +223,7 @@ func (w WeiboApiCollector) CollectOneSubsourceOnePage(
 	for _, card := range res.Data.Cards {
 		// working context for each message
 		workingContext := &working_context.ApiCollectorWorkingContext{
-			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}},
+			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}, IntentionallySkipped: false},
 			PaginationInfo: paginationInfo,
 			ApiUrl:         url,
 			SubSource:      subsource,
@@ -239,7 +240,7 @@ func (w WeiboApiCollector) CollectOneSubsourceOnePage(
 			return utils.ImmediatePrintError(err)
 		}
 		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.Debug(workingContext.Result.Post.Content)
+		Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).Debug(workingContext.Result.Post.Content)
 	}
 
 	// Set next page identifier

@@ -14,6 +14,7 @@ import (
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -45,7 +46,7 @@ func (j Jin10Crawler) UpdateNewsType(workingContext *working_context.CrawlerWork
 
 // check if we should skip the message - ads for example
 func (j Jin10Crawler) ShouldSkipMessage(workingContext *working_context.CrawlerWorkingContext, content string) bool {
-	if strings.Contains(content, "【金十") && !strings.Contains(content, "【金十图示】") {
+	if strings.Contains(content, "金十") && strings.Contains(content, "VIP") {
 		return true
 	}
 	if workingContext.Task.TaskParams.GetJinshiTaskParams() != nil {
@@ -81,12 +82,13 @@ func (j Jin10Crawler) UpdateContent(workingContext *working_context.CrawlerWorki
 	content := sb.String()
 
 	if j.ShouldSkipMessage(workingContext, content) {
-		return utils.ImmediatePrintError(errors.New(fmt.Sprintf("jin10 news skipped for ads, content is %s", content)))
+		workingContext.SharedContext.IntentionallySkipped = true
+		return nil
 	}
 
 	workingContext.Result.Post.Content = content
 	if len(content) == 0 {
-		Logger.Log.Warn("empty content")
+		Logger.Log.WithFields(logrus.Fields{"source": "jin10"}).Warn("empty content")
 		return nil
 	}
 	return nil
@@ -214,7 +216,7 @@ func (j Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	c.OnHTML(j.GetQueryPath(), func(elem *colly.HTMLElement) {
 		var err error
 		workingContext := &working_context.CrawlerWorkingContext{
-			SharedContext: working_context.SharedContext{Task: task}, Element: elem, OriginUrl: j.GetStartUri()}
+			SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, Element: elem, OriginUrl: j.GetStartUri()}
 		if err = j.GetMessage(workingContext); err != nil {
 			metadata.TotalMessageFailed++
 			collector.LogHtmlParsingError(task, elem, err)
@@ -223,15 +225,16 @@ func (j Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 		if workingContext.Result == nil {
 			return
 		}
-
-		sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
+		if !workingContext.IntentionallySkipped {
+			sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
+		}
 	})
 
 	// Set error handler
 	c.OnError(func(r *colly.Response, err error) {
 		// todo: error should be put into metadata
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-		Logger.Log.Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", j.GetQueryPath())
+		Logger.Log.WithFields(logrus.Fields{"source": "jin10"}).Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", j.GetQueryPath())
 	})
 
 	c.OnScraped(func(_ *colly.Response) {

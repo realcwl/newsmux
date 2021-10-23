@@ -55,7 +55,7 @@ type RssCollector interface {
 // This is the main entry point that runs collection. It assumes that the task
 // execution result is always SUCCESS, unless encountered error during
 // collection.
-func RunCollector(collector DataCollector, task *protocol.PanopticTask) {
+func RunCollectorForTask(collector DataCollector, task *protocol.PanopticTask) {
 	if task.TaskMetadata == nil {
 		task.TaskMetadata = &protocol.TaskMetadata{}
 	}

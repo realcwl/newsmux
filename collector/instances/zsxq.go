@@ -16,6 +16,7 @@ import (
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -287,8 +288,9 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 		// working context for each message
 		workingContext := &working_context.ApiCollectorWorkingContext{
 			SharedContext: working_context.SharedContext{
-				Task:   task,
-				Result: &protocol.CrawlerMessage{},
+				Task:                 task,
+				Result:               &protocol.CrawlerMessage{},
+				IntentionallySkipped: false,
 			},
 			PaginationInfo:  paginationInfo,
 			ApiUrl:          url,
@@ -307,7 +309,7 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 			return utils.ImmediatePrintError(err)
 		}
 		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.Debug(workingContext.Result.Post.Content)
+		Logger.Log.WithFields(logrus.Fields{"source": "zsxq"}).Debug(workingContext.Result.Post.Content)
 	}
 
 	SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))

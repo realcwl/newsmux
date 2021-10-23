@@ -13,6 +13,7 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -117,7 +118,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 	for _, item := range res.Data.Items {
 		// working context for each message
 		workingContext := &working_context.ApiCollectorWorkingContext{
-			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}},
+			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}, IntentionallySkipped: false},
 			PaginationInfo: paginationInfo,
 			ApiUrl:         url,
 			SubSource:      subsource,
@@ -139,7 +140,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 			}
 		}
 		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.Debug(workingContext.Result.Post.Content)
+		Logger.Log.WithFields(logrus.Fields{"source": "wallstreet"}).Debug(workingContext.Result.Post.Content)
 	}
 
 	collector.SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))
