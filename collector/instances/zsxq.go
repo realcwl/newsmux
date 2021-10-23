@@ -9,6 +9,9 @@ import (
 	"time"
 
 	. "github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/file_store"
+	"github.com/Luismorlan/newsmux/collector/sink"
+	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -22,9 +25,9 @@ const (
 
 // Should Construct With Collector Builder
 type ZsxqApiCollector struct {
-	Sink       CollectedDataSink
-	FileStore  CollectedFileStore
-	ImageStore CollectedFileStore
+	Sink       sink.CollectedDataSink
+	FileStore  file_store.CollectedFileStore
+	ImageStore file_store.CollectedFileStore
 }
 
 type ZsxqTalk struct {
@@ -87,29 +90,30 @@ type ZsxqApiResponse struct {
 
 type ZsxqFileDownloadApiResponse struct {
 	Succeeded bool `json:"succeeded"`
+	Code      int  `json:"ocde"`
 	RespData  struct {
 		DownloadURL string `json:"download_url"`
 	} `json:"resp_data"`
 }
 
-func GetZsxqS3FileStore(t *protocol.PanopticTask, isProd bool) (*S3FileStore, error) {
-	bucketName := TestS3Bucket
+func GetZsxqS3FileStore(t *protocol.PanopticTask, isProd bool) (*file_store.S3FileStore, error) {
+	bucketName := file_store.TestS3Bucket
 	if isProd {
-		bucketName = ProdS3FileBucket
+		bucketName = file_store.ProdS3FileBucket
 	}
-	zsxqFileStore, err := NewS3FileStore(bucketName)
+	zsxqFileStore, err := file_store.NewS3FileStore(bucketName)
 	if err != nil {
 		return nil, err
 	}
 	zsxqFileStore.SetCustomizeFileExtFunc(GetZsxqFileExtMethod())
 	zsxqFileStore.SetCustomizeFileNameFunc(GetZsxqFileNameMethod())
 	zsxqFileStore.SetCustomizeUploadedUrlFunc(GetZsxqFileUrlMethod(isProd))
-	zsxqFileStore.SetProcessUrlBeforeFetchFunc(GetZsxqFileDownloadTransfer(t))
+	zsxqFileStore.SetProcessUrlBeforeFetchFunc(GetZsxqFileDownloadUrlTransform(t))
 
 	return zsxqFileStore, nil
 }
 
-func GetZsxqFileDownloadTransfer(task *protocol.PanopticTask) ProcessUrlBeforeFetchFuncType {
+func GetZsxqFileDownloadUrlTransform(task *protocol.PanopticTask) file_store.ProcessUrlBeforeFetchFuncType {
 	return func(url string) string {
 		client := NewHttpClientFromTaskParams(task)
 		resp, err := client.Get(url)
@@ -127,7 +131,7 @@ func GetZsxqFileDownloadTransfer(task *protocol.PanopticTask) ProcessUrlBeforeFe
 		}
 
 		if !res.Succeeded {
-			utils.ImmediatePrintError(errors.New(fmt.Sprintf("response not success: %+v", res)))
+			utils.ImmediatePrintError(errors.New(fmt.Sprintf("response from url %s not success: %+v", url, res)))
 			return ""
 		}
 
@@ -135,19 +139,19 @@ func GetZsxqFileDownloadTransfer(task *protocol.PanopticTask) ProcessUrlBeforeFe
 	}
 }
 
-func GetZsxqFileUrlMethod(isProd bool) CustomizeUploadedUrlType {
+func GetZsxqFileUrlMethod(isProd bool) file_store.CustomizeUploadedUrlType {
 	if isProd {
 		return func(key string) string {
-			return fmt.Sprintf("https://%s.s3.us-west-1.amazonaws.com/%s", ProdS3FileBucket, key)
+			return fmt.Sprintf("https://%s.s3.us-west-1.amazonaws.com/%s", file_store.ProdS3FileBucket, key)
 		}
 	} else {
 		return func(key string) string {
-			return fmt.Sprintf("https://%s.s3.us-west-1.amazonaws.com/%s", TestS3Bucket, key)
+			return fmt.Sprintf("https://%s.s3.us-west-1.amazonaws.com/%s", file_store.TestS3Bucket, key)
 		}
 	}
 }
 
-func GetZsxqFileNameMethod() CustomizeFileNameFuncType {
+func GetZsxqFileNameMethod() file_store.CustomizeFileNameFuncType {
 	return func(url, fileName string) string {
 		digest, err := utils.TextToMd5Hash(url)
 		if err != nil {
@@ -157,14 +161,14 @@ func GetZsxqFileNameMethod() CustomizeFileNameFuncType {
 	}
 }
 
-func GetZsxqFileExtMethod() CustomizeFileExtFuncType {
+func GetZsxqFileExtMethod() file_store.CustomizeFileExtFuncType {
 	return func(url, fileName string) string {
 		// return empty since fileName is already having extension
 		return ""
 	}
 }
 
-func (collector ZsxqApiCollector) UpdateFileUrls(workingContext *ApiCollectorWorkingContext) error {
+func (collector ZsxqApiCollector) UpdateFileUrls(workingContext *working_context.ApiCollectorWorkingContext) error {
 	// item *ZsxqTopic, post *protocol.CrawlerMessage_CrawledPost
 	workingContext.Result.Post.FilesUrls = []string{}
 	// workingContext.
@@ -181,7 +185,7 @@ func (collector ZsxqApiCollector) UpdateFileUrls(workingContext *ApiCollectorWor
 	return nil
 }
 
-func (collector ZsxqApiCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *PaginationInfo) string {
+func (collector ZsxqApiCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource, paginationInfo *working_context.PaginationInfo) string {
 	return fmt.Sprintf("https://api.zsxq.com/v2/groups/%s/topics?scope=all&count=%d",
 		subsource.ExternalId,
 		task.TaskParams.GetZsxqTaskParams().CountPerRequest,
@@ -202,7 +206,7 @@ func (collector ZsxqApiCollector) UpdateDedupId(post *protocol.CrawlerMessage_Cr
 	return nil
 }
 
-func (collector ZsxqApiCollector) UppdateImages(wc *ApiCollectorWorkingContext) error {
+func (collector ZsxqApiCollector) UppdateImages(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(ZsxqTopic)
 	wc.Result.Post.ImageUrls = []string{}
 	for _, pic := range item.Talk.Images {
@@ -216,7 +220,7 @@ func (collector ZsxqApiCollector) UppdateImages(wc *ApiCollectorWorkingContext) 
 	return nil
 }
 
-func (collector ZsxqApiCollector) UpdateResult(wc *ApiCollectorWorkingContext) error {
+func (collector ZsxqApiCollector) UpdateResult(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(ZsxqTopic)
 	post := wc.Result.Post
 	// 2021-10-20T11:39:55.092+0800
@@ -260,7 +264,7 @@ func (collector ZsxqApiCollector) UpdateResult(wc *ApiCollectorWorkingContext) e
 func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 	task *protocol.PanopticTask,
 	subsource *protocol.PanopticSubSource,
-	paginationInfo *PaginationInfo,
+	paginationInfo *working_context.PaginationInfo,
 ) error {
 	client := NewHttpClientFromTaskParams(task)
 	url := collector.ConstructUrl(task, subsource, paginationInfo)
@@ -281,12 +285,15 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 
 	for _, topic := range res.RespData.Topics {
 		// working context for each message
-		workingContext := &ApiCollectorWorkingContext{
-			Task:            task,
+		workingContext := &working_context.ApiCollectorWorkingContext{
+			SharedContext: working_context.SharedContext{
+				Task:   task,
+				Result: &protocol.CrawlerMessage{},
+			},
 			PaginationInfo:  paginationInfo,
 			ApiUrl:          url,
-			Result:          &protocol.CrawlerMessage{},
-			Subsource:       subsource,
+			SubSource:       subsource,
+			NewsType:        protocol.PanopticSubSource_UNSPECIFIED,
 			ApiResponseItem: topic,
 		}
 		InitializeApiCollectorResult(workingContext)
@@ -309,7 +316,7 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 
 // zsxq is not paginated
 func (collector ZsxqApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) error {
-	return collector.CollectOneSubsourceOnePage(task, subsource, &PaginationInfo{})
+	return collector.CollectOneSubsourceOnePage(task, subsource, &working_context.PaginationInfo{})
 }
 
 func (collector ZsxqApiCollector) CollectAndPublish(task *protocol.PanopticTask) {

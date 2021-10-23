@@ -10,8 +10,11 @@ import (
 
 	. "github.com/Luismorlan/newsmux/collector"
 	. "github.com/Luismorlan/newsmux/collector/builder"
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	. "github.com/Luismorlan/newsmux/collector/handler"
 	. "github.com/Luismorlan/newsmux/collector/instances"
+	"github.com/Luismorlan/newsmux/collector/sink"
+	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/PuerkitoBio/goquery"
@@ -85,9 +88,9 @@ func GetFakeTask(taskId, sourceId, subSourceName string, subsourceType protocol.
 
 func TestJin10CrawlerWithTitle(t *testing.T) {
 	// var elem colly.HTMLElement
-	var sink = NewStdErrSink()
+	var s = sink.NewStdErrSink()
 	var builder CollectorBuilder
-	crawler := builder.NewJin10Crawler(sink)
+	crawler := builder.NewJin10Crawler(s)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 	task := GetFakeTask(taskId, sourceId, "快讯", protocol.PanopticSubSource_FLASHNEWS)
@@ -95,7 +98,9 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 	t.Run("[get message from dom element][flash] html with title and <br/>", func(t *testing.T) {
 		htmlWithTitle := `<div data-v-c7711130="" data-v-471802f2="" id="flash20210926132904521100" class="jin-flash-item-container is-normal"><!----><div data-v-c7711130="" data-relevance="标普" class="jin-flash-item flash is-relevance"><div data-v-2b138c9f="" data-v-c7711130="" class="detail-btn"><div data-v-2b138c9f="" class="detail-btn_container"><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span></div></div><!----><div data-v-c7711130="" class="item-time">13:29:04</div><div data-v-c7711130="" class="item-right is-common"><div data-v-c7711130="" class="right-top"><!----><div data-v-c7711130="" class="right-content"><div data-v-c7711130=""><b>标普：美国经济正在降温 但仍具有弹性</b><br>美国经济已经有所降温，但仍然具有弹性。将美国2021年和2022年实际GDP增速预期分别调整至5.7%和4.1%，此前在6月报告中的预期分别为6.7%和3.7%。尽管美国经济仍处于过热状态，但随着夏季结束，美国经济已经开始降温。供应中断仍是美国经济放缓的主要原因，而德尔塔变种病毒现在是另一个拖累因素。目前的GDP预测仍将是1984年以来的最高水平。预计美联储将在12月开始缩减资产购买规模，并在2022年12月加息，随后分别在2023年和2024年加息两次。</div></div><!----><!----><!----></div></div><div data-v-47f123d2="" data-v-c7711130="" class="flash-item-share" style="display: none;"><a data-v-47f123d2="" href="javascript:void('openShare')" class="share-btn"><i data-v-47f123d2="" class="jin-icon iconfont icon-fenxiang"></i><span data-v-47f123d2="">分享</span></a><a data-v-47f123d2="" href="https://flash.jin10.com/detail/20210926132904521100" target="_blank"><i data-v-47f123d2="" class="jin-icon iconfont icon-xiangqing"></i><span data-v-47f123d2="">详情</span></a><a data-v-47f123d2="" href="javascript:void('copyFlash')"><i data-v-47f123d2="" class="jin-icon iconfont icon-fuzhi"></i><span data-v-47f123d2="">复制</span></a><!----></div></div></div>`
 		elem := GetMockHtmlElem(htmlWithTitle, "flash20210926132904521100")
-		ctx := &CrawlerWorkingContext{Task: &task, Element: elem, OriginUrl: "a.com"}
+		ctx := &working_context.CrawlerWorkingContext{
+			SharedContext: working_context.SharedContext{Task: &task},
+			Element:       elem, OriginUrl: "a.com"}
 		err := crawler.GetMessage(ctx)
 		msg := ctx.Result
 		require.NoError(t, err)
@@ -117,9 +122,9 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 
 func TestJin10CrawlerWithImage(t *testing.T) {
 	// var elem colly.HTMLElement
-	var sink = NewStdErrSink()
+	var s = sink.NewStdErrSink()
 	var builder CollectorBuilder
-	crawler := builder.NewJin10Crawler(sink)
+	crawler := builder.NewJin10Crawler(s)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 
@@ -128,7 +133,7 @@ func TestJin10CrawlerWithImage(t *testing.T) {
 	t.Run("[get message from dom element][keynews] html with image", func(t *testing.T) {
 		htmlWithImage := `<div data-v-c7711130="" data-v-471802f2="" id="flash20210925215015057100" class="jin-flash-item-container is-normal"><!----><div data-v-c7711130="" class="jin-flash-item flash is-important"><div data-v-2b138c9f="" data-v-c7711130="" class="detail-btn"><div data-v-2b138c9f="" class="detail-btn_container"><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span></div></div><!----><div data-v-c7711130="" class="item-time">21:50:15</div><div data-v-c7711130="" class="item-right is-common"><div data-v-c7711130="" class="right-top"><!----><div data-v-c7711130="" class="right-content"><div data-v-c7711130="">孟晚舟乘坐的中国政府包机抵达深圳宝安机场。欢迎回家！（人民日报）</div></div><div data-v-c7711130="" class="right-pic img-intercept flash-pic"><div data-v-c7711130="" class="img-container show-shadow"><img data-v-c7711130="" data-src="https://flash-scdn.jin10.com/16f8ddbe-1b4b-4c1b-a3d1-844e466edb67.jpg/lite" src="https://flash-scdn.jin10.com/16f8ddbe-1b4b-4c1b-a3d1-844e466edb67.jpg/lite" lazy="loaded"></div></div><!----><!----></div></div><div data-v-47f123d2="" data-v-c7711130="" class="flash-item-share" style="display: none;"><a data-v-47f123d2="" href="javascript:void('openShare')" class="share-btn"><i data-v-47f123d2="" class="jin-icon iconfont icon-fenxiang"></i><span data-v-47f123d2="">分享</span></a><a data-v-47f123d2="" href="https://flash.jin10.com/detail/20210925215015057100" target="_blank"><i data-v-47f123d2="" class="jin-icon iconfont icon-xiangqing"></i><span data-v-47f123d2="">详情</span></a><a data-v-47f123d2="" href="javascript:void('copyFlash')"><i data-v-47f123d2="" class="jin-icon iconfont icon-fuzhi"></i><span data-v-47f123d2="">复制</span></a><!----></div></div></div>`
 		elem := GetMockHtmlElem(htmlWithImage, "flash20210925215015057100")
-		ctx := &CrawlerWorkingContext{Task: &task, Element: elem, OriginUrl: "a.com"}
+		ctx := &working_context.CrawlerWorkingContext{SharedContext: working_context.SharedContext{Task: &task}, Element: elem, OriginUrl: "a.com"}
 		err := crawler.GetMessage(ctx)
 		msg := ctx.Result
 
@@ -152,9 +157,9 @@ func TestJin10CrawlerWithImage(t *testing.T) {
 
 func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 	// var elem colly.HTMLElement
-	var sink = NewStdErrSink()
+	var s = sink.NewStdErrSink()
 	var builder CollectorBuilder
-	crawler := builder.NewJin10Crawler(sink)
+	crawler := builder.NewJin10Crawler(s)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 	// Asking for Flash news
@@ -163,7 +168,7 @@ func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 		// Got Key news
 		htmlWithImage := `<div data-v-c7711130="" data-v-471802f2="" id="flash20210925215015057100" class="jin-flash-item-container is-normal"><!----><div data-v-c7711130="" class="jin-flash-item flash is-important"><div data-v-2b138c9f="" data-v-c7711130="" class="detail-btn"><div data-v-2b138c9f="" class="detail-btn_container"><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span></div></div><!----><div data-v-c7711130="" class="item-time">21:50:15</div><div data-v-c7711130="" class="item-right is-common"><div data-v-c7711130="" class="right-top"><!----><div data-v-c7711130="" class="right-content"><div data-v-c7711130="">孟晚舟乘坐的中国政府包机抵达深圳宝安机场。欢迎回家！（人民日报）</div></div><div data-v-c7711130="" class="right-pic img-intercept flash-pic"><div data-v-c7711130="" class="img-container show-shadow"><img data-v-c7711130="" data-src="https://flash-scdn.jin10.com/16f8ddbe-1b4b-4c1b-a3d1-844e466edb67.jpg/lite" src="https://flash-scdn.jin10.com/16f8ddbe-1b4b-4c1b-a3d1-844e466edb67.jpg/lite" lazy="loaded"></div></div><!----><!----></div></div><div data-v-47f123d2="" data-v-c7711130="" class="flash-item-share" style="display: none;"><a data-v-47f123d2="" href="javascript:void('openShare')" class="share-btn"><i data-v-47f123d2="" class="jin-icon iconfont icon-fenxiang"></i><span data-v-47f123d2="">分享</span></a><a data-v-47f123d2="" href="https://flash.jin10.com/detail/20210925215015057100" target="_blank"><i data-v-47f123d2="" class="jin-icon iconfont icon-xiangqing"></i><span data-v-47f123d2="">详情</span></a><a data-v-47f123d2="" href="javascript:void('copyFlash')"><i data-v-47f123d2="" class="jin-icon iconfont icon-fuzhi"></i><span data-v-47f123d2="">复制</span></a><!----></div></div></div>`
 		elem := GetMockHtmlElem(htmlWithImage, "flash20210925215015057100")
-		ctx := &CrawlerWorkingContext{Task: &task, Element: elem, OriginUrl: "a.com"}
+		ctx := &working_context.CrawlerWorkingContext{SharedContext: working_context.SharedContext{Task: &task}, Element: elem, OriginUrl: "a.com"}
 		err := crawler.GetMessage(ctx)
 		require.NoError(t, err)
 	})
@@ -187,6 +192,7 @@ func TestJin10CollectorHandler(t *testing.T) {
 						},
 					},
 				},
+				TaskMetadata: &protocol.TaskMetadata{ConfigName: "test_jin10_config_1"},
 			},
 			{
 				TaskId:          "456",
@@ -207,6 +213,9 @@ func TestJin10CollectorHandler(t *testing.T) {
 							SkipKeyWords: []string{"【黄金操作策略】"},
 						},
 					},
+				},
+				TaskMetadata: &protocol.TaskMetadata{
+					ConfigName: "test_jin10_config_2",
 				},
 			},
 		}}
@@ -233,7 +242,7 @@ func TestIpAddressFetch(t *testing.T) {
 }
 
 func TestS3Store(t *testing.T) {
-	s, err := NewS3FileStore(TestS3Bucket)
+	s, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
 	require.NoError(t, err)
 
 	s.SetCustomizeFileNameFunc(func(in, f string) string {
@@ -248,27 +257,27 @@ func TestS3Store(t *testing.T) {
 }
 
 func TestLocalStore(t *testing.T) {
-	s, err := NewLocalFileStore("unit_test")
+	fs, err := file_store.NewLocalFileStore("unit_test")
 	require.NoError(t, err)
 
-	s.SetCustomizeFileNameFunc(func(in, f string) string {
+	fs.SetCustomizeFileNameFunc(func(in, f string) string {
 		return "test"
 	})
-	s.SetCustomizeFileExtFunc(func(in, f string) string {
+	fs.SetCustomizeFileExtFunc(func(in, f string) string {
 		return ".jpg"
 	})
-	key, err := s.GenerateFileNameFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg", "")
+	key, err := fs.GenerateFileNameFromUrl("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg", "")
 	require.NoError(t, err)
 	require.Equal(t, "test.jpg", key)
-	_, err = s.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg", "")
+	_, err = fs.FetchAndStore("https://tvax3.sinaimg.cn//crop.0.0.512.512.180//670a19b6ly8gm410azbeaj20e80e83yo.jpg", "")
 	require.NoError(t, err)
-	require.FileExists(t, TmpFileDirPrefix+"unit_test/test.jpg")
-	err = os.Remove(TmpFileDirPrefix + "unit_test/test.jpg")
+	require.FileExists(t, file_store.TmpFileDirPrefix+"unit_test/test.jpg")
+	err = os.Remove(file_store.TmpFileDirPrefix + "unit_test/test.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
-	s.CleanUp()
-	require.NoDirExists(t, TmpFileDirPrefix+"unit_test")
+	fs.CleanUp()
+	require.NoDirExists(t, file_store.TmpFileDirPrefix+"unit_test")
 }
 
 func TestWeiboCollectorHandler(t *testing.T) {
@@ -303,7 +312,9 @@ func TestWeiboCollectorHandler(t *testing.T) {
 					},
 				},
 			},
-			TaskMetadata: &protocol.TaskMetadata{},
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_weibo_config",
+			},
 		},
 		},
 	}
@@ -348,7 +359,9 @@ func TestWallstreetNewsCollectorHandler(t *testing.T) {
 					},
 				},
 			},
-			TaskMetadata: &protocol.TaskMetadata{},
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_wallstreet_config",
+			},
 		},
 		},
 	}

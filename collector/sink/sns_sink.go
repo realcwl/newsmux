@@ -1,4 +1,4 @@
-package collector
+package sink
 
 import (
 	"github.com/Luismorlan/newsmux/protocol"
