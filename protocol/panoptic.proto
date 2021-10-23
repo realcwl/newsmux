@@ -50,7 +50,8 @@ message TaskParams {
   oneof params {
     JinshiTaskParams jinshi_task_params = 20;
     WeiboTaskParams weibo_task_params = 21;
-    WallstreetNewsTaskParams wallstreet_news_task_params = 22; 
+    ZsxqTaskParams zsxq_task_params = 22;
+    WallstreetNewsTaskParams wallstreet_news_task_params = 23; 
   }
 }
 
@@ -94,7 +95,8 @@ message PanopticTask {
     COLLECTOR_JINSHI = 1;
     COLLECTOR_KUAILANSI = 2;
     COLLECTOR_WEIBO = 3;
-    COLLECTOR_WALLSTREET_NEWS= 4;
+    COLLECTOR_ZSXQ = 4;
+    COLLECTOR_WALLSTREET_NEWS= 5;
     // ...
   }
 
@@ -144,7 +146,11 @@ message PanopticSubSource{
 
 // Created empty param here in case we need to pass in additional parameters to
 // customize Jinshi's crawler logic.
-message JinshiTaskParams {}
+// skip_key_words: if content contains the following keywords, skip the message
+//                 used for ads
+message JinshiTaskParams {
+  repeated string skip_key_words = 1;
+}
 
 // 1. max_pages: As weibo API is paginated, this specifies how many pages does collector look back
 //    in each task.
@@ -161,4 +167,8 @@ message WeiboTaskParams {
 message WallstreetNewsTaskParams {
   repeated string channels= 1;
   int32 limit = 2;
+}
+
+message ZsxqTaskParams {
+  int32 count_per_request = 1;
 }

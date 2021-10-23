@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	feedRefreshLimit           = 30
+	feedRefreshLimit           = 300
 	defaultFeedsQueryCursor    = math.MaxInt32
 	defaultFeedsQueryDirection = model.FeedRefreshDirectionOld
-	maxRepublishDBBatches      = 100
+	maxRepublishDBBatches      = 10
 )
 
 // Given a list of FeedRefreshInput, get posts for the requested feeds
