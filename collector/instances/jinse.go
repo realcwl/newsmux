@@ -172,7 +172,7 @@ func (k JinseApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 	for _, list := range res.List {
 		for _, post := range list.Lives {
 			workingContext := &working_context.ApiCollectorWorkingContext{
-				SharedContext: working_context.SharedContext{Task: task},
+				SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false},
 				ApiUrl:        JINSE_URI,
 			}
 

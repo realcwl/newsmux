@@ -288,8 +288,9 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 		// working context for each message
 		workingContext := &working_context.ApiCollectorWorkingContext{
 			SharedContext: working_context.SharedContext{
-				Task:   task,
-				Result: &protocol.CrawlerMessage{},
+				Task:                 task,
+				Result:               &protocol.CrawlerMessage{},
+				IntentionallySkipped: false,
 			},
 			PaginationInfo:  paginationInfo,
 			ApiUrl:          url,

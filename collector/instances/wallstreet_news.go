@@ -118,7 +118,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 	for _, item := range res.Data.Items {
 		// working context for each message
 		workingContext := &working_context.ApiCollectorWorkingContext{
-			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}},
+			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}, IntentionallySkipped: false},
 			PaginationInfo: paginationInfo,
 			ApiUrl:         url,
 			SubSource:      subsource,

@@ -146,7 +146,7 @@ func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 
 	for _, post := range res.List {
 		workingContext := &working_context.ApiCollectorWorkingContext{
-			SharedContext: working_context.SharedContext{Task: task},
+			SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false},
 			ApiUrl:        KUAILANSI_URI,
 		}
 
