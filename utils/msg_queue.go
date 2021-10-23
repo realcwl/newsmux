@@ -11,8 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
-
-	. "github.com/Luismorlan/newsmux/utils/log"
 )
 
 type MessageQueueMessage struct {
@@ -92,12 +90,11 @@ func (reader *SQSMessageQueueReader) DeleteMessage(msg *MessageQueueMessage) err
 		return err
 	}
 
-	Log.Info("message Deleted")
 	return nil
 }
 
 func (reader *SQSMessageQueueReader) ReceiveMessages(sqsReadBatchSize int64) (msgs []*MessageQueueMessage, err error) {
-	Log.Info(fmt.Sprintf("Polling SQS with batch size %d", sqsReadBatchSize))
+	// TODO: bump counter in ddog for one-time processing
 	result, err := reader.client.ReceiveMessage(&sqs.ReceiveMessageInput{
 		QueueUrl: &reader.url,
 		AttributeNames: aws.StringSlice([]string{
@@ -115,8 +112,7 @@ func (reader *SQSMessageQueueReader) ReceiveMessages(sqsReadBatchSize int64) (ms
 		return nil, errors.New(fmt.Sprintf("Unable to read: %q, error: %v.", reader.queueName, err))
 	}
 
-	Log.Info(fmt.Sprintf("Received %d messages", len(result.Messages)))
-
+	// TODO: bump counter in ddog for messages received
 	res := []*MessageQueueMessage{}
 
 	for _, msg := range result.Messages {
