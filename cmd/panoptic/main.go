@@ -13,6 +13,7 @@ import (
 	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/panoptic/modules"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
+	. "github.com/Luismorlan/newsmux/utils/flag"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -64,7 +65,8 @@ func NewDogStatsdClient() *statsd.Client {
 }
 
 func main() {
-	flag.Parse()
+	ParseFlags()
+
 	AppSetting = app_setting.ParsePanopticAppSetting(*AppSettingPath)
 
 	eventbus := gochannel.NewGoChannel(

@@ -47,6 +47,6 @@ func initLogger() {
 	logger.SetOutput(os.Stderr)
 
 	Log = logger.WithFields(
-		logrus.Fields{"service": flag.ServiceName, "is_development": os.Getenv("NEWSMUX_ENV") != dotenv.ProdEnv},
+		logrus.Fields{"service": *flag.ServiceName, "is_development": os.Getenv("NEWSMUX_ENV") != dotenv.ProdEnv},
 	)
 }

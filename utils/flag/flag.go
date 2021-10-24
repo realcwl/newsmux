@@ -23,9 +23,9 @@ const (
 )
 
 var (
-	ServiceName string
+	ServiceName *string
 	// if true, no authentication will be performed for the incoming request
-	ByPassAuth bool
+	ByPassAuth *bool
 )
 
 // Example: go run cmd/publisher/main.go -service=feed_publisher -dev=true
@@ -35,6 +35,14 @@ func init() {
 	// Temporary init testing before flag.Parse
 	testing.Init()
 
-	flag.StringVar(&ServiceName, "service", APIServer, "'api_server' or 'feed_publisher'")
-	flag.BoolVar(&ByPassAuth, "no_auth", false, "set to true if local development")
+	ServiceName = flag.String("service", APIServer, "'api_server', 'feed_publisher', 'collector', 'panoptic'")
+	ByPassAuth = flag.Bool("no_auth", false, "set to true if local development")
+
+	flag.Parse()
+}
+
+// Wrap flag.Parse in a helper function, so that main package importing this
+// package will not get "imported but not used" error.
+func ParseFlags() {
+	flag.Parse()
 }
