@@ -23,6 +23,13 @@ var (
 	Log    *logrus.Entry
 )
 
+// This init function is only for testing cases, where the entry point is not
+// main function. Unit test will fail with nil pointer dereference if we don't
+// init here.
+func init() {
+	InitLogger()
+}
+
 func InitLogger() {
 	logger = logrus.New()
 

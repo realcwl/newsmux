@@ -277,11 +277,13 @@ func (l *LambdaExecutor) AddLambdaFunctions(count int) ([]string, error) {
 
 // Delete lambda function by name, return error if there's any
 func (l *LambdaExecutor) DeleteLambdaFunction(name string) error {
-	_, err := l.lambdaClient.DeleteFunction(l.ctx, &lambda.DeleteFunctionInput{
+	ctx := context.TODO()
+	_, err := l.lambdaClient.DeleteFunction(ctx, &lambda.DeleteFunctionInput{
 		FunctionName: &name,
 	})
 
 	if err != nil {
+		Logger.Log.Infof("fail to remove function %s, err: %s", name, err)
 		return err
 	}
 
