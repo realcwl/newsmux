@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Luismorlan/newsmux/collector"
 	. "github.com/Luismorlan/newsmux/collector"
 	. "github.com/Luismorlan/newsmux/collector/builder"
 	"github.com/Luismorlan/newsmux/collector/file_store"
@@ -115,7 +116,7 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 		require.Equal(t, "a.com", msg.Post.OriginUrl)
 		require.Equal(t, sourceId, msg.Post.SubSource.SourceId)
 
-		tm, _ := time.Parse(Jin10DateFormat, "20210926-13:29:04")
+		tm, _ := time.Parse(Jin10DateFormat, "20210926-05:29:04")
 		require.Equal(t, tm.Unix(), msg.Post.ContentGeneratedAt.AsTime().Unix())
 	})
 }
@@ -150,7 +151,7 @@ func TestJin10CrawlerWithImage(t *testing.T) {
 		require.Equal(t, "a.com", msg.Post.OriginUrl)
 		require.Equal(t, sourceId, msg.Post.SubSource.SourceId)
 
-		tm, _ := time.Parse(Jin10DateFormat, "20210925-21:50:15")
+		tm, _ := time.Parse(Jin10DateFormat, "20210925-13:50:15")
 		require.Equal(t, tm.Unix(), msg.Post.ContentGeneratedAt.AsTime().Unix())
 	})
 }
@@ -376,4 +377,12 @@ func TestWallstreetNewsCollectorHandler(t *testing.T) {
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
 	require.Equal(t, job.Tasks[0].TaskMetadata.ResultState, protocol.TaskMetadata_STATE_SUCCESS)
+}
+func TestTimeUtil(t *testing.T) {
+	timeStrInBeijingTime := "20060102-15:04:05"
+	time, err := collector.ParseGenerateTime(timeStrInBeijingTime, Jin10DateFormat, ChinaTimeZone, "test")
+	require.NoError(t, err)
+
+	// equal to utc time 1136185445 == "Mon Jan 02 2006 07:04:05 GMT+0000"
+	require.Equal(t, "seconds:1136185445", time.String())
 }
