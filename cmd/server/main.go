@@ -26,6 +26,8 @@ func cleanup() {
 
 func main() {
 	ParseFlags()
+	InitLogger()
+
 	defer cleanup()
 
 	if err := dotenv.LoadDotEnvs(); err != nil {

@@ -23,11 +23,7 @@ var (
 	Log    *logrus.Entry
 )
 
-func init() {
-	initLogger()
-}
-
-func initLogger() {
+func InitLogger() {
 	logger = logrus.New()
 
 	hook := ddhook.NewHook(
