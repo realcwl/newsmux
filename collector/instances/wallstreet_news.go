@@ -150,6 +150,9 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 // Support configable multi-page API call
 func (w WallstreetApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) error {
 	// Wallstreet uses channels and only know subsource after each message if fetched
+	if task.TaskParams.GetWallstreetNewsTaskParams() == nil {
+		return errors.New("wallstreet news must specify channels")
+	}
 	for ind, channel := range task.TaskParams.GetWallstreetNewsTaskParams().Channels {
 		w.CollectOneSubsourceOnePage(task, subsource, &working_context.PaginationInfo{
 			CurrentPageCount: ind,
@@ -160,6 +163,7 @@ func (w WallstreetApiCollector) CollectOneSubsource(task *protocol.PanopticTask,
 }
 
 func (w WallstreetApiCollector) CollectAndPublish(task *protocol.PanopticTask) {
-	task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
-	w.CollectOneSubsource(task, &protocol.PanopticSubSource{})
+	if err := w.CollectOneSubsource(task, &protocol.PanopticSubSource{}); err != nil {
+		Logger.Log.Errorln(err)
+	}
 }
