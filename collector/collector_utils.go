@@ -2,10 +2,10 @@ package collector
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -13,6 +13,7 @@ import (
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -190,4 +191,16 @@ func HtmlToText(html string) (string, error) {
 	// add newline
 	doc.Find("br").AfterHtml("\n")
 	return doc.Text(), nil
+}
+
+func ParseGenerateTime(timeString string, format string, timeZoneString string, cralwer string) (*timestamppb.Timestamp, error) {
+	location, err := time.LoadLocation(timeZoneString)
+	if err != nil {
+		return nil, errors.Wrap(err, "fail to parse time zome for "+cralwer+" : "+timeZoneString)
+	}
+	t, err := time.ParseInLocation(format, timeString, location)
+	if err != nil {
+		return nil, errors.Wrap(err, "fail to parse "+cralwer+" post time: "+timeString)
+	}
+	return timestamppb.New(t), nil
 }

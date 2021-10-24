@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/sink"
@@ -71,7 +70,6 @@ func (j Jin10Crawler) UpdateContent(workingContext *working_context.CrawlerWorki
 		}
 		sb.WriteString(s.Text())
 	})
-
 	// goquery don't have a good way to get text without child elements'
 	// remove children's text manually
 	remove := selection.Children().Text()
@@ -98,7 +96,7 @@ func (j Jin10Crawler) UpdateContent(workingContext *working_context.CrawlerWorki
 	return nil
 }
 
-func (collector Jin10Crawler) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
+func (j Jin10Crawler) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
 	id := workingContext.Element.DOM.AttrOr("id", "")
 	timeText := workingContext.Element.DOM.Find(".item-time").Text()
 	if len(id) <= 13 {
@@ -107,12 +105,13 @@ func (collector Jin10Crawler) UpdateGeneratedTime(workingContext *working_contex
 	}
 
 	dateStr := id[5:13] + "-" + timeText
-	generatedTime, err := time.Parse(Jin10DateFormat, dateStr)
+	generatedTime, err := collector.ParseGenerateTime(dateStr, Jin10DateFormat, ChinaTimeZone, "jin10")
+
 	if err != nil {
 		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
 		return err
 	}
-	workingContext.Result.Post.ContentGeneratedAt = timestamppb.New(generatedTime.UTC())
+	workingContext.Result.Post.ContentGeneratedAt = generatedTime
 	return nil
 }
 

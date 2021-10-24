@@ -17,11 +17,11 @@ import (
 )
 
 const (
-	KUAILANSI_URI         = "http://m.fbecn.com/24h/news_fbe0406.json?newsid=0"
-	CHINA_TIMEZONE        = "Asia/Shanghai"
-	KUAILANSI_TIME_FORMAT = "2006-01-02 15:04:05"
+	KuailansiUrl        = "http://m.fbecn.com/24h/news_fbe0406.json?newsid=0"
+	ChinaTimeZone       = "Asia/Shanghai"
+	KuailansiTimeFormat = "2006-01-02 15:04:05"
 
-	IP_BAN_MESSAGE = "IP访问受限制"
+	IpBanMessage = "IP访问受限制"
 )
 
 type KuailansiApiCrawler struct {
@@ -65,11 +65,11 @@ func (k KuailansiApiCrawler) GetCrawledSubSourceNameFromPost(post *KuailansiPost
 }
 
 func (k KuailansiApiCrawler) ParseGenerateTime(post *KuailansiPost) (*timestamppb.Timestamp, error) {
-	location, err := time.LoadLocation(CHINA_TIMEZONE)
+	location, err := time.LoadLocation(ChinaTimeZone)
 	if err != nil {
-		return nil, errors.Wrap(err, "fail to parse time zome for Kuailansi: "+CHINA_TIMEZONE)
+		return nil, errors.Wrap(err, "fail to parse time zome for Kuailansi: "+ChinaTimeZone)
 	}
-	t, err := time.ParseInLocation(KUAILANSI_TIME_FORMAT, post.Time, location)
+	t, err := time.ParseInLocation(KuailansiTimeFormat, post.Time, location)
 	if err != nil {
 		return nil, errors.Wrap(err, "fail to parse Kuailansi post time: "+post.Time)
 	}
@@ -77,7 +77,7 @@ func (k KuailansiApiCrawler) ParseGenerateTime(post *KuailansiPost) (*timestampp
 }
 
 func (k KuailansiApiCrawler) ValidatePost(post *KuailansiPost) error {
-	if strings.Contains(post.Content, IP_BAN_MESSAGE) {
+	if strings.Contains(post.Content, IpBanMessage) {
 		return errors.New("Kuailansi IP is banned")
 	}
 	return nil
@@ -102,7 +102,7 @@ func (k KuailansiApiCrawler) ProcessSinglePost(post *KuailansiPost,
 
 	collector.InitializeApiCollectorResult(workingContext)
 
-	ts, err := k.ParseGenerateTime(post)
+	ts, err := collector.ParseGenerateTime(post.Time, KuailansiTimeFormat, ChinaTimeZone, "kuailansi")
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (k KuailansiApiCrawler) GetDedupId(workingContext *working_context.ApiColle
 
 func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 	res := &KuailansiApiResponse{}
-	err := collector.HttpGetAndParseJsonResponse(KUAILANSI_URI, res)
+	err := collector.HttpGetAndParseJsonResponse(KuailansiUrl, res)
 	if err != nil {
 		Logger.Log.WithFields(logrus.Fields{"source": "kuailansi"}).Errorln("fail to get Kuailansi response:", err)
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
@@ -147,7 +147,7 @@ func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 	for _, post := range res.List {
 		workingContext := &working_context.ApiCollectorWorkingContext{
 			SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false},
-			ApiUrl:        KUAILANSI_URI,
+			ApiUrl:        KuailansiUrl,
 		}
 
 		err := k.ProcessSinglePost(&post, workingContext)
@@ -166,5 +166,5 @@ func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		}
 	}
 
-	collector.SetErrorBasedOnCounts(task, KUAILANSI_URI)
+	collector.SetErrorBasedOnCounts(task, KuailansiUrl)
 }
