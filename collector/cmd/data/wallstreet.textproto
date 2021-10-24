@@ -1,0 +1,36 @@
+# This file should contain all Wallstreet job variations, each of different 
+# job_id, please do not add non-Wallstreet jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "wallstreet_news_job"
+	tasks: [
+		{
+			task_id: "wallstreet_news_task"
+			data_collector_id: COLLECTOR_WALLSTREET_NEWS
+			task_params: {
+				source_id: "66251821-ef9a-464c-bde9-8b2fd8ef2405"
+				sub_sources: [{
+					name: "快讯"
+					type: FLASHNEWS
+				}, {
+					name: "要闻"
+					type: KEYNEWS
+				}]
+        wallstreet_news_task_params: {
+          channels: [
+            "a-stock-channel", 
+            "us-stock-channel", 
+            "hk-stock-channel", 
+            "goldc-channel%2Coil-channel%2Ccommodity-channel"
+          ]
+          limit: 5
+        }
+			}
+			task_metadata: {
+				config_name: "wallstreet_news_config"
+			}
+		}
+	]
+	debug: true
+}
