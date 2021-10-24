@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"time"
+
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/pkg/errors"
@@ -162,6 +164,10 @@ func validateMessagePostIsSetCorrectly(msg *protocol.CrawlerMessage) error {
 
 	if msg.Post.DeduplicateId == "" {
 		return errors.New("crawled post must have a deduplicateId")
+	}
+
+	if msg.Post.ContentGeneratedAt.AsTime().After(time.Now()) {
+		return errors.New("crawled post must not be created in the future")
 	}
 
 	return nil
