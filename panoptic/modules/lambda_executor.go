@@ -283,7 +283,7 @@ func (l *LambdaExecutor) DeleteLambdaFunction(name string) error {
 	})
 
 	if err != nil {
-		Logger.Log.Infof("fail to remove function %s, err: %s", name, err)
+		Logger.Log.Errorf("fail to remove function %s, err: %s", name, err)
 		return err
 	}
 
