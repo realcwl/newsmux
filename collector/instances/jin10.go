@@ -86,11 +86,15 @@ func (j Jin10Crawler) UpdateContent(workingContext *working_context.CrawlerWorki
 		return nil
 	}
 
-	workingContext.Result.Post.Content = content
 	if len(content) == 0 {
-		Logger.Log.WithFields(logrus.Fields{"source": "jin10"}).Warn("empty content")
+		// empty content is likely to be economy stats (which we intend to skip)
+		// in case it is because of other issues, we log and return
+		collector.LogHtmlParsingError(workingContext.Task, workingContext.Element, errors.New("empty content (this msg is skipped)"))
+		workingContext.SharedContext.IntentionallySkipped = true
 		return nil
 	}
+
+	workingContext.Result.Post.Content = content
 	return nil
 }
 
