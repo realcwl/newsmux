@@ -47,7 +47,7 @@ test_build_collector_and_push_image:
 
 run_panoptic:
 	$(info ******************** running dev panoptic ********************)
-	NEWSMUX_ENV=dev go run ./cmd/panoptic/main.go
+	NEWSMUX_ENV=dev go run ./cmd/panoptic/main.go -service=panoptic
 
 fmt:
 	$(info ******************** checking formatting ********************)

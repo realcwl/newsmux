@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/flag"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/encoding/prototext"
 
@@ -72,7 +73,7 @@ func ParseAndIndexPanopticJobs() map[string]*protocol.PanopticJob {
 // Example:
 // go run collector/cmd/main.go -job_id "kuailansi_job"
 func main() {
-	flag.Parse()
+	ParseFlags()
 
 	if *JobId == "" {
 		log.Fatalln("job_id is required!")

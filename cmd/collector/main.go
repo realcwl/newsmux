@@ -1,13 +1,12 @@
 package main
 
 import (
-	"flag"
-
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	collector_hander "github.com/Luismorlan/newsmux/collector/handler"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
+	. "github.com/Luismorlan/newsmux/utils/flag"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-lambda-go/lambda"
 	"google.golang.org/protobuf/proto"
@@ -50,7 +49,7 @@ func HandleRequest(event model.DataCollectorRequest) (model.DataCollectorRespons
 }
 
 func main() {
-	flag.Parse()
+	ParseFlags()
 	defer cleanup()
 	if err := dotenv.LoadDotEnvs(); err != nil {
 		panic(err)
