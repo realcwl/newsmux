@@ -1,7 +1,7 @@
 package publisher
 
 import (
-	b64 "encoding/base64"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"sync"
@@ -257,7 +257,7 @@ func (processor *CrawlerpublisherMessageProcessor) decodeCrawlerMessage(msg *Mes
 		return nil, err
 	}
 
-	sDec, err := b64.StdEncoding.DecodeString(str)
+	sDec, err := base64.StdEncoding.DecodeString(str)
 	if err != nil {
 		return nil, err
 	}
