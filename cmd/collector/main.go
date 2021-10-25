@@ -50,6 +50,8 @@ func HandleRequest(event model.DataCollectorRequest) (model.DataCollectorRespons
 
 func main() {
 	ParseFlags()
+	InitLogger()
+
 	defer cleanup()
 	if err := dotenv.LoadDotEnvs(); err != nil {
 		panic(err)

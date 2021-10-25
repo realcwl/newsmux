@@ -14,6 +14,7 @@ import (
 	"github.com/Luismorlan/newsmux/panoptic/modules"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	. "github.com/Luismorlan/newsmux/utils/flag"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -66,6 +67,7 @@ func NewDogStatsdClient() *statsd.Client {
 
 func main() {
 	ParseFlags()
+	InitLogger()
 
 	AppSetting = app_setting.ParsePanopticAppSetting(*AppSettingPath)
 

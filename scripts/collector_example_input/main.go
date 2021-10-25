@@ -5,12 +5,15 @@ import (
 	"fmt"
 
 	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
 // use this script to generate a request you can use to send in Lambda->Test
 func main() {
 	flag.Parse()
+	InitLogger()
+
 	job := protocol.PanopticJob{
 		Tasks: []*protocol.PanopticTask{
 			{

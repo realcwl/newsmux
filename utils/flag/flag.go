@@ -37,8 +37,6 @@ func init() {
 
 	ServiceName = flag.String("service", APIServer, "'api_server', 'feed_publisher', 'collector', 'panoptic'")
 	ByPassAuth = flag.Bool("no_auth", false, "set to true if local development")
-
-	flag.Parse()
 }
 
 // Wrap flag.Parse in a helper function, so that main package importing this
