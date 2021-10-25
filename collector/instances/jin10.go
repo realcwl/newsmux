@@ -141,7 +141,7 @@ func (c Jin10Crawler) UpdateImageUrls(workingContext *working_context.CrawlerWor
 		return nil
 	}
 
-	imageUrl := selection.AttrOr("src", "")
+	imageUrl := selection.AttrOr("data-src", "")
 	if len(imageUrl) == 0 {
 		return errors.New("image DOM exist but src not found")
 	}
