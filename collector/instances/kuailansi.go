@@ -112,16 +112,16 @@ func (k KuailansiApiCrawler) ProcessSinglePost(post *KuailansiPost,
 		return errors.Wrap(err, "cannot find post subsource")
 	}
 
-	err = k.GetDedupId(workingContext)
-	if err != nil {
-		return errors.Wrap(err, "cannot get dedup id from post.")
-	}
-
 	workingContext.Result.Post.ContentGeneratedAt = ts
 	workingContext.Result.Post.Content = post.Content
 	workingContext.Result.Post.SubSource.Name = name
 	workingContext.Result.Post.SubSource.AvatarUrl = collector.GetSourceLogoUrl(
 		workingContext.Task.TaskParams.SourceId)
+
+	err = k.GetDedupId(workingContext)
+	if err != nil {
+		return errors.Wrap(err, "cannot get dedup id from post.")
+	}
 
 	return nil
 }
