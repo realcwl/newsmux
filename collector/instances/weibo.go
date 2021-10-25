@@ -126,7 +126,7 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 		return "", utils.ImmediatePrintError(fmt.Errorf("response not success: %v", res))
 	}
 
-	return collector.HtmlToText(res.Data.LongTextContent)
+	return res.Data.LongTextContent, nil
 }
 
 func (collector WeiboApiCollector) UppdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
@@ -172,6 +172,12 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 	} else {
 		post.Content = mBlog.Text
 	}
+
+	post.Content, err = collector.HtmlToText(post.Content)
+	if err != nil {
+		return err
+	}
+
 	post.Content = collector.LineBreakerToSpace(post.Content)
 
 	err = w.UpdateDedupId(post)
@@ -257,13 +263,18 @@ func (w WeiboApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subs
 		NextPageId:       "1",
 	}
 
+	maxPages := 1
+	if task.TaskParams.GetWeiboTaskParams() != nil {
+		maxPages = int(task.TaskParams.GetWeiboTaskParams().MaxPages)
+	}
+
 	for {
 		err := w.CollectOneSubsourceOnePage(task, subsource, &paginationInfo)
 		if err != nil {
 			return err
 		}
 		paginationInfo.CurrentPageCount++
-		if task.GetTaskParams() == nil || paginationInfo.CurrentPageCount > int(task.TaskParams.GetWeiboTaskParams().MaxPages) {
+		if task.GetTaskParams() == nil || paginationInfo.CurrentPageCount > maxPages {
 			break
 		}
 	}
