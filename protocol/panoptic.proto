@@ -104,6 +104,7 @@ message PanopticTask {
     COLLECTOR_WALLSTREET_NEWS= 5;
     COLLECTOR_JINSE = 6;
     COLLECTOR_CAUS_ARTICLE= 7;
+    COLLECTOR_WISBURG = 8;
     // ...
   }
 
@@ -179,4 +180,8 @@ message WallstreetNewsTaskParams {
 
 message ZsxqTaskParams {
   int32 count_per_request = 1;
+}
+
+message WisburgParams {
+  
 }
