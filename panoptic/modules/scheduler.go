@@ -108,16 +108,19 @@ func (s *Scheduler) UpsertJobs(jobs []*SchedulerJob) {
 	for idx < len(s.Jobs) {
 		existingJob := s.Jobs[idx]
 		if v, ok := nameToJobMap[existingJob.panopticConfig.Name]; ok {
+			// Existing job found. Update it's PanopticConfig. Also delete it from
+			// nameToJobMap.
 			delete(nameToJobMap, existingJob.panopticConfig.Name)
 			existingJob.panopticConfig = v.panopticConfig
 			idx += 1
 		} else {
+			// Existing job not found. Remove it from the job list.
 			s.Jobs = append(s.Jobs[:idx], s.Jobs[idx+1:]...)
 			existingJob.cancel()
 		}
 	}
 
-	// New Jobs.
+	// New Jobs. Append to the end of the job list.
 	for _, v := range nameToJobMap {
 		s.Jobs = append(s.Jobs, v)
 	}
@@ -218,7 +221,8 @@ func (s *Scheduler) ScheduleSingleJob(job *SchedulerJob) {
 			log.Printf("Job %s cancelled by scheduler.", job.panopticConfig.Name)
 			return
 		// In the future, a job could cancel itself under some condition (e.g. keep
-		// failing, reach max run count)
+		// failing, reach max run count). This can also happen when the job is
+		// rescheduled due to config change, where we proactively cancel the job.
 		case <-job.ctx.Done():
 			log.Printf("Job %s cancelled by itself.", job.panopticConfig.Name)
 			return
