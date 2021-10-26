@@ -9,6 +9,10 @@ import (
 
 type CollectorBuilder struct{}
 
+func (CollectorBuilder) NewCaUsArticleCrawlerCollector(s sink.CollectedDataSink) CrawlerCollector {
+	return &CaUsArticleCrawler{Sink: s}
+}
+
 // Crawler Collectors
 func (CollectorBuilder) NewJin10Crawler(s sink.CollectedDataSink) CrawlerCollector {
 	return &Jin10Crawler{Sink: s}

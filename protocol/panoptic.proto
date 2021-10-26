@@ -98,6 +98,7 @@ message PanopticTask {
     COLLECTOR_ZSXQ = 4;
     COLLECTOR_WALLSTREET_NEWS= 5;
     COLLECTOR_JINSE = 6;
+    COLLECTOR_CAUS_ARTICLE= 7;
     // ...
   }
 
@@ -131,6 +132,7 @@ message PanopticSubSource{
     FLASHNEWS = 1;
     KEYNEWS = 2;
     USERS = 3;
+    ARTICLE = 4;
   }
 
   // name of the sub source, this will be written to CrawlerMessage
