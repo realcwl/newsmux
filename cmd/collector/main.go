@@ -29,7 +29,6 @@ func HandleRequest(event model.DataCollectorRequest) (model.DataCollectorRespons
 		Log.Error("Failed to parse job with error:", err)
 		return res, err
 	}
-	Log.Info("Processing job with job id : ", job.JobId)
 
 	// handle
 	var handler collector_hander.DataCollectJobHandler

@@ -38,7 +38,6 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	)
 	ip, err := GetCurrentIpAddress(httpClient)
 	if err == nil {
-		Logger.Log.Info("ip address: ", ip)
 		if job == nil {
 			fmt.Println("============= nil job ============")
 		}

@@ -7,99 +7,54 @@
 jobs: {
 	job_id: "zsxq_job"
     tasks: [
-    {
-        task_id:  "123"
-        data_collector_id:  COLLECTOR_ZSXQ
-        task_params:  {
-        header_params:  {
-            key:  "authority"
-            value:  "api.zsxq.com"
+        {
+            task_id:  "zsxq_task"
+            data_collector_id:  COLLECTOR_ZSXQ
+            task_params:  {
+                header_params: [
+                    {key: "authority", value: "api.zsxq.com"},
+                    {key: "sec-ch-ua", value: "\"Google Chrome\";v=\"95\", \"Chromium\";v=\"95\", \";Not A Brand\";v=\"99\""},
+                    {key: "x-version", value: "2.9.0"},
+                    {key: "x-signature", value: "28a8667d02fa78ebcbd13e54633d72242322d798"},
+                    {key: "sec-ch-ua-mobile", value: "?0"},
+                    {key: "user-agent", value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"},
+                    {key: "accept", value: "application/json, text/plain, */*"},
+                    {key: "x-timestamp", value: "1635141427"},
+                    {key: "x-request-id", value: "eb8f76da8-8c18-bf09-b9ab-4302982f7f5"},
+                    {key: "sec-ch-ua-platform", value: "\"macOS\""},
+                    {key: "origin", value: "https: value://wx.zsxq.com"},
+                    {key: "sec-fetch-site", value: "same-site"},
+                    {key: "sec-fetch-mode", value: "cors"},
+                    {key: "sec-fetch-dest", value: "empty"},
+                    {key: "referer", value: "https: value://wx.zsxq.com/"},
+                    {key: "accept-language", value: "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7"}
+                ]
+                cookies: [
+                    {key : "abtest_env", value: "product"},
+                    {key : "zsxq_access_token", value: "6D94F3CC-BFA1-C887-E4AA-6134B3121768_B52ED7FD31557037"}
+                ]
+                source_id:  "a0fb27a2-03a3-4428-9a22-5bbd9ff738b7"
+                sub_sources: [
+                    # {name: "港美股金库-卫斯理", type: USERS, external_id: "452488122888"},
+                    # {name: "加州分析员", type: USERS, external_id: "15281511824122"},
+                    # {name: "三思门", type: USERS, external_id: "15281582448112"},
+                    # {name: "银翰", type: USERS, external_id: "458114241218"},
+                    # {name: "价值at风险", type: USERS, external_id: "145254241142"},
+                    # {name: "美股挖掘机", type: USERS, external_id: "828588881882"},
+                    # {name: "聚沙成塔", type: USERS, external_id: "458128585528"},
+                    # {name: "投研帮亲友团", type: USERS, external_id: "1855225152"},
+                    # {name: "TIME研究群", type: USERS, external_id: "518281245884"},
+                    # {name: "Viper研究", type: USERS, external_id: "28511241825511"},
+                    # {name: "营养快车", type: USERS, external_id: "48418215854848"},
+                    # {name: "调研报告与逻辑驱动", type: USERS, external_id: "88518442185822"},
+                    # {name: "宏观交易圈", type: USERS, external_id: "158211228412"},
+                    {name: "三思行研", type: USERS, external_id: "88511142554512"}
+                ]
+                zsxq_task_params:  {
+                    count_per_request:  20
+                }
+            }
         }
-        header_params:  {
-            key:  "sec-ch-ua"
-            value:  "\"Chromium\";v=\"94\", \"Google Chrome\";v=\"94\", \";Not A Brand\";v=\"99\""
-        }
-        header_params:  {
-            key:  "x-version"
-            value:  "2.9.0"
-        }
-        header_params:  {
-            key:  "x-signature"
-            value:  "2b845b1363061db96b173654f549e5541da04372"
-        }
-        header_params:  {
-            key:  "sec-ch-ua-mobile"
-            value:  "?0"
-        }
-        header_params:  {
-            key:  "user-agent"
-            value:  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36"
-        }
-        header_params:  {
-            key:  "accept"
-            value:  "application/json, text/plain, */*"
-        }
-        header_params:  {
-            key:  "x-timestamp"
-            value:  "1634714964"
-        }
-        header_params:  {
-            key:  "x-request-id"
-            value:  "f7ad02840-98a0-69f1-5999-204abf0bf73"
-        }
-        header_params:  {
-            key:  "sec-ch-ua-platform"
-            value:  "\"macOS\""
-        }
-        header_params:  {
-            key:  "origin"
-            value:  "https,Value://wx.zsxq.com"
-        }
-        header_params:  {
-            key:  "sec-fetch-site"
-            value:  "same-site"
-        }
-        header_params:  {
-            key:  "sec-fetch-mode"
-            value:  "cors"
-        }
-        header_params:  {
-            key:  "sec-fetch-dest"
-            value:  "empty"
-        }
-        header_params:  {
-            key:  "referer"
-            value:  "https,Value://wx.zsxq.com/"
-        }
-        header_params:  {
-            key:  "accept-language"
-            value:  "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7"
-        }
-        cookies:  {
-            key:  "abtest_env"
-            value:  "product"
-        }
-        cookies:  {
-            key:  "zsxq_access_token"
-            value:  "7BC4A8E7-CAD4-3ECD-3E69-9D68C6E933C4_B52ED7FD31557037"
-        }
-        source_id:  "a0fb27a2-03a3-4428-9a22-5bbd9ff738b7"
-        sub_sources:  {
-            name:  "48418215854848"
-            type:  USERS
-            external_id:  "48418215854848"
-        }
-        sub_sources:  {
-            name:  "828588881882"
-            type:  USERS
-            external_id:  "828588881882"
-        }
-        zsxq_task_params:  {
-            count_per_request:  20
-        }
-        }
-        task_metadata:  {}
-    }
     ]
     debug: true
 }
