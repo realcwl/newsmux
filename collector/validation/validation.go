@@ -109,10 +109,6 @@ func crossTaskMessageValidation(sharedContext *working_context.SharedContext) er
 	task := sharedContext.Task
 	msg := sharedContext.Result
 
-	if msg.CrawlerIp != task.TaskMetadata.IpAddr {
-		return errors.New("crawled message mismatch task's IP address")
-	}
-
 	if msg.Post.SubSource.SourceId != task.TaskParams.SourceId {
 		return errors.New("crawled message mismatch task's source id")
 	}
