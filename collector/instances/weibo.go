@@ -14,8 +14,6 @@ import (
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -129,7 +127,7 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 	return res.Data.LongTextContent, nil
 }
 
-func (collector WeiboApiCollector) UppdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
+func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	post.ImageUrls = []string{}
 	for _, pic := range mBlog.Pics {
 		key, err := collector.ImageStore.FetchAndStore(pic.URL, "")
@@ -155,7 +153,7 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 		post.SubSource.AvatarUrl = "https://weibo.com/" + fmt.Sprint(mBlog.User.ID) + "/" + mBlog.Bid
 		post.SubSource.ExternalId = fmt.Sprint(mBlog.User.ID)
 	}
-	w.UppdateImages(mBlog, post)
+	w.UpdateImages(mBlog, post)
 	// overwrite task level url by post url
 	post.OriginUrl = "https://m.weibo.cn/detail/" + mBlog.ID
 	if strings.Contains(mBlog.Text, ">全文<") {
@@ -240,18 +238,15 @@ func (w WeiboApiCollector) CollectOneSubsourceOnePage(
 		if err != nil {
 			task.TaskMetadata.TotalMessageFailed++
 			return utils.ImmediatePrintError(err)
-		} else if err = w.Sink.Push(workingContext.Result); err != nil {
-			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-			task.TaskMetadata.TotalMessageFailed++
-			return utils.ImmediatePrintError(err)
 		}
-		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).Debug(workingContext.Result.Post.Content)
+
+		if workingContext.Result != nil {
+			sink.PushResultToSinkAndRecordInTaskMetadata(w.Sink, workingContext)
+		}
 	}
 
 	// Set next page identifier
 	paginationInfo.NextPageId = fmt.Sprint(res.Data.CardlistInfo.Page)
-	collector.SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))
 	return nil
 }
 
@@ -279,6 +274,7 @@ func (w WeiboApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subs
 		}
 	}
 
+	collector.SetErrorBasedOnCounts(task, "weibo")
 	return nil
 }
 
