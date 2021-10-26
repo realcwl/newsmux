@@ -205,7 +205,7 @@ func (collector ZsxqApiCollector) UpdateDedupId(post *protocol.CrawlerMessage_Cr
 	return nil
 }
 
-func (collector ZsxqApiCollector) UppdateImages(wc *working_context.ApiCollectorWorkingContext) error {
+func (collector ZsxqApiCollector) UpdateImages(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(ZsxqTopic)
 	wc.Result.Post.ImageUrls = []string{}
 	for _, pic := range item.Talk.Images {
@@ -249,7 +249,7 @@ func (collector ZsxqApiCollector) UpdateResult(wc *working_context.ApiCollectorW
 		post.Content = doc.Text()
 	}
 
-	collector.UppdateImages(wc)
+	collector.UpdateImages(wc)
 
 	collector.UpdateFileUrls(wc)
 

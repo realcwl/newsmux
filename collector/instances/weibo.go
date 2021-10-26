@@ -127,7 +127,7 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 	return res.Data.LongTextContent, nil
 }
 
-func (collector WeiboApiCollector) UppdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
+func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	post.ImageUrls = []string{}
 	for _, pic := range mBlog.Pics {
 		key, err := collector.ImageStore.FetchAndStore(pic.URL, "")
@@ -153,7 +153,7 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 		post.SubSource.AvatarUrl = "https://weibo.com/" + fmt.Sprint(mBlog.User.ID) + "/" + mBlog.Bid
 		post.SubSource.ExternalId = fmt.Sprint(mBlog.User.ID)
 	}
-	w.UppdateImages(mBlog, post)
+	w.UpdateImages(mBlog, post)
 	// overwrite task level url by post url
 	post.OriginUrl = "https://m.weibo.cn/detail/" + mBlog.ID
 	if strings.Contains(mBlog.Text, ">全文<") {
