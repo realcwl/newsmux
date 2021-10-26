@@ -14,8 +14,6 @@ import (
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -240,18 +238,15 @@ func (w WeiboApiCollector) CollectOneSubsourceOnePage(
 		if err != nil {
 			task.TaskMetadata.TotalMessageFailed++
 			return utils.ImmediatePrintError(err)
-		} else if err = w.Sink.Push(workingContext.Result); err != nil {
-			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-			task.TaskMetadata.TotalMessageFailed++
-			return utils.ImmediatePrintError(err)
 		}
-		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).Debug(workingContext.Result.Post.Content)
+
+		if workingContext.Result != nil {
+			sink.PushResultToSinkAndRecordInTaskMetadata(w.Sink, workingContext)
+		}
 	}
 
 	// Set next page identifier
 	paginationInfo.NextPageId = fmt.Sprint(res.Data.CardlistInfo.Page)
-	collector.SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))
 	return nil
 }
 
@@ -279,6 +274,7 @@ func (w WeiboApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subs
 		}
 	}
 
+	collector.SetErrorBasedOnCounts(task, "weibo")
 	return nil
 }
 

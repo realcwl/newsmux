@@ -13,7 +13,6 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -128,26 +127,21 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 		if err != nil {
 			task.TaskMetadata.TotalMessageFailed++
 			return utils.ImmediatePrintError(err)
-		} else {
-			if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
-				workingContext.Result = nil
-				return nil
-			}
-			if err = w.Sink.Push(workingContext.Result); err != nil {
-				task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-				task.TaskMetadata.TotalMessageFailed++
-				return utils.ImmediatePrintError(err)
-			}
 		}
-		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.WithFields(logrus.Fields{"source": "wallstreet"}).Debug(workingContext.Result.Post.Content)
-	}
 
-	collector.SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))
+		if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
+			continue
+		}
+
+		if workingContext.Result != nil {
+			sink.PushResultToSinkAndRecordInTaskMetadata(w.Sink, workingContext)
+		}
+	}
 	return nil
 }
 
 // Support configable multi-page API call
+// Iterate on each channel
 func (w WallstreetApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) error {
 	// Wallstreet uses channels and only know subsource after each message if fetched
 	if task.TaskParams.GetWallstreetNewsTaskParams() == nil {
@@ -159,6 +153,8 @@ func (w WallstreetApiCollector) CollectOneSubsource(task *protocol.PanopticTask,
 			NextPageId:       channel,
 		})
 	}
+
+	collector.SetErrorBasedOnCounts(task, "wallstreet kuaixun", fmt.Sprintf("channels: %+v", task.TaskParams.GetWallstreetNewsTaskParams().Channels))
 	return nil
 }
 

@@ -14,9 +14,7 @@ import (
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -262,13 +260,13 @@ func (collector ZsxqApiCollector) UpdateResult(wc *working_context.ApiCollectorW
 	return nil
 }
 
-func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
+func (z ZsxqApiCollector) CollectOneSubsourceOnePage(
 	task *protocol.PanopticTask,
 	subsource *protocol.PanopticSubSource,
 	paginationInfo *working_context.PaginationInfo,
 ) error {
 	client := NewHttpClientFromTaskParams(task)
-	url := collector.ConstructUrl(task, subsource, paginationInfo)
+	url := z.ConstructUrl(task, subsource, paginationInfo)
 	resp, err := client.Get(url)
 	if err != nil {
 		return utils.ImmediatePrintError(err)
@@ -299,17 +297,15 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 			ApiResponseItem: topic,
 		}
 		InitializeApiCollectorResult(workingContext)
-		err := collector.UpdateResult(workingContext)
+		err := z.UpdateResult(workingContext)
 		if err != nil {
 			task.TaskMetadata.TotalMessageFailed++
 			return utils.ImmediatePrintError(err)
-		} else if err = collector.Sink.Push(workingContext.Result); err != nil {
-			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-			task.TaskMetadata.TotalMessageFailed++
-			return utils.ImmediatePrintError(err)
 		}
-		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.WithFields(logrus.Fields{"source": "zsxq"}).Debug(workingContext.Result.Post.Content)
+
+		if workingContext.Result != nil {
+			sink.PushResultToSinkAndRecordInTaskMetadata(z.Sink, workingContext)
+		}
 	}
 
 	SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))
