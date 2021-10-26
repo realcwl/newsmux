@@ -183,5 +183,13 @@ message ZsxqTaskParams {
 }
 
 message WisburgParams {
-  
+  enum ChannelType {
+    CHANNEL_TYPE_UNSPECIFIED = 0;
+    // Posts from https://wisburg.com/viewpoint
+    CHANNEL_TYPE_VIEWPOINT = 1;
+    // Posts from https://wisburg.com/research
+    CHANNEL_TYPE_RESEARCH = 2;
+  } 
+  // Specify what channels to crawl for Wisburg.
+  repeated ChannelType channel_type = 1;
 }

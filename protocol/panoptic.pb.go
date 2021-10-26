@@ -198,6 +198,57 @@ func (PanopticSubSource_SubSourceType) EnumDescriptor() ([]byte, []int) {
 	return file_panoptic_proto_rawDescGZIP(), []int{6, 0}
 }
 
+type WisburgParams_ChannelType int32
+
+const (
+	WisburgParams_CHANNEL_TYPE_UNSPECIFIED WisburgParams_ChannelType = 0
+	// Posts from https://wisburg.com/viewpoint
+	WisburgParams_CHANNEL_TYPE_VIEWPOINT WisburgParams_ChannelType = 1
+	// Posts from https://wisburg.com/research
+	WisburgParams_CHANNEL_TYPE_RESEARCH WisburgParams_ChannelType = 2
+)
+
+// Enum value maps for WisburgParams_ChannelType.
+var (
+	WisburgParams_ChannelType_name = map[int32]string{
+		0: "CHANNEL_TYPE_UNSPECIFIED",
+		1: "CHANNEL_TYPE_VIEWPOINT",
+		2: "CHANNEL_TYPE_RESEARCH",
+	}
+	WisburgParams_ChannelType_value = map[string]int32{
+		"CHANNEL_TYPE_UNSPECIFIED": 0,
+		"CHANNEL_TYPE_VIEWPOINT":   1,
+		"CHANNEL_TYPE_RESEARCH":    2,
+	}
+)
+
+func (x WisburgParams_ChannelType) Enum() *WisburgParams_ChannelType {
+	p := new(WisburgParams_ChannelType)
+	*p = x
+	return p
+}
+
+func (x WisburgParams_ChannelType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WisburgParams_ChannelType) Descriptor() protoreflect.EnumDescriptor {
+	return file_panoptic_proto_enumTypes[3].Descriptor()
+}
+
+func (WisburgParams_ChannelType) Type() protoreflect.EnumType {
+	return &file_panoptic_proto_enumTypes[3]
+}
+
+func (x WisburgParams_ChannelType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WisburgParams_ChannelType.Descriptor instead.
+func (WisburgParams_ChannelType) EnumDescriptor() ([]byte, []int) {
+	return file_panoptic_proto_rawDescGZIP(), []int{11, 0}
+}
+
 type KeyValuePair struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -988,6 +1039,9 @@ type WisburgParams struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
+
+	// Specify what channels to crawl for Wisburg.
+	ChannelType []WisburgParams_ChannelType `protobuf:"varint,1,rep,packed,name=channel_type,json=channelType,proto3,enum=protocol.WisburgParams_ChannelType" json:"channel_type,omitempty"`
 }
 
 func (x *WisburgParams) Reset() {
@@ -1020,6 +1074,13 @@ func (x *WisburgParams) ProtoReflect() protoreflect.Message {
 // Deprecated: Use WisburgParams.ProtoReflect.Descriptor instead.
 func (*WisburgParams) Descriptor() ([]byte, []int) {
 	return file_panoptic_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *WisburgParams) GetChannelType() []WisburgParams_ChannelType {
+	if x != nil {
+		return x.ChannelType
+	}
+	return nil
 }
 
 var File_panoptic_proto protoreflect.FileDescriptor
@@ -1168,12 +1229,23 @@ var file_panoptic_proto_rawDesc = []byte{
 	0x5a, 0x73, 0x78, 0x71, 0x54, 0x61, 0x73, 0x6b, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x12, 0x2a,
 	0x0a, 0x11, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x5f, 0x70, 0x65, 0x72, 0x5f, 0x72, 0x65, 0x71, 0x75,
 	0x65, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0f, 0x63, 0x6f, 0x75, 0x6e, 0x74,
-	0x50, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x0f, 0x0a, 0x0d, 0x57, 0x69,
-	0x73, 0x62, 0x75, 0x72, 0x67, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x42, 0x32, 0x5a, 0x30, 0x67,
-	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x4c, 0x75, 0x69, 0x73, 0x6d, 0x6f,
-	0x72, 0x6c, 0x61, 0x6e, 0x2f, 0x6e, 0x65, 0x77, 0x73, 0x6d, 0x75, 0x78, 0x2f, 0x70, 0x75, 0x62,
-	0x6c, 0x69, 0x73, 0x68, 0x65, 0x72, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x62,
-	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x50, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0xbb, 0x01, 0x0a, 0x0d, 0x57,
+	0x69, 0x73, 0x62, 0x75, 0x72, 0x67, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x12, 0x46, 0x0a, 0x0c,
+	0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x03,
+	0x28, 0x0e, 0x32, 0x23, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x57, 0x69,
+	0x73, 0x62, 0x75, 0x72, 0x67, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x2e, 0x43, 0x68, 0x61, 0x6e,
+	0x6e, 0x65, 0x6c, 0x54, 0x79, 0x70, 0x65, 0x52, 0x0b, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c,
+	0x54, 0x79, 0x70, 0x65, 0x22, 0x62, 0x0a, 0x0b, 0x43, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x54,
+	0x79, 0x70, 0x65, 0x12, 0x1c, 0x0a, 0x18, 0x43, 0x48, 0x41, 0x4e, 0x4e, 0x45, 0x4c, 0x5f, 0x54,
+	0x59, 0x50, 0x45, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10,
+	0x00, 0x12, 0x1a, 0x0a, 0x16, 0x43, 0x48, 0x41, 0x4e, 0x4e, 0x45, 0x4c, 0x5f, 0x54, 0x59, 0x50,
+	0x45, 0x5f, 0x56, 0x49, 0x45, 0x57, 0x50, 0x4f, 0x49, 0x4e, 0x54, 0x10, 0x01, 0x12, 0x19, 0x0a,
+	0x15, 0x43, 0x48, 0x41, 0x4e, 0x4e, 0x45, 0x4c, 0x5f, 0x54, 0x59, 0x50, 0x45, 0x5f, 0x52, 0x45,
+	0x53, 0x45, 0x41, 0x52, 0x43, 0x48, 0x10, 0x02, 0x42, 0x32, 0x5a, 0x30, 0x67, 0x69, 0x74, 0x68,
+	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x4c, 0x75, 0x69, 0x73, 0x6d, 0x6f, 0x72, 0x6c, 0x61,
+	0x6e, 0x2f, 0x6e, 0x65, 0x77, 0x73, 0x6d, 0x75, 0x78, 0x2f, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x73,
+	0x68, 0x65, 0x72, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1188,48 +1260,50 @@ func file_panoptic_proto_rawDescGZIP() []byte {
 	return file_panoptic_proto_rawDescData
 }
 
-var file_panoptic_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_panoptic_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_panoptic_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_panoptic_proto_goTypes = []interface{}{
 	(TaskMetadata_TaskResultState)(0),    // 0: protocol.TaskMetadata.TaskResultState
 	(PanopticTask_DataCollectorId)(0),    // 1: protocol.PanopticTask.DataCollectorId
 	(PanopticSubSource_SubSourceType)(0), // 2: protocol.PanopticSubSource.SubSourceType
-	(*KeyValuePair)(nil),                 // 3: protocol.KeyValuePair
-	(*PanopticJob)(nil),                  // 4: protocol.PanopticJob
-	(*PanopticJobs)(nil),                 // 5: protocol.PanopticJobs
-	(*TaskParams)(nil),                   // 6: protocol.TaskParams
-	(*TaskMetadata)(nil),                 // 7: protocol.TaskMetadata
-	(*PanopticTask)(nil),                 // 8: protocol.PanopticTask
-	(*PanopticSubSource)(nil),            // 9: protocol.PanopticSubSource
-	(*JinshiTaskParams)(nil),             // 10: protocol.JinshiTaskParams
-	(*WeiboTaskParams)(nil),              // 11: protocol.WeiboTaskParams
-	(*WallstreetNewsTaskParams)(nil),     // 12: protocol.WallstreetNewsTaskParams
-	(*ZsxqTaskParams)(nil),               // 13: protocol.ZsxqTaskParams
-	(*WisburgParams)(nil),                // 14: protocol.WisburgParams
-	(*timestamppb.Timestamp)(nil),        // 15: google.protobuf.Timestamp
+	(WisburgParams_ChannelType)(0),       // 3: protocol.WisburgParams.ChannelType
+	(*KeyValuePair)(nil),                 // 4: protocol.KeyValuePair
+	(*PanopticJob)(nil),                  // 5: protocol.PanopticJob
+	(*PanopticJobs)(nil),                 // 6: protocol.PanopticJobs
+	(*TaskParams)(nil),                   // 7: protocol.TaskParams
+	(*TaskMetadata)(nil),                 // 8: protocol.TaskMetadata
+	(*PanopticTask)(nil),                 // 9: protocol.PanopticTask
+	(*PanopticSubSource)(nil),            // 10: protocol.PanopticSubSource
+	(*JinshiTaskParams)(nil),             // 11: protocol.JinshiTaskParams
+	(*WeiboTaskParams)(nil),              // 12: protocol.WeiboTaskParams
+	(*WallstreetNewsTaskParams)(nil),     // 13: protocol.WallstreetNewsTaskParams
+	(*ZsxqTaskParams)(nil),               // 14: protocol.ZsxqTaskParams
+	(*WisburgParams)(nil),                // 15: protocol.WisburgParams
+	(*timestamppb.Timestamp)(nil),        // 16: google.protobuf.Timestamp
 }
 var file_panoptic_proto_depIdxs = []int32{
-	8,  // 0: protocol.PanopticJob.tasks:type_name -> protocol.PanopticTask
-	4,  // 1: protocol.PanopticJobs.jobs:type_name -> protocol.PanopticJob
-	3,  // 2: protocol.TaskParams.header_params:type_name -> protocol.KeyValuePair
-	3,  // 3: protocol.TaskParams.cookies:type_name -> protocol.KeyValuePair
-	9,  // 4: protocol.TaskParams.sub_sources:type_name -> protocol.PanopticSubSource
-	10, // 5: protocol.TaskParams.jinshi_task_params:type_name -> protocol.JinshiTaskParams
-	11, // 6: protocol.TaskParams.weibo_task_params:type_name -> protocol.WeiboTaskParams
-	13, // 7: protocol.TaskParams.zsxq_task_params:type_name -> protocol.ZsxqTaskParams
-	12, // 8: protocol.TaskParams.wallstreet_news_task_params:type_name -> protocol.WallstreetNewsTaskParams
-	15, // 9: protocol.TaskMetadata.task_start_time:type_name -> google.protobuf.Timestamp
-	15, // 10: protocol.TaskMetadata.task_end_time:type_name -> google.protobuf.Timestamp
+	9,  // 0: protocol.PanopticJob.tasks:type_name -> protocol.PanopticTask
+	5,  // 1: protocol.PanopticJobs.jobs:type_name -> protocol.PanopticJob
+	4,  // 2: protocol.TaskParams.header_params:type_name -> protocol.KeyValuePair
+	4,  // 3: protocol.TaskParams.cookies:type_name -> protocol.KeyValuePair
+	10, // 4: protocol.TaskParams.sub_sources:type_name -> protocol.PanopticSubSource
+	11, // 5: protocol.TaskParams.jinshi_task_params:type_name -> protocol.JinshiTaskParams
+	12, // 6: protocol.TaskParams.weibo_task_params:type_name -> protocol.WeiboTaskParams
+	14, // 7: protocol.TaskParams.zsxq_task_params:type_name -> protocol.ZsxqTaskParams
+	13, // 8: protocol.TaskParams.wallstreet_news_task_params:type_name -> protocol.WallstreetNewsTaskParams
+	16, // 9: protocol.TaskMetadata.task_start_time:type_name -> google.protobuf.Timestamp
+	16, // 10: protocol.TaskMetadata.task_end_time:type_name -> google.protobuf.Timestamp
 	0,  // 11: protocol.TaskMetadata.result_state:type_name -> protocol.TaskMetadata.TaskResultState
 	1,  // 12: protocol.PanopticTask.data_collector_id:type_name -> protocol.PanopticTask.DataCollectorId
-	6,  // 13: protocol.PanopticTask.task_params:type_name -> protocol.TaskParams
-	7,  // 14: protocol.PanopticTask.task_metadata:type_name -> protocol.TaskMetadata
+	7,  // 13: protocol.PanopticTask.task_params:type_name -> protocol.TaskParams
+	8,  // 14: protocol.PanopticTask.task_metadata:type_name -> protocol.TaskMetadata
 	2,  // 15: protocol.PanopticSubSource.type:type_name -> protocol.PanopticSubSource.SubSourceType
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	3,  // 16: protocol.WisburgParams.channel_type:type_name -> protocol.WisburgParams.ChannelType
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_panoptic_proto_init() }
@@ -1394,7 +1468,7 @@ func file_panoptic_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_panoptic_proto_rawDesc,
-			NumEnums:      3,
+			NumEnums:      4,
 			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
