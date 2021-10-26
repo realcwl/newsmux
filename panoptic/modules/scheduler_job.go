@@ -67,6 +67,7 @@ func MaybeSplitIntoMultipleSchedulerJobs(config *protocol.PanopticConfig, ctx co
 	left := 0
 	right := 0
 	batch := int64(math.MaxInt64)
+	batch_count := 0
 
 	if config.TaskParams.MaxSubsourcePerTask != 0 {
 		batch = config.TaskParams.MaxSubsourcePerTask
@@ -80,12 +81,19 @@ func MaybeSplitIntoMultipleSchedulerJobs(config *protocol.PanopticConfig, ctx co
 		}
 
 		c := proto.Clone(config).(*protocol.PanopticConfig)
+
+		// Name each batch of subsources with a unique id, starting from postfix 0.
+		// This is used to make sure that when we index jobs in UpsertJobs function
+		// in scheduler.go, we don't have duplicate names.
+		c.Name = fmt.Sprintf("%s-%d", c.Name, batch_count)
+
 		job := NewSchedulerJob(c, ctx)
 		job.panopticConfig.TaskParams.SubSources =
 			job.panopticConfig.TaskParams.SubSources[left:right]
 		jobs = append(jobs, job)
 
 		processed += right - left
+		batch_count += 1
 	}
 
 	return jobs
