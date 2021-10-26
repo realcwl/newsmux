@@ -3,10 +3,12 @@ package modules
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
 	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/golang/protobuf/proto"
 )
 
 // SchedulerJob defines the jobs which scheduler manages. Scheduler periodically
@@ -40,7 +42,7 @@ type SchedulerJob struct {
 func NewSchedulerJobs(configs *protocol.PanopticConfigs, ctx context.Context) []*SchedulerJob {
 	jobs := []*SchedulerJob{}
 	for _, config := range configs.Config {
-		jobs = append(jobs, NewSchedulerJob(config, ctx))
+		jobs = append(jobs, MaybeSplitIntoMultipleSchedulerJobs(config, ctx)...)
 	}
 	return jobs
 }
@@ -56,6 +58,37 @@ func NewSchedulerJob(config *protocol.PanopticConfig, ctx context.Context) *Sche
 		cancel:         cancel,
 		runCount:       0,
 	}
+}
+
+func MaybeSplitIntoMultipleSchedulerJobs(config *protocol.PanopticConfig, ctx context.Context) []*SchedulerJob {
+	jobs := []*SchedulerJob{}
+
+	processed := 0
+	left := 0
+	right := 0
+	batch := int64(math.MaxInt64)
+
+	if config.TaskParams.MaxSubsourcePerTask != 0 {
+		batch = config.TaskParams.MaxSubsourcePerTask
+	}
+
+	for processed < len(config.TaskParams.SubSources) {
+		left = right
+		right += int(batch)
+		if right > len(config.TaskParams.SubSources) {
+			right = len(config.TaskParams.SubSources)
+		}
+
+		c := proto.Clone(config).(*protocol.PanopticConfig)
+		job := NewSchedulerJob(c, ctx)
+		job.panopticConfig.TaskParams.SubSources =
+			job.panopticConfig.TaskParams.SubSources[left:right]
+		jobs = append(jobs, job)
+
+		processed += right - left
+	}
+
+	return jobs
 }
 
 func (j *SchedulerJob) RefreshContext(parent context.Context) {

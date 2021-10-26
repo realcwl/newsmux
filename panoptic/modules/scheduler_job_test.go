@@ -104,3 +104,54 @@ func TestDurationTillNextRun(t *testing.T) {
 	duration = job.DurationTillNextRun()
 	assert.Less(t, duration, 1*time.Second)
 }
+
+func TestMaybeSplitIntoMultipleSchedulerJobs(t *testing.T) {
+	c := protocol.PanopticConfig{
+		Name: "test",
+		TaskParams: &protocol.TaskParams{
+			SubSources: []*protocol.PanopticSubSource{
+				{Name: "ss_1"},
+				{Name: "ss_2"},
+				{Name: "ss_3"},
+				{Name: "ss_4"},
+				{Name: "ss_5"},
+			},
+			MaxSubsourcePerTask: 2,
+		},
+	}
+
+	ctx := context.TODO()
+
+	jobs := MaybeSplitIntoMultipleSchedulerJobs(&c, ctx)
+	assert.Equal(t, len(jobs), 3)
+	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[0].Name, "ss_1")
+	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[1].Name, "ss_2")
+	assert.Equal(t, jobs[1].panopticConfig.TaskParams.SubSources[0].Name, "ss_3")
+	assert.Equal(t, jobs[1].panopticConfig.TaskParams.SubSources[1].Name, "ss_4")
+	assert.Equal(t, jobs[2].panopticConfig.TaskParams.SubSources[0].Name, "ss_5")
+}
+
+func TestMaybeSplitIntoMultipleSchedulerJobs_UnsetShouldReturnOnlyOneJob(t *testing.T) {
+	c := protocol.PanopticConfig{
+		Name: "test",
+		TaskParams: &protocol.TaskParams{
+			SubSources: []*protocol.PanopticSubSource{
+				{Name: "ss_1"},
+				{Name: "ss_2"},
+				{Name: "ss_3"},
+				{Name: "ss_4"},
+				{Name: "ss_5"},
+			},
+		},
+	}
+
+	ctx := context.TODO()
+
+	jobs := MaybeSplitIntoMultipleSchedulerJobs(&c, ctx)
+	assert.Equal(t, len(jobs), 1)
+	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[0].Name, "ss_1")
+	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[1].Name, "ss_2")
+	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[2].Name, "ss_3")
+	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[3].Name, "ss_4")
+	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[4].Name, "ss_5")
+}
