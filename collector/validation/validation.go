@@ -174,13 +174,8 @@ func validateMessagePostIsSetCorrectly(msg *protocol.CrawlerMessage) error {
 }
 
 // A message's metadata is valid iff:
-// - It has crawler ip
 // - It is associated with a crawled time
 func validateMessageMetadataIsSetCorrectly(msg *protocol.CrawlerMessage) error {
-	if msg.CrawlerIp == "" {
-		return errors.New("crawled message must be associated with an IP address")
-	}
-
 	if msg.CrawledAt == nil {
 		return errors.New("crawled message must be associated with a crawled time")
 	}
@@ -189,16 +184,11 @@ func validateMessageMetadataIsSetCorrectly(msg *protocol.CrawlerMessage) error {
 }
 
 // A PanopticTask's metadata is set correctly iff:
-// - It must have IP address of the Lambda
 // - It must have the config name that generated it
 // - It must be associated with an end state, and the state is correct
 func validateTaskMetadataIsSetCorrectly(task *protocol.PanopticTask) error {
 	if task.TaskMetadata.ConfigName == "" {
 		return errors.New("PanopticTask must have config name populated")
-	}
-
-	if task.TaskMetadata.IpAddr == "" {
-		return errors.New("PanopticTask must have IP address populated")
 	}
 
 	if task.TaskMetadata.ResultState == protocol.TaskMetadata_STATE_UNSPECIFIED {
