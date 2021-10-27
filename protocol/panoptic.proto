@@ -57,6 +57,7 @@ message TaskParams {
     WeiboTaskParams weibo_task_params = 21;
     ZsxqTaskParams zsxq_task_params = 22;
     WallstreetNewsTaskParams wallstreet_news_task_params = 23; 
+    WisburgParams wisburg_task_params = 24;
   }
 }
 

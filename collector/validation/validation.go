@@ -17,6 +17,7 @@ const (
 	kuailansiSourceId      = "6e1f6734-985b-4a52-865f-fc39a9daa2e8"
 	wallstreetNewsSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
 	JinseSourceId          = "5891f435-d51e-4575-b4af-47cd4ede5607"
+	WisburgSourceId        = "bb3c8ee2-c81e-43d9-8d98-7a6bb6ca0238"
 )
 
 func getSourceLogoUrl(sourceId string) string {
@@ -31,6 +32,8 @@ func getSourceLogoUrl(sourceId string) string {
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/kuailansi.png"
 	case JinseSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jinse.png"
+	case WisburgSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wisburg.png"
 	default:
 		return ""
 	}
@@ -50,6 +53,8 @@ func getSourceIdFromDataCollectorId(collectorId protocol.PanopticTask_DataCollec
 		return collector.JinseSourceId
 	case protocol.PanopticTask_COLLECTOR_CAUS_ARTICLE:
 		return collector.CaUsSourceId
+	case protocol.PanopticTask_COLLECTOR_WISBURG:
+		return collector.WisburgSourceId
 	default:
 		return ""
 	}

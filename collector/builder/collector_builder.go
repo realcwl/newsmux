@@ -37,3 +37,7 @@ func (CollectorBuilder) NewKuailansiApiCollector(s sink.CollectedDataSink) DataC
 func (CollectorBuilder) NewJinseApiCollector(s sink.CollectedDataSink) DataCollector {
 	return &JinseApiCrawler{Sink: s}
 }
+
+func (CollectorBuilder) NewWisburgCrawler(s sink.CollectedDataSink) DataCollector {
+	return &WisburgCrawler{Sink: s}
+}
