@@ -18,6 +18,7 @@ const (
 	wallstreetNewsSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
 	JinseSourceId          = "5891f435-d51e-4575-b4af-47cd4ede5607"
 	WisburgSourceId        = "bb3c8ee2-c81e-43d9-8d98-7a6bb6ca0238"
+	Kr36SourceId           = "c0ae802e-3c12-4144-86ca-ab0f8fe629ce"
 )
 
 func getSourceLogoUrl(sourceId string) string {
@@ -34,6 +35,8 @@ func getSourceLogoUrl(sourceId string) string {
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jinse.png"
 	case WisburgSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wisburg.png"
+	case Kr36SourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/36ke.png"
 	default:
 		return ""
 	}
@@ -55,6 +58,8 @@ func getSourceIdFromDataCollectorId(collectorId protocol.PanopticTask_DataCollec
 		return collector.CaUsSourceId
 	case protocol.PanopticTask_COLLECTOR_WISBURG:
 		return collector.WisburgSourceId
+	case protocol.PanopticTask_COLLECTOR_KR36:
+		return collector.Kr36SourceId
 	default:
 		return ""
 	}
@@ -139,15 +144,15 @@ func crossTaskMessageValidation(sharedContext *working_context.SharedContext) er
 // - Has SubSourceId
 func validateMessageSubSourceIsSetCorrectly(msg *protocol.CrawlerMessage) error {
 	if msg.Post.SubSource.AvatarUrl == "" {
-		return errors.New("crawled post must have avatar url")
+		return errors.New("crawled post subsource must have avatar url")
 	}
 
 	if msg.Post.SubSource.Name == "" {
-		return errors.New("crawled post must have name")
+		return errors.New("crawled post subsource must have name")
 	}
 
 	if msg.Post.SubSource.SourceId == "" {
-		return errors.New("crawled post must be associated with a source id")
+		return errors.New("crawled post subsource must be associated with a source id")
 	}
 
 	return nil

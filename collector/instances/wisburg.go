@@ -113,7 +113,7 @@ type UnifiedWisburgPost struct {
 }
 
 func (p *UnifiedWisburgPost) GetDedupId() (string, error) {
-	dedupId, err := utils.TextToMd5Hash(fmt.Sprintf("%d", p.ID))
+	dedupId, err := utils.TextToMd5Hash(fmt.Sprintf("%s%d", collector.WisburgSourceId, p.ID))
 	if err != nil {
 		return "", err
 	}
