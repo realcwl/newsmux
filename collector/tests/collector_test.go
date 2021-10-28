@@ -386,3 +386,42 @@ func TestTimeUtil(t *testing.T) {
 	// equal to utc time 1136185445 == "Mon Jan 02 2006 07:04:05 GMT+0000"
 	require.Equal(t, "seconds:1136185445", time.String())
 }
+
+func TestCaUsArticleCollectorHandler(t *testing.T) {
+	job := protocol.PanopticJob{
+		Tasks: []*protocol.PanopticTask{{
+			TaskId:          "123",
+			DataCollectorId: protocol.PanopticTask_COLLECTOR_CAUS_ARTICLE,
+			TaskParams: &protocol.TaskParams{
+				HeaderParams: []*protocol.KeyValuePair{
+					{Key: "content-type", Value: "application/json;charset=UTF-8"},
+					{Key: "user-agent", Value: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"},
+					{Key: "uu_token", Value: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIxNjIwMTgzNzczNjIzIiwiZXhwIjoxNjUxMjg3NzczfQ.09H378f2mfbQCpmnkTwFqhRnP9YHBymJxc9PGn9fZ8w"},
+				},
+				Cookies:  []*protocol.KeyValuePair{},
+				SourceId: "1c6ab31c-aebe-40ba-833d-7cc2d977e5a1",
+				SubSources: []*protocol.PanopticSubSource{
+					{
+						Name: "商业",
+						Type: protocol.PanopticSubSource_ARTICLE,
+					},
+				},
+			},
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_caus_config",
+			},
+		},
+		},
+	}
+	var handler DataCollectJobHandler
+	err := handler.Collect(&job)
+	fmt.Println("job", job.String())
+	require.NoError(t, err)
+	require.Equal(t, 1, len(job.Tasks))
+	require.Equal(t, "123", job.Tasks[0].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
+	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
+}

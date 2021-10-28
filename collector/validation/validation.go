@@ -3,6 +3,7 @@ package validation
 import (
 	"time"
 
+	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/pkg/errors"
@@ -38,15 +39,17 @@ func getSourceLogoUrl(sourceId string) string {
 func getSourceIdFromDataCollectorId(collectorId protocol.PanopticTask_DataCollectorId) string {
 	switch collectorId {
 	case protocol.PanopticTask_COLLECTOR_JINSHI:
-		return jin10SourceId
+		return collector.Jin10SourceId
 	case protocol.PanopticTask_COLLECTOR_KUAILANSI:
-		return kuailansiSourceId
+		return collector.KuailansiSourceId
 	case protocol.PanopticTask_COLLECTOR_WEIBO:
-		return weiboSourceId
+		return collector.WeiboSourceId
 	case protocol.PanopticTask_COLLECTOR_WALLSTREET_NEWS:
-		return wallstreetNewsSourceId
+		return collector.WallstreetNewsSourceId
 	case protocol.PanopticTask_COLLECTOR_JINSE:
-		return JinseSourceId
+		return collector.JinseSourceId
+	case protocol.PanopticTask_COLLECTOR_CAUS_ARTICLE:
+		return collector.CaUsSourceId
 	default:
 		return ""
 	}

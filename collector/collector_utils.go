@@ -24,6 +24,7 @@ const (
 	KuailansiSourceId      = "6e1f6734-985b-4a52-865f-fc39a9daa2e8"
 	WallstreetNewsSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
 	JinseSourceId          = "5891f435-d51e-4575-b4af-47cd4ede5607"
+	CaUsSourceId           = "1c6ab31c-aebe-40ba-833d-7cc2d977e5a1"
 )
 
 // Hard code subsource type to name
@@ -73,6 +74,8 @@ func GetSourceLogoUrl(sourceId string) string {
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/kuailansi.png"
 	case JinseSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jinse.png"
+	case CaUsSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/caus.png"
 	default:
 		return ""
 	}
