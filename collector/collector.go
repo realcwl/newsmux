@@ -49,7 +49,11 @@ type ApiCollector interface {
 
 type RssCollector interface {
 	DataCollector
-	// TODO: implement rss collector
+	CollectOneSubsource(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) error
+}
+
+type ParallelCollector interface {
+	CollectOneSubsource(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) error
 }
 
 // This is the main entry point that runs collection. It assumes that the task

@@ -104,6 +104,7 @@ message PanopticTask {
     COLLECTOR_WALLSTREET_NEWS= 5;
     COLLECTOR_JINSE = 6;
     COLLECTOR_CAUS_ARTICLE= 7;
+    COLLECTOR_WEIXIN_ARTICLE= 8;
     // ...
   }
 

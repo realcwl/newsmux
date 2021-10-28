@@ -37,3 +37,7 @@ func (CollectorBuilder) NewKuailansiApiCollector(s sink.CollectedDataSink) DataC
 func (CollectorBuilder) NewJinseApiCollector(s sink.CollectedDataSink) DataCollector {
 	return &JinseApiCrawler{Sink: s}
 }
+
+func (CollectorBuilder) NewWeixinRssCollector(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore) DataCollector {
+	return &WeixinArticleRssCollector{Sink: s, ImageStore: imageStore}
+}
