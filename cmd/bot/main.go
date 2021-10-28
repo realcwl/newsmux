@@ -1,8 +1,6 @@
 package main
 
 import (
-	"flag"
-
 	"github.com/Luismorlan/newsmux/server"
 	"github.com/Luismorlan/newsmux/server/middlewares"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
@@ -25,7 +23,6 @@ func cleanup() {
 }
 
 func main() {
-	flag.Parse()
 	defer cleanup()
 
 	if err := dotenv.LoadDotEnvs(); err != nil {
