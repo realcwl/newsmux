@@ -33,6 +33,18 @@ type WallstreetItem struct {
 		Title string `json:"title"`
 		URI   string `json:"uri"`
 	} `json:"article"`
+	Author *struct {
+		DisplayName string `json:"display_name"`
+	} `json:"author"`
+}
+
+func (w WallstreetItem) IsItemSkippable() bool {
+	// Check if item is skippable
+	// Economic stats must be skipped
+	if w.Author.DisplayName == "数据团队" {
+		return true
+	}
+	return false
 }
 
 type WallstreetApiResponse struct {
@@ -65,6 +77,10 @@ func (w WallstreetApiCollector) UpdateDedupId(post *protocol.CrawlerMessage_Craw
 }
 
 func (w WallstreetApiCollector) UpdateResultFromItem(item *WallstreetItem, workingContext *working_context.ApiCollectorWorkingContext) error {
+	if item.IsItemSkippable() {
+		workingContext.IntentionallySkipped = true
+		return nil
+	}
 	generatedTime := time.Unix(int64(item.DisplayTime), 0)
 	workingContext.Result.Post.ContentGeneratedAt = timestamppb.New(generatedTime)
 	workingContext.Result.Post.SubSource.ExternalId = fmt.Sprint(item.ID)
@@ -129,7 +145,8 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 			return utils.ImmediatePrintError(err)
 		}
 
-		if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
+		if workingContext.IntentionallySkipped ||
+			!collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
 			continue
 		}
 
