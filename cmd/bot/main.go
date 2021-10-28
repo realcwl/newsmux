@@ -33,7 +33,7 @@ func main() {
 	router := gin.Default()
 
 	router.Use(cors.Default())
-	router.Use(gintrace.Middleware(ServiceName))
+	router.Use(gintrace.Middleware(*ServiceName))
 
 	handler := server.BotCommandHandler()
 	router.POST("/bot", handler)
