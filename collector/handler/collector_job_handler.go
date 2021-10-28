@@ -2,6 +2,7 @@ package collector_job_handler
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	. "github.com/Luismorlan/newsmux/collector"
@@ -19,6 +20,9 @@ type DataCollectJobHandler struct{}
 
 func UpdateIpAddressesInTasks(ip string, job *protocol.PanopticJob) {
 	for _, task := range job.Tasks {
+		if task.TaskMetadata == nil {
+			task.TaskMetadata = &protocol.TaskMetadata{}
+		}
 		task.TaskMetadata.IpAddr = ip
 	}
 }
@@ -34,7 +38,9 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	)
 	ip, err := GetCurrentIpAddress(httpClient)
 	if err == nil {
-		Logger.Log.Info("ip address: ", ip)
+		if job == nil {
+			fmt.Println("============= nil job ============")
+		}
 		UpdateIpAddressesInTasks(ip, job)
 	} else {
 		Logger.Log.Error("ip fetching error: ", err)
@@ -42,9 +48,19 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 
 	if !utils.IsProdEnv() || job.Debug {
 		s = sink.NewStdErrSink()
-		if imageStore, err = file_store.NewLocalFileStore("test"); err != nil {
-			return err
+		// Debug job + Prod env still download files.
+		// TODO(chenweilunster): Clean up to a simpler logic. Maybe using a Noop
+		// file store.
+		if utils.IsProdEnv() {
+			if imageStore, err = file_store.NewS3FileStore(file_store.ProdS3ImageBucket); err != nil {
+				return err
+			}
+		} else {
+			if imageStore, err = file_store.NewLocalFileStore("test"); err != nil {
+				return err
+			}
 		}
+
 		defer imageStore.CleanUp()
 	} else {
 		s, err = sink.NewSnsSink()
@@ -99,6 +115,6 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 	default:
 		return errors.New("unknown task data collector id")
 	}
-	RunCollector(collector, t)
+	RunCollectorForTask(collector, t)
 	return nil
 }

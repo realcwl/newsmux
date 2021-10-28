@@ -23,11 +23,14 @@ var (
 	Log    *logrus.Entry
 )
 
+// This init function is only for testing cases, where the entry point is not
+// main function. Unit test will fail with nil pointer dereference if we don't
+// init here.
 func init() {
-	initLogger()
+	InitLogger()
 }
 
-func initLogger() {
+func InitLogger() {
 	logger = logrus.New()
 
 	hook := ddhook.NewHook(
@@ -47,6 +50,6 @@ func initLogger() {
 	logger.SetOutput(os.Stderr)
 
 	Log = logger.WithFields(
-		logrus.Fields{"service": flag.ServiceName, "is_development": os.Getenv("NEWSMUX_ENV") != dotenv.ProdEnv},
+		logrus.Fields{"service": *flag.ServiceName, "is_development": os.Getenv("NEWSMUX_ENV") != dotenv.ProdEnv},
 	)
 }

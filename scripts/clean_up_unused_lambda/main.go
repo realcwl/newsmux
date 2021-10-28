@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/panoptic"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 )
@@ -49,6 +50,8 @@ func deleteLambdaFunctions(client *lambda.Client, ctx context.Context) int {
 
 func main() {
 	flag.Parse()
+	InitLogger()
+
 	var client *lambda.Client
 	ctx := context.Background()
 

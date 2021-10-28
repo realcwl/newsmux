@@ -1,8 +1,6 @@
 package main
 
 import (
-	"flag"
-
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Luismorlan/newsmux/server"
 	"github.com/Luismorlan/newsmux/server/middlewares"
@@ -27,7 +25,9 @@ func cleanup() {
 }
 
 func main() {
-	flag.Parse()
+	ParseFlags()
+	InitLogger()
+
 	defer cleanup()
 
 	if err := dotenv.LoadDotEnvs(); err != nil {
@@ -38,8 +38,8 @@ func main() {
 	router := gin.Default()
 
 	router.Use(cors.Default())
-	router.Use(gintrace.Middleware(ServiceName))
-	if !ByPassAuth {
+	router.Use(gintrace.Middleware(*ServiceName))
+	if !*ByPassAuth {
 		router.Use(middlewares.JWT())
 	}
 

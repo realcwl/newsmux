@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"time"
 
 	"github.com/Luismorlan/newsmux/collector"
@@ -33,6 +33,18 @@ type WallstreetItem struct {
 		Title string `json:"title"`
 		URI   string `json:"uri"`
 	} `json:"article"`
+	Author *struct {
+		DisplayName string `json:"display_name"`
+	} `json:"author"`
+}
+
+func (w WallstreetItem) IsItemSkippable() bool {
+	// Check if item is skippable
+	// Economic stats must be skipped
+	if w.Author.DisplayName == "数据团队" {
+		return true
+	}
+	return false
 }
 
 type WallstreetApiResponse struct {
@@ -65,6 +77,10 @@ func (w WallstreetApiCollector) UpdateDedupId(post *protocol.CrawlerMessage_Craw
 }
 
 func (w WallstreetApiCollector) UpdateResultFromItem(item *WallstreetItem, workingContext *working_context.ApiCollectorWorkingContext) error {
+	if item.IsItemSkippable() {
+		workingContext.IntentionallySkipped = true
+		return nil
+	}
 	generatedTime := time.Unix(int64(item.DisplayTime), 0)
 	workingContext.Result.Post.ContentGeneratedAt = timestamppb.New(generatedTime)
 	workingContext.Result.Post.SubSource.ExternalId = fmt.Sprint(item.ID)
@@ -100,7 +116,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -117,7 +133,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 	for _, item := range res.Data.Items {
 		// working context for each message
 		workingContext := &working_context.ApiCollectorWorkingContext{
-			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}},
+			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}, IntentionallySkipped: false},
 			PaginationInfo: paginationInfo,
 			ApiUrl:         url,
 			SubSource:      subsource,
@@ -127,38 +143,40 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 		if err != nil {
 			task.TaskMetadata.TotalMessageFailed++
 			return utils.ImmediatePrintError(err)
-		} else {
-			if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
-				workingContext.Result = nil
-				return nil
-			}
-			if err = w.Sink.Push(workingContext.Result); err != nil {
-				task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-				task.TaskMetadata.TotalMessageFailed++
-				return utils.ImmediatePrintError(err)
-			}
 		}
-		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.Debug(workingContext.Result.Post.Content)
-	}
 
-	collector.SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))
+		if workingContext.IntentionallySkipped ||
+			!collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
+			continue
+		}
+
+		if workingContext.Result != nil {
+			sink.PushResultToSinkAndRecordInTaskMetadata(w.Sink, workingContext)
+		}
+	}
 	return nil
 }
 
 // Support configable multi-page API call
+// Iterate on each channel
 func (w WallstreetApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) error {
 	// Wallstreet uses channels and only know subsource after each message if fetched
+	if task.TaskParams.GetWallstreetNewsTaskParams() == nil {
+		return errors.New("wallstreet news must specify channels")
+	}
 	for ind, channel := range task.TaskParams.GetWallstreetNewsTaskParams().Channels {
 		w.CollectOneSubsourceOnePage(task, subsource, &working_context.PaginationInfo{
 			CurrentPageCount: ind,
 			NextPageId:       channel,
 		})
 	}
+
+	collector.SetErrorBasedOnCounts(task, "wallstreet kuaixun", fmt.Sprintf("channels: %+v", task.TaskParams.GetWallstreetNewsTaskParams().Channels))
 	return nil
 }
 
 func (w WallstreetApiCollector) CollectAndPublish(task *protocol.PanopticTask) {
-	task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
-	w.CollectOneSubsource(task, &protocol.PanopticSubSource{})
+	if err := w.CollectOneSubsource(task, &protocol.PanopticSubSource{}); err != nil {
+		Logger.Log.Errorln(err)
+	}
 }

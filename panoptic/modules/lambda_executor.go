@@ -277,11 +277,13 @@ func (l *LambdaExecutor) AddLambdaFunctions(count int) ([]string, error) {
 
 // Delete lambda function by name, return error if there's any
 func (l *LambdaExecutor) DeleteLambdaFunction(name string) error {
-	_, err := l.lambdaClient.DeleteFunction(l.ctx, &lambda.DeleteFunctionInput{
+	ctx := context.TODO()
+	_, err := l.lambdaClient.DeleteFunction(ctx, &lambda.DeleteFunctionInput{
 		FunctionName: &name,
 	})
 
 	if err != nil {
+		Logger.Log.Errorf("fail to remove function %s, err: %s", name, err)
 		return err
 	}
 
@@ -425,7 +427,7 @@ func (l *LambdaExecutor) GetRandomActiveFunction(job *protocol.PanopticJob) *Lam
 func (l *LambdaExecutor) Execute(ctx context.Context, job *protocol.PanopticJob) (*protocol.PanopticJob, error) {
 	// For debugging job, we don't actually execute the Lambda, but return
 	// directly.
-	if job.Debug {
+	if job.Debug && AppSetting.DO_NOT_EXECUTE_ON_LAMBDA_FOR_DEBUG_JOB {
 		return job, nil
 	}
 

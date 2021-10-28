@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -14,7 +14,6 @@ import (
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -121,7 +120,7 @@ func GetZsxqFileDownloadUrlTransform(task *protocol.PanopticTask) file_store.Pro
 			utils.ImmediatePrintError(err)
 			return ""
 		}
-		body, err := io.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
 
 		res := &ZsxqFileDownloadApiResponse{}
 		err = json.Unmarshal(body, res)
@@ -206,7 +205,7 @@ func (collector ZsxqApiCollector) UpdateDedupId(post *protocol.CrawlerMessage_Cr
 	return nil
 }
 
-func (collector ZsxqApiCollector) UppdateImages(wc *working_context.ApiCollectorWorkingContext) error {
+func (collector ZsxqApiCollector) UpdateImages(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(ZsxqTopic)
 	wc.Result.Post.ImageUrls = []string{}
 	for _, pic := range item.Talk.Images {
@@ -250,7 +249,7 @@ func (collector ZsxqApiCollector) UpdateResult(wc *working_context.ApiCollectorW
 		post.Content = doc.Text()
 	}
 
-	collector.UppdateImages(wc)
+	collector.UpdateImages(wc)
 
 	collector.UpdateFileUrls(wc)
 
@@ -261,18 +260,18 @@ func (collector ZsxqApiCollector) UpdateResult(wc *working_context.ApiCollectorW
 	return nil
 }
 
-func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
+func (z ZsxqApiCollector) CollectOneSubsourceOnePage(
 	task *protocol.PanopticTask,
 	subsource *protocol.PanopticSubSource,
 	paginationInfo *working_context.PaginationInfo,
 ) error {
 	client := NewHttpClientFromTaskParams(task)
-	url := collector.ConstructUrl(task, subsource, paginationInfo)
+	url := z.ConstructUrl(task, subsource, paginationInfo)
 	resp, err := client.Get(url)
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	res := &ZsxqApiResponse{}
 	err = json.Unmarshal(body, res)
 	if err != nil {
@@ -287,8 +286,9 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 		// working context for each message
 		workingContext := &working_context.ApiCollectorWorkingContext{
 			SharedContext: working_context.SharedContext{
-				Task:   task,
-				Result: &protocol.CrawlerMessage{},
+				Task:                 task,
+				Result:               &protocol.CrawlerMessage{},
+				IntentionallySkipped: false,
 			},
 			PaginationInfo:  paginationInfo,
 			ApiUrl:          url,
@@ -297,17 +297,15 @@ func (collector ZsxqApiCollector) CollectOneSubsourceOnePage(
 			ApiResponseItem: topic,
 		}
 		InitializeApiCollectorResult(workingContext)
-		err := collector.UpdateResult(workingContext)
+		err := z.UpdateResult(workingContext)
 		if err != nil {
 			task.TaskMetadata.TotalMessageFailed++
 			return utils.ImmediatePrintError(err)
-		} else if err = collector.Sink.Push(workingContext.Result); err != nil {
-			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-			task.TaskMetadata.TotalMessageFailed++
-			return utils.ImmediatePrintError(err)
 		}
-		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.Debug(workingContext.Result.Post.Content)
+
+		if workingContext.Result != nil {
+			sink.PushResultToSinkAndRecordInTaskMetadata(z.Sink, workingContext)
+		}
 	}
 
 	SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))

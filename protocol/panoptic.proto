@@ -43,6 +43,11 @@ message TaskParams {
 
   repeated PanopticSubSource sub_sources = 4;
 
+  // Used in scheduler, when multiple subsources are presented in a single 
+  // PanopticTask, it should split it into multiple scheduler jobs, each 
+  // contains at most ${max_subsource_per_task} sub sources.
+  int64 max_subsource_per_task = 5;
+
   // offsite of domain specific param from 20, <20 is for shared fields
   // Domain specific params that will be passed in to customize the task 
   // execution. For example, you'll pass in Weibo/Twitter/ZSXQ user id as part

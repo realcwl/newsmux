@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -14,7 +14,6 @@ import (
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -108,7 +107,7 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 		return "", utils.ImmediatePrintError(err)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", utils.ImmediatePrintError(err)
 	}
@@ -125,10 +124,10 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 		return "", utils.ImmediatePrintError(fmt.Errorf("response not success: %v", res))
 	}
 
-	return collector.HtmlToText(res.Data.LongTextContent)
+	return res.Data.LongTextContent, nil
 }
 
-func (collector WeiboApiCollector) UppdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
+func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	post.ImageUrls = []string{}
 	for _, pic := range mBlog.Pics {
 		key, err := collector.ImageStore.FetchAndStore(pic.URL, "")
@@ -154,7 +153,7 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 		post.SubSource.AvatarUrl = "https://weibo.com/" + fmt.Sprint(mBlog.User.ID) + "/" + mBlog.Bid
 		post.SubSource.ExternalId = fmt.Sprint(mBlog.User.ID)
 	}
-	w.UppdateImages(mBlog, post)
+	w.UpdateImages(mBlog, post)
 	// overwrite task level url by post url
 	post.OriginUrl = "https://m.weibo.cn/detail/" + mBlog.ID
 	if strings.Contains(mBlog.Text, ">全文<") {
@@ -171,6 +170,12 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 	} else {
 		post.Content = mBlog.Text
 	}
+
+	post.Content, err = collector.HtmlToText(post.Content)
+	if err != nil {
+		return err
+	}
+
 	post.Content = collector.LineBreakerToSpace(post.Content)
 
 	err = w.UpdateDedupId(post)
@@ -206,7 +211,7 @@ func (w WeiboApiCollector) CollectOneSubsourceOnePage(
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
@@ -222,7 +227,7 @@ func (w WeiboApiCollector) CollectOneSubsourceOnePage(
 	for _, card := range res.Data.Cards {
 		// working context for each message
 		workingContext := &working_context.ApiCollectorWorkingContext{
-			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}},
+			SharedContext:  working_context.SharedContext{Task: task, Result: &protocol.CrawlerMessage{}, IntentionallySkipped: false},
 			PaginationInfo: paginationInfo,
 			ApiUrl:         url,
 			SubSource:      subsource,
@@ -233,18 +238,15 @@ func (w WeiboApiCollector) CollectOneSubsourceOnePage(
 		if err != nil {
 			task.TaskMetadata.TotalMessageFailed++
 			return utils.ImmediatePrintError(err)
-		} else if err = w.Sink.Push(workingContext.Result); err != nil {
-			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-			task.TaskMetadata.TotalMessageFailed++
-			return utils.ImmediatePrintError(err)
 		}
-		task.TaskMetadata.TotalMessageCollected++
-		Logger.Log.Debug(workingContext.Result.Post.Content)
+
+		if workingContext.Result != nil {
+			sink.PushResultToSinkAndRecordInTaskMetadata(w.Sink, workingContext)
+		}
 	}
 
 	// Set next page identifier
 	paginationInfo.NextPageId = fmt.Sprint(res.Data.CardlistInfo.Page)
-	collector.SetErrorBasedOnCounts(task, url, fmt.Sprintf("subsource: %s, body: %s", subsource.Name, string(body)))
 	return nil
 }
 
@@ -256,17 +258,23 @@ func (w WeiboApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subs
 		NextPageId:       "1",
 	}
 
+	maxPages := 1
+	if task.TaskParams.GetWeiboTaskParams() != nil {
+		maxPages = int(task.TaskParams.GetWeiboTaskParams().MaxPages)
+	}
+
 	for {
 		err := w.CollectOneSubsourceOnePage(task, subsource, &paginationInfo)
 		if err != nil {
 			return err
 		}
 		paginationInfo.CurrentPageCount++
-		if task.GetTaskParams() == nil || paginationInfo.CurrentPageCount > int(task.TaskParams.GetWeiboTaskParams().MaxPages) {
+		if task.GetTaskParams() == nil || paginationInfo.CurrentPageCount > maxPages {
 			break
 		}
 	}
 
+	collector.SetErrorBasedOnCounts(task, "weibo")
 	return nil
 }
 

@@ -1,12 +1,15 @@
 package sink
 
 import (
+	"encoding/base64"
+
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -45,11 +48,18 @@ func (s *SnsSink) Push(msg *protocol.CrawlerMessage) error {
 		Logger.Log.Warn("push empty message into queue")
 		return nil
 	}
-	serializedMsg := msg.String()
+
+	serializedMsg, err := proto.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	// we use base64 encoded string in sns
+	b64 := base64.StdEncoding.EncodeToString([]byte(serializedMsg))
+
 	messageGroup := "global_queue"
 	// ignore the returned seq number for FIFO
-	_, err := s.client.Publish(&sns.PublishInput{
-		Message:                &serializedMsg,
+	_, err = s.client.Publish(&sns.PublishInput{
+		Message:                &b64,
 		TopicArn:               &s.arn,
 		MessageGroupId:         &messageGroup,
 		MessageDeduplicationId: &msg.Post.DeduplicateId,

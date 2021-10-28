@@ -1,7 +1,7 @@
 package publisher
 
 import (
-	b64 "encoding/base64"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"sync"
@@ -48,8 +48,8 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(sqsRea
 	// TODO: process in parallel, but can involve time ordering issue
 	// Process all messages
 	for _, msg := range msgs {
-		if decodedMsg, err := processor.ProcessOneCralwerMessage(msg); err != nil {
-			Log.Errorf("fail process one crawler message. err: %s , message: %s", err, decodedMsg)
+		if _, err := processor.ProcessOneCralwerMessage(msg); err != nil {
+			Log.Errorf("fail process one crawler message. err: %s , message: %s", err, *msg.Message)
 			continue
 		}
 		successCount++
@@ -194,8 +194,7 @@ func (processor *CrawlerpublisherMessageProcessor) MatchMessageWithFeeds(feedCan
 // Step3. do publishing with new post, also handle recursive shared_from posts
 // Step4. if publishing succeeds, delete message in queue
 func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg *MessageQueueMessage) (*CrawlerMessage, error) {
-	Log.Info("process queued message")
-
+	// TODO: bump counter in ddog for number of message processed
 	decodedMsg, err := processor.decodeCrawlerMessage(msg)
 	if err != nil {
 		processor.Reader.DeleteMessage(msg)
@@ -204,8 +203,9 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	fmt.Println(decodedMsg)
 
 	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
-	if duplicated, existingPost := processor.findDuplicatedPost(decodedMsg); duplicated == true {
-		Log.Infof("[duplicated message] message has already been processed, existing deduplicate_id: %s, existing post_id: %s ", decodedMsg.Post.DeduplicateId, existingPost.Id)
+	if duplicated, _ := processor.findDuplicatedPost(decodedMsg); duplicated == true {
+		// Log.Infof("[duplicated message] message has already been processed, existing deduplicate_id: %s, existing post_id: %s ", decodedMsg.Post.DeduplicateId, existingPost.Id)
+		// TODO: bump counter for deduplicated messages
 		err := processor.Reader.DeleteMessage(msg)
 		return decodedMsg, err
 	}
@@ -257,7 +257,7 @@ func (processor *CrawlerpublisherMessageProcessor) decodeCrawlerMessage(msg *Mes
 		return nil, err
 	}
 
-	sDec, err := b64.StdEncoding.DecodeString(str)
+	sDec, err := base64.StdEncoding.DecodeString(str)
 	if err != nil {
 		return nil, err
 	}

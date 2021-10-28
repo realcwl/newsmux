@@ -24,6 +24,9 @@ jobs: {
                     skip_key_words:  "【黄金操作策略】"
                 }
             }
+            task_metadata: {
+				config_name: "jinse_config"
+			}
         }
 	]
 	debug: true

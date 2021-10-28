@@ -1,0 +1,89 @@
+# This file should contain all Wallstreet job variations, each of different 
+# job_id, please do not add non-Wallstreet jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector'xs name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "weibo_job"
+	tasks: [
+		{
+			task_id: "weibo_task"
+			data_collector_id: COLLECTOR_WEIBO
+			task_params: {
+				source_id: "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
+                sub_sources: [
+                {name: "caoz",type: USERS, external_id: "1495169251"},
+                {name: "雷尼尔雪山2021",type: USERS, external_id: "7386730191"},
+                {name: "whigzhou",type: USERS, external_id: "1400461002"},
+                {name: "徐佳杰plus",type: USERS, external_id: "6874177470"},
+                {name: "深圳宁南山",type: USERS, external_id: "6120483044"},
+                {name: "InquilineXx",type: USERS, external_id: "7371905227"},
+                {name: "InquilineX",type: USERS, external_id: "7270676547"},
+                {name: "数鸽科技",type: USERS, external_id: "7227683153"},
+                {name: "破破的桥",type: USERS, external_id: "1459358890"},
+                {name: "证监会发布",type: USERS, external_id: "3802136340"},
+                {name: "冯柳",type: USERS, external_id: "7399242030"},
+                {name: "破晓笔记",type: USERS, external_id: "1503064157"},
+                {name: "Degg_GlobalMacroFin",type: USERS, external_id: "2453509265"},
+                {name: "LIQUIDITY_NOTES",type: USERS, external_id: "2910798481"},
+                {name: "格隆",type: USERS, external_id: "1237419703"},
+                {name: "BLUEHOT_LX",type: USERS, external_id: "1440523370"},
+                {name: "tombkeeper",type: USERS, external_id: "1401527553"},
+                {name: "包叔",type: USERS, external_id: "6557248346"},
+                {name: "列奥立远",type: USERS, external_id: "1913827125"},
+                {name: "风林火山行者",type: USERS, external_id: "1884548883"},
+                {name: "五花王II",type: USERS, external_id: "7037833306"},
+                {name: "混沌不是混混沌沌",type: USERS, external_id: "1910408952"},
+                {name: "何夕",type: USERS, external_id: "1667517061"},
+                {name: "sniper-china",type: USERS, external_id: "2215128543"},
+                {name: "张化桥",type: USERS, external_id: "1965945984"},
+                {name: "何不笑",type: USERS, external_id: "1980508763"},
+                {name: "Lypsey",type: USERS, external_id: "1460113933"},
+                {name: "LiquidCapital",type: USERS, external_id: "1731916863"},
+                {name: "兰小欢",type: USERS, external_id: "1808814424"},
+                {name: "JasonGKwok",type: USERS, external_id: "1656966370"},
+                {name: "付鹏的财经世界",type: USERS, external_id: "1769173661"},
+                {name: "Hydrocracking大地采集者",type: USERS, external_id: "1940065845"},
+                {name: "nieuwfinder",type: USERS, external_id: "1025911070"},
+                {name: "简容·",type: USERS, external_id: "1707465002"},
+                {name: "者行山火林风",type: USERS, external_id: "7384845399"},
+                {name: "理白君",type: USERS, external_id: "6094157890"},
+                {name: "伦敦大爵爷",type: USERS, external_id: "6608086466"},
+                {name: "Celestial_Vault",type: USERS, external_id: "1144578944"},
+                {name: "奶牛",type: USERS, external_id: "1243706512"},
+                {name: "LoneSchicksal",type: USERS, external_id: "1645776681"},
+                {name: "乐趣的微博",type: USERS, external_id: "1831200480"},
+                {name: "数据分析研究者",type: USERS, external_id: "5628021879"},
+                {name: "椒图火象",type: USERS, external_id: "1614106000"},
+                {name: "理咚葆",type: USERS, external_id: "1845429332"},
+                {name: "trader2011",type: USERS, external_id: "2047833231"},
+                {name: "我还是得当一个科学家",type: USERS, external_id: "2127781213"},
+                {name: "向小田",type: USERS, external_id: "1660079292"},
+                {name: "股社区",type: USERS, external_id: "2369080114"},
+                {name: "包特_ExpEcon",type: USERS, external_id: "1919289643"},
+                {name: "唐史主任司马迁",type: USERS, external_id: "2014433131"},
+                {name: "饭统戴老板",type: USERS, external_id: "1663373597"},
+                {name: "cestque",type: USERS, external_id: "1729995650"},
+                {name: "学经济家",type: USERS, external_id: "1734701321"},
+                {name: "理性的白痴",type: USERS, external_id: "1946021112"},
+                {name: "Value_at_Risk",type: USERS, external_id: "2031030981"},
+                {name: "月风_投资笔记",type: USERS, external_id: "1670659923"},
+                {name: "Hedgie",type: USERS, external_id: "1770123135"},
+                {name: "易伟",type: USERS, external_id: "1862695480"},
+                {name: "石磊Attractor_MS",type: USERS, external_id: "1969917147"},
+                {name: "荣大一姐",type: USERS, external_id: "6431633590"},
+                {name: "中环老季",type: USERS, external_id: "6723106704"},
+                {name: "yanhaijin",type: USERS, external_id: "1318809415"},
+                {name: "Mikko朱尘",type: USERS, external_id: "1783819374"},
+                {name: "于杰-时运变迁",type: USERS, external_id: "1957056974"},
+                {name: "北京塞冬",type: USERS, external_id: "2191707743"},
+                {name: "伊洛牧",type: USERS, external_id: "2987102112"},
+                {name: "Value_at_risk_1",type: USERS, external_id: "5894926648"},
+                {name: "冲波逐浪",type: USERS, external_id: "6113037558"}]
+			}
+			task_metadata: {
+				config_name: "weibo_config"
+			}
+		}
+	]
+	debug: true
+}

@@ -5,11 +5,14 @@ import (
 
 	collector_hander "github.com/Luismorlan/newsmux/collector/handler"
 	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/log"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
 // for local test zsxq collector
 func main() {
+	InitLogger()
+
 	job := protocol.PanopticJob{
 		Tasks: []*protocol.PanopticTask{{
 			TaskId:          "123",
