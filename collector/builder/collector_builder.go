@@ -45,3 +45,7 @@ func (CollectorBuilder) NewWisburgCrawler(s sink.CollectedDataSink) DataCollecto
 func (CollectorBuilder) NewKe36ApiCollector(s sink.CollectedDataSink) DataCollector {
 	return &Kr36ApiCollector{Sink: s}
 }
+
+func (CollectorBuilder) NewCaUsNewsCrawlerCollector(s sink.CollectedDataSink) DataCollector {
+	return &CaUsNewsCrawler{Sink: s}
+}
