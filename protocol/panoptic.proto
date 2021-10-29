@@ -57,6 +57,7 @@ message TaskParams {
     WeiboTaskParams weibo_task_params = 21;
     ZsxqTaskParams zsxq_task_params = 22;
     WallstreetNewsTaskParams wallstreet_news_task_params = 23; 
+    WisburgParams wisburg_task_params = 24;
   }
 }
 
@@ -104,6 +105,7 @@ message PanopticTask {
     COLLECTOR_WALLSTREET_NEWS= 5;
     COLLECTOR_JINSE = 6;
     COLLECTOR_CAUS_ARTICLE= 7;
+    COLLECTOR_WISBURG = 8;
     // ...
   }
 
@@ -179,4 +181,16 @@ message WallstreetNewsTaskParams {
 
 message ZsxqTaskParams {
   int32 count_per_request = 1;
+}
+
+message WisburgParams {
+  enum ChannelType {
+    CHANNEL_TYPE_UNSPECIFIED = 0;
+    // Posts from https://wisburg.com/viewpoint
+    CHANNEL_TYPE_VIEWPOINT = 1;
+    // Posts from https://wisburg.com/research
+    CHANNEL_TYPE_RESEARCH = 2;
+  } 
+  // Specify what channels to crawl for Wisburg.
+  repeated ChannelType channel_type = 1;
 }
