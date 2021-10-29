@@ -1,0 +1,24 @@
+# This file should contain all jin10 job variations, each of different 
+# job_id, please do not add non-jin10 jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "kr36_job"
+	tasks: [
+		{
+            task_id:  "kr36_task"
+            data_collector_id:  COLLECTOR_KR36
+            task_params:  {
+                source_id:  "c0ae802e-3c12-4144-86ca-ab0f8fe629ce"
+                sub_sources:  {
+                    name:  "快讯"
+                    type:  FLASHNEWS
+                }
+            }
+            task_metadata: {
+				config_name: "kr36_config"
+			}
+        }
+	]
+	debug: true
+}

@@ -106,6 +106,7 @@ message PanopticTask {
     COLLECTOR_JINSE = 6;
     COLLECTOR_CAUS_ARTICLE= 7;
     COLLECTOR_WISBURG = 8;
+    COLLECTOR_KR36 = 9;
     // ...
   }
 
