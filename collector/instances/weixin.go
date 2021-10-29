@@ -101,7 +101,7 @@ func (w WeixinArticleRssCollector) UpdateResultFromArticle(
 	post.SubSource.Name = workingContext.SubSource.Name
 	post.SubSource.AvatarUrl = res.Image.URL
 	post.SubSource.ExternalId = workingContext.SubSource.ExternalId
-	post.OriginUrl = res.Link
+	post.OriginUrl = article.Link
 	post.Title = article.Title
 
 	var re = regexp.MustCompile(`\<\!*\-*\[CDATA\[(.*)\]\]>`)

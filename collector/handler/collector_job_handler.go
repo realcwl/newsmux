@@ -121,6 +121,10 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 			return err
 		}
 		collector = builder.NewWeixinRssCollector(sink, weixinImageStore)
+	case protocol.PanopticTask_COLLECTOR_WISBURG:
+		collector = builder.NewWisburgCrawler(sink)
+	case protocol.PanopticTask_COLLECTOR_KR36:
+		collector = builder.NewKe36ApiCollector(sink)
 	default:
 		return errors.New("unknown task data collector id")
 	}
