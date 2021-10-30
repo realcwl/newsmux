@@ -1,0 +1,33 @@
+# This file should contain all Caixin job variations, each of different 
+# job_id, please do not add non-Caixin jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "caixin_job"
+	tasks: [
+		{
+      task_id:  "caixin_task"
+      data_collector_id:  COLLECTOR_CAIXIN
+      task_params:  {
+        source_id:  "cc2a61b1-721f-4529-8afc-6da686f23b36"
+        sub_sources:  [{
+          name:  "金融"
+          type:  CHANNEL
+          link:  "https://finance.caixin.com/"
+        }, {
+          name:  "经济"
+          type:  CHANNEL
+          link:  "https://economy.caixin.com/"
+        }, {
+          name: "公司"
+          type: CHANNEL
+          link: "https://companies.caixin.com/"
+        }]
+      }
+      task_metadata: {
+        config_name: "caixin_config"
+      }
+    }
+	]
+	debug: true
+}

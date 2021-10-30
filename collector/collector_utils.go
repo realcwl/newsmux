@@ -29,6 +29,7 @@ const (
 	WeixinSourceId            = "0f90f563-7c95-4be0-a592-7e5666f02c33"
 	WisburgSourceId           = "bb3c8ee2-c81e-43d9-8d98-7a6bb6ca0238"
 	Kr36SourceId              = "c0ae802e-3c12-4144-86ca-ab0f8fe629ce"
+	CaixinSourceId            = "cc2a61b1-721f-4529-8afc-6da686f23b36"
 	WallstreetArticleSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
 )
 
@@ -87,6 +88,8 @@ func GetSourceLogoUrl(sourceId string) string {
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wisburg.png"
 	case Kr36SourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/36ke.png"
+	case CaixinSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/caixin.png"
 	default:
 		return ""
 	}
@@ -97,9 +100,9 @@ func InitializeCrawlerResult(workingContext *working_context.CrawlerWorkingConte
 	workingContext.Result.Post.SubSource = &protocol.CrawledSubSource{}
 	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
 	workingContext.Result.Post.SubSource.AvatarUrl = GetSourceLogoUrl(workingContext.Task.TaskParams.SourceId)
-	if workingContext.Subsource != nil {
-		workingContext.Result.Post.SubSource.Name = workingContext.Subsource.Name
-		workingContext.Result.Post.SubSource.ExternalId = workingContext.Subsource.ExternalId
+	if workingContext.SubSource != nil {
+		workingContext.Result.Post.SubSource.Name = workingContext.SubSource.Name
+		workingContext.Result.Post.SubSource.ExternalId = workingContext.SubSource.ExternalId
 	}
 	workingContext.Result.CrawledAt = timestamppb.Now()
 	workingContext.Result.CrawlerVersion = "1"

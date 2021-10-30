@@ -128,7 +128,7 @@ func (w WallstreetArticleCollector) CollectAndPublish(task *protocol.PanopticTas
 		c.OnHTML(w.GetQueryPath(), func(elem *colly.HTMLElement) {
 			var err error
 			workingContext := &working_context.CrawlerWorkingContext{
-				SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, Element: elem, OriginUrl: w.GetStartUri(subSource), Subsource: subSource}
+				SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, Element: elem, OriginUrl: w.GetStartUri(subSource), SubSource: subSource}
 			collector.InitializeCrawlerResult(workingContext)
 			if err = w.GetMessage(workingContext); err != nil {
 				metadata.TotalMessageFailed++
