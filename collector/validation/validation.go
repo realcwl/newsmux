@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Luismorlan/newsmux/collector"
@@ -176,7 +177,10 @@ func validateMessagePostIsSetCorrectly(msg *protocol.CrawlerMessage) error {
 
 	if (msg.Post.SharedFromCrawledPost == nil && isPostWithEmptyContent(msg.Post)) ||
 		(isPostWithEmptyContent(msg.Post) && (msg.Post.SharedFromCrawledPost == nil || isPostWithEmptyContent(msg.Post.SharedFromCrawledPost))) {
-		return errors.New("crawled post must have Content / Image / File")
+		if !strings.Contains(msg.Post.OriginUrl, "weixin") {
+			// Weixin is an exception given the fact that weixin posts can be an image and link to original article
+			return errors.New("crawled post must have Content / Image / File")
+		}
 	}
 
 	if msg.Post.ContentGeneratedAt == nil {
