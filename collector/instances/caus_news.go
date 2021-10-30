@@ -63,7 +63,7 @@ func (caus CaUsNewsCrawler) UpdateDedupId(post *protocol.CrawlerMessage_CrawledP
 func (caus CaUsNewsCrawler) UpdateResult(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(CaUsNewsResponseItem)
 	post := wc.Result.Post
-	generatedTime := time.UnixMilli(item.PublishTime)
+	generatedTime := time.Unix(item.PublishTime/1000, 0)
 	post.ContentGeneratedAt = timestamppb.New(generatedTime)
 
 	post.OriginUrl = ""
