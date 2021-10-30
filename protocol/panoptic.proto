@@ -58,6 +58,7 @@ message TaskParams {
     ZsxqTaskParams zsxq_task_params = 22;
     WallstreetNewsTaskParams wallstreet_news_task_params = 23; 
     WisburgParams wisburg_task_params = 24;
+    CaUsNewsTaskParams caus_news_task_params = 25;
   }
 }
 
@@ -108,7 +109,8 @@ message PanopticTask {
     COLLECTOR_WISBURG = 8;
     COLLECTOR_KR36 = 9;
     COLLECTOR_WEIXIN_ARTICLE= 10;
-    COLLECTOR_CAIXIN = 11;
+    COLLECTOR_CAUS_NEWS= 11;
+    COLLECTOR_CAIXIN = 12;
     // ...
   }
 
@@ -203,4 +205,10 @@ message WisburgParams {
   } 
   // Specify what channels to crawl for Wisburg.
   repeated ChannelType channel_type = 1;
+}
+
+// Caus news has 4 items per page, using timestamp as cursor to query next batch
+message CaUsNewsTaskParams {
+  int32 max_pages = 1;
+  int32 lanmu_id = 2;
 }
