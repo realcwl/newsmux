@@ -107,6 +107,7 @@ message PanopticTask {
     COLLECTOR_CAUS_ARTICLE= 7;
     COLLECTOR_WISBURG = 8;
     COLLECTOR_KR36 = 9;
+    COLLECTOR_WEIXIN_ARTICLE= 10;
     // ...
   }
 

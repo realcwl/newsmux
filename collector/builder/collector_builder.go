@@ -38,6 +38,10 @@ func (CollectorBuilder) NewJinseApiCollector(s sink.CollectedDataSink) DataColle
 	return &JinseApiCrawler{Sink: s}
 }
 
+func (CollectorBuilder) NewWeixinRssCollector(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore) DataCollector {
+	return &WeixinArticleRssCollector{Sink: s, ImageStore: imageStore}
+}
+
 func (CollectorBuilder) NewWisburgCrawler(s sink.CollectedDataSink) DataCollector {
 	return &WisburgCrawler{Sink: s}
 }

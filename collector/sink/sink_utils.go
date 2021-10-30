@@ -17,6 +17,8 @@ func PushResultToSinkAndRecordInTaskMetadata(s CollectedDataSink, workingContext
 		shared_context = &workingContext.SharedContext
 	case *working_context.ApiCollectorWorkingContext:
 		shared_context = &workingContext.SharedContext
+	case *working_context.RssCollectorWorkingContext:
+		shared_context = &workingContext.SharedContext
 	}
 
 	if err := validation.ValidateSharedContext(shared_context); err != nil {

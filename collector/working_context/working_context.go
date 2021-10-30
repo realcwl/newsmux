@@ -43,6 +43,16 @@ type ApiCollectorWorkingContext struct {
 	ApiResponseItem interface{}
 }
 
+// This is the context we keep to be used for all steps
+// for a post
+type RssCollectorWorkingContext struct {
+	SharedContext
+
+	RssUrl          string
+	SubSource       *protocol.PanopticSubSource
+	RssResponseItem interface{}
+}
+
 func (sc *SharedContext) String() string {
 	return fmt.Sprintf("==SharedContext is==\ntask: \n%s\nresult:\n%s\n", sc.Task.String(), sc.Result.String())
 }
