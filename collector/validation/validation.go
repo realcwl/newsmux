@@ -162,9 +162,6 @@ func validateMessageSubSourceIsSetCorrectly(msg *protocol.CrawlerMessage) error 
 }
 
 func isPostWithEmptyContent(post *protocol.CrawlerMessage_CrawledPost) bool {
-	if post == nil {
-		return false
-	}
 	return post.Content == "" && len(post.ImageUrls) == 0 && len(post.FilesUrls) == 0
 }
 
@@ -173,7 +170,12 @@ func isPostWithEmptyContent(post *protocol.CrawlerMessage_CrawledPost) bool {
 // - It is associated with a generated time to render correct timestamp
 // - It has a deduplicateId
 func validateMessagePostIsSetCorrectly(msg *protocol.CrawlerMessage) error {
-	if isPostWithEmptyContent(msg.Post) || isPostWithEmptyContent(msg.Post.SharedFromCrawledPost) {
+	if msg.Post == nil {
+		return errors.New("crawled post must have be set")
+	}
+
+	if (msg.Post.SharedFromCrawledPost == nil && isPostWithEmptyContent(msg.Post)) ||
+		(isPostWithEmptyContent(msg.Post) && (msg.Post.SharedFromCrawledPost == nil || isPostWithEmptyContent(msg.Post.SharedFromCrawledPost))) {
 		return errors.New("crawled post must have Content / Image / File")
 	}
 
