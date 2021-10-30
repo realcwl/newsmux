@@ -86,13 +86,11 @@ func (w WallstreetArticleCollector) CollectAndPublish(task *protocol.PanopticTas
 	metadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
 
 	for _, subSource := range task.TaskParams.SubSources {
-		fmt.Println("fuck2", subSource.Name)
 		c := colly.NewCollector()
 		// each crawled card(news) will go to this
 		// for each page loaded, there are multiple calls into this func
 
 		c.OnHTML(w.GetQueryPath(), func(elem *colly.HTMLElement) {
-			fmt.Println("fuck", string(elem.Response.Body))
 			var err error
 			workingContext := &working_context.CrawlerWorkingContext{
 				SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, Element: elem, OriginUrl: w.GetStartUri(subSource)}
