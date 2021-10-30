@@ -50,6 +50,10 @@ func (CollectorBuilder) NewKe36ApiCollector(s sink.CollectedDataSink) DataCollec
 	return &Kr36ApiCollector{Sink: s}
 }
 
+func (CollectorBuilder) NewWallstreetNewsArticleCollector(s sink.CollectedDataSink) DataCollector {
+	return &WallstreetArticleCollector{Sink: s}
+}
+
 func (CollectorBuilder) NewCaUsNewsCrawlerCollector(s sink.CollectedDataSink) DataCollector {
 	return &CaUsNewsCrawler{Sink: s}
 }

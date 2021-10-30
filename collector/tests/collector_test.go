@@ -333,6 +333,46 @@ func TestWeiboCollectorHandler(t *testing.T) {
 	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
 }
 
+func TestWallstreetArticleCollectorHandler(t *testing.T) {
+	job := protocol.PanopticJob{
+		Tasks: []*protocol.PanopticTask{{
+			TaskId:          "123",
+			DataCollectorId: protocol.PanopticTask_COLLECTOR_WALLSTREET_ARTICLE,
+			TaskParams: &protocol.TaskParams{
+				HeaderParams: []*protocol.KeyValuePair{},
+				Cookies:      []*protocol.KeyValuePair{},
+				SourceId:     "66251821-ef9a-464c-bde9-8b2fd8ef2405",
+				SubSources: []*protocol.PanopticSubSource{
+					{
+						Name:       "股市",
+						Type:       protocol.PanopticSubSource_ARTICLE,
+						ExternalId: "shares",
+					},
+					{
+						Name:       "债市",
+						Type:       protocol.PanopticSubSource_ARTICLE,
+						ExternalId: "bonds",
+					},
+				},
+			},
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_wallstreet_config",
+			},
+		},
+		},
+	}
+	var handler DataCollectJobHandler
+	err := handler.Collect(&job)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(job.Tasks))
+	require.Equal(t, "123", job.Tasks[0].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
+	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
+}
+
 func TestWallstreetNewsCollectorHandler(t *testing.T) {
 	job := protocol.PanopticJob{
 		Tasks: []*protocol.PanopticTask{{

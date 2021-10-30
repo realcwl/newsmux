@@ -20,16 +20,17 @@ import (
 )
 
 const (
-	Jin10SourceId          = "a882eb0d-0bde-401a-b708-a7ce352b7392"
-	WeiboSourceId          = "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
-	KuailansiSourceId      = "6e1f6734-985b-4a52-865f-fc39a9daa2e8"
-	WallstreetNewsSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
-	JinseSourceId          = "5891f435-d51e-4575-b4af-47cd4ede5607"
-	CaUsSourceId           = "1c6ab31c-aebe-40ba-833d-7cc2d977e5a1"
-	WeixinSourceId         = "0f90f563-7c95-4be0-a592-7e5666f02c33"
-	WisburgSourceId        = "bb3c8ee2-c81e-43d9-8d98-7a6bb6ca0238"
-	Kr36SourceId           = "c0ae802e-3c12-4144-86ca-ab0f8fe629ce"
-	CaixinSourceId         = "cc2a61b1-721f-4529-8afc-6da686f23b36"
+	Jin10SourceId             = "a882eb0d-0bde-401a-b708-a7ce352b7392"
+	WeiboSourceId             = "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
+	KuailansiSourceId         = "6e1f6734-985b-4a52-865f-fc39a9daa2e8"
+	WallstreetNewsSourceId    = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
+	JinseSourceId             = "5891f435-d51e-4575-b4af-47cd4ede5607"
+	CaUsSourceId              = "1c6ab31c-aebe-40ba-833d-7cc2d977e5a1"
+	WeixinSourceId            = "0f90f563-7c95-4be0-a592-7e5666f02c33"
+	WisburgSourceId           = "bb3c8ee2-c81e-43d9-8d98-7a6bb6ca0238"
+	Kr36SourceId              = "c0ae802e-3c12-4144-86ca-ab0f8fe629ce"
+	CaixinSourceId            = "cc2a61b1-721f-4529-8afc-6da686f23b36"
+	WallstreetArticleSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
 )
 
 // Hard code subsource type to name
@@ -98,9 +99,11 @@ func InitializeCrawlerResult(workingContext *working_context.CrawlerWorkingConte
 	workingContext.Result = &protocol.CrawlerMessage{Post: &protocol.CrawlerMessage_CrawledPost{}}
 	workingContext.Result.Post.SubSource = &protocol.CrawledSubSource{}
 	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
-	// subsource default logo will be source logo, unless overwirte
-	// like weibo
 	workingContext.Result.Post.SubSource.AvatarUrl = GetSourceLogoUrl(workingContext.Task.TaskParams.SourceId)
+	if workingContext.SubSource != nil {
+		workingContext.Result.Post.SubSource.Name = workingContext.SubSource.Name
+		workingContext.Result.Post.SubSource.ExternalId = workingContext.SubSource.ExternalId
+	}
 	workingContext.Result.CrawledAt = timestamppb.Now()
 	workingContext.Result.CrawlerVersion = "1"
 	workingContext.Result.IsTest = !utils.IsProdEnv()

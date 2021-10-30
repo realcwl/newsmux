@@ -1,0 +1,50 @@
+# This file should contain all Wallstreet Article job variations, each of different 
+# job_id, please do not add non-Wallstreet Article jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "wallstreet_article_job"
+	tasks: [
+		{
+			task_id: "wallstreet_article_task"
+			data_collector_id: COLLECTOR_WALLSTREET_ARTICLE
+			task_params: {
+				source_id: "66251821-ef9a-464c-bde9-8b2fd8ef2405"
+				sub_sources: [{
+                    name: "股市"
+                    type: ARTICLE
+                    external_id:  "shares"
+                },
+                {
+                    name: "债市"
+                    type: ARTICLE
+                    external_id:  "bonds"
+                },
+                {
+                    name: "商品"
+                    type: ARTICLE
+                    external_id:  "commodities"
+                },
+                {
+                    name: "外汇"
+                    type: ARTICLE
+                    external_id:  "forex"
+                },
+                {
+                    name: "公司"
+                    type: ARTICLE
+                    external_id:  "enterprise"
+                },
+                {
+                    name: "经济"
+                    type: ARTICLE
+                    external_id:  "economy"
+                }]
+			}
+			task_metadata: {
+				config_name: "wallstreet_article_config"
+			}
+		}
+	]
+	debug: true
+}

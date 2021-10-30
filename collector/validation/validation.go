@@ -54,6 +54,8 @@ func getSourceIdFromDataCollectorId(collectorId protocol.PanopticTask_DataCollec
 		return collector.WisburgSourceId
 	case protocol.PanopticTask_COLLECTOR_KR36:
 		return collector.Kr36SourceId
+	case protocol.PanopticTask_COLLECTOR_WALLSTREET_ARTICLE:
+		return collector.WallstreetArticleSourceId
 	case protocol.PanopticTask_COLLECTOR_CAUS_NEWS:
 		return collector.CaUsSourceId
 	case protocol.PanopticTask_COLLECTOR_CAIXIN:
@@ -159,13 +161,20 @@ func validateMessageSubSourceIsSetCorrectly(msg *protocol.CrawlerMessage) error 
 	return nil
 }
 
+func isPostWithEmptyContent(post *protocol.CrawlerMessage_CrawledPost) bool {
+	if post == nil {
+		return false
+	}
+	return post.Content == "" && len(post.ImageUrls) == 0 && len(post.FilesUrls) == 0
+}
+
 // A Post is valid iff:
 // - It has content
 // - It is associated with a generated time to render correct timestamp
 // - It has a deduplicateId
 func validateMessagePostIsSetCorrectly(msg *protocol.CrawlerMessage) error {
-	if msg.Post.Content == "" {
-		return errors.New("crawled post must have Content at least")
+	if isPostWithEmptyContent(msg.Post) || isPostWithEmptyContent(msg.Post.SharedFromCrawledPost) {
+		return errors.New("crawled post must have Content / Image / File")
 	}
 
 	if msg.Post.ContentGeneratedAt == nil {
