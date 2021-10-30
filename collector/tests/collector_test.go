@@ -364,13 +364,13 @@ func TestWallstreetArticleCollectorHandler(t *testing.T) {
 	var handler DataCollectJobHandler
 	err := handler.Collect(&job)
 	require.NoError(t, err)
-	// require.Equal(t, 1, len(job.Tasks))
-	// require.Equal(t, "123", job.Tasks[0].TaskId)
-	// require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
-	// require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
-	// require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
-	// require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
-	// require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
+	require.Equal(t, 1, len(job.Tasks))
+	require.Equal(t, "123", job.Tasks[0].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
+	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
 }
 
 func TestWallstreetNewsCollectorHandler(t *testing.T) {
