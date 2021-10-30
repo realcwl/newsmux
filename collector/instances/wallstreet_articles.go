@@ -21,28 +21,6 @@ type WallstreetArticleCollector struct {
 	Sink sink.CollectedDataSink
 }
 
-type WallstreetArticleItem struct {
-	Title       string `json:"title"`
-	Content     string `json:"content"`
-	ContentText string `json:"content_text"`
-	DisplayTime int    `json:"display_time"`
-	ID          int    `json:"id"`
-	Score       int    `json:"score"`
-	Article     *struct {
-		Title string `json:"title"`
-		URI   string `json:"uri"`
-	} `json:"article"`
-	Author *struct {
-		DisplayName string `json:"display_name"`
-	} `json:"author"`
-}
-
-func (w WallstreetArticleItem) IsItemSkippable() bool {
-	// Check if item is skippable
-	// Economic stats must be skipped
-	return w.Author != nil && w.Author.DisplayName == "数据团队"
-}
-
 func (w WallstreetArticleCollector) UpdateFileUrls(workingContext *working_context.ApiCollectorWorkingContext) error {
 	return errors.New("UpdateFileUrls not implemented, should not be called")
 }
