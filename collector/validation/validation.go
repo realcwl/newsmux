@@ -60,6 +60,8 @@ func getSourceIdFromDataCollectorId(collectorId protocol.PanopticTask_DataCollec
 		return collector.WisburgSourceId
 	case protocol.PanopticTask_COLLECTOR_KR36:
 		return collector.Kr36SourceId
+	case protocol.PanopticTask_COLLECTOR_WALLSTREET_ARTICLE:
+		return collector.WallstreetArticleSourceId
 	default:
 		return ""
 	}

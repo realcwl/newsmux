@@ -29,6 +29,7 @@ type CrawlerWorkingContext struct {
 	OriginUrl      string
 	ExternalPostId string
 	NewsType       protocol.PanopticSubSource_SubSourceType
+	Subsource      *protocol.PanopticSubSource
 }
 
 // This is the context we keep to be used for all steps

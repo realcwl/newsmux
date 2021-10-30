@@ -13,9 +13,12 @@ import (
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gocolly/colly"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const ()
+const (
+	WallstreetArticleDateFormat = "2006-01-02T15:04:05.999-07:00"
+)
 
 type WallstreetArticleCollector struct {
 	Sink sink.CollectedDataSink
@@ -42,6 +45,25 @@ func (w WallstreetArticleCollector) UpdateDedupId(workingContext *working_contex
 	return nil
 }
 
+func (w WallstreetArticleCollector) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
+	dateStr := workingContext.Element.DOM.Find(`.meta > time `).AttrOr("datetime", "")
+
+	generatedTime, err := collector.ParseGenerateTime(dateStr, WallstreetArticleDateFormat, ChinaTimeZone, "wallstreet_article")
+
+	if err != nil {
+		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
+		return err
+	}
+	workingContext.Result.Post.ContentGeneratedAt = generatedTime
+	return nil
+}
+
+func (w WallstreetArticleCollector) UpdateOriginUrl(workingContext *working_context.CrawlerWorkingContext) error {
+	link := workingContext.Element.DOM.Find(`.container > a`).AttrOr("href", "")
+	workingContext.Result.Post.OriginUrl = link
+	return nil
+}
+
 func (w WallstreetArticleCollector) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
 	collector.InitializeCrawlerResult(workingContext)
 
@@ -61,12 +83,25 @@ func (w WallstreetArticleCollector) GetMessage(workingContext *working_context.C
 	}
 
 	err = w.UpdateDedupId(workingContext)
+	if err != nil {
+		return err
+	}
+
+	err = w.UpdateGeneratedTime(workingContext)
+	if err != nil {
+		return err
+	}
+
+	err = w.UpdateOriginUrl(workingContext)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (w WallstreetArticleCollector) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
-	workingContext.Result.Post.Content = workingContext.Element.Text
+	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(`.container > .content`).Text()
 	return nil
 }
 
@@ -93,7 +128,8 @@ func (w WallstreetArticleCollector) CollectAndPublish(task *protocol.PanopticTas
 		c.OnHTML(w.GetQueryPath(), func(elem *colly.HTMLElement) {
 			var err error
 			workingContext := &working_context.CrawlerWorkingContext{
-				SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, Element: elem, OriginUrl: w.GetStartUri(subSource)}
+				SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, Element: elem, OriginUrl: w.GetStartUri(subSource), Subsource: subSource}
+			collector.InitializeCrawlerResult(workingContext)
 			if err = w.GetMessage(workingContext); err != nil {
 				metadata.TotalMessageFailed++
 				collector.LogHtmlParsingError(task, elem, err)
@@ -111,7 +147,7 @@ func (w WallstreetArticleCollector) CollectAndPublish(task *protocol.PanopticTas
 		c.OnError(func(r *colly.Response, err error) {
 			// todo: error should be put into metadata
 			task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-			Logger.Log.WithFields(logrus.Fields{"source": "jin10"}).Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", w.GetQueryPath())
+			Logger.Log.WithFields(logrus.Fields{"source": "wallstreet_article"}).Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", w.GetQueryPath())
 		})
 
 		c.OnScraped(func(_ *colly.Response) {
@@ -120,6 +156,5 @@ func (w WallstreetArticleCollector) CollectAndPublish(task *protocol.PanopticTas
 		})
 
 		c.Visit(w.GetStartUri(subSource))
-
 	}
 }
