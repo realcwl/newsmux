@@ -1,0 +1,12 @@
+header_params: [
+	{key: "accept-language", value: "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7"},
+	{key: "sec-ch-ua", value: "\"Google Chrome\";v=\"95\", \"Chromium\";v=\"95\", \";Not A Brand\";v=\"99\""},
+	{key: "sec-ch-ua-mobile", value: "?0"},
+	{key: "sec-ch-ua-platform", value: "\"macOS\""},
+	{key: "sec-fetch-site", value: "cross-site"},
+	{key: "accept", value: "application/json, text/plain, */*"},
+	{key: "sec-fetch-dest", value: "empty"},
+	{key: "sec-fetch-mode", value: "cors"},
+	{key: "uu_token", value: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIxNjM0NTM2NTAwNzk3IiwiZXhwIjoxNjY1NjQwNTAwfQ.PhlRwXRRQ_DBY3vB0h0Owjd-uSJIvAcoX6PzGNp5Tz8"},
+	{key: "content-type", value: "application/json;charset=UTF-8"}
+]

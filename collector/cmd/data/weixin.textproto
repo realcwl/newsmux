@@ -1,0 +1,36 @@
+# This file should contain all weixin job variations, each of different 
+# job_id, please do not add non-weixin jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector'xs name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "weixin_job"
+	tasks: [
+		{
+			task_id: "weixin_task"
+			data_collector_id: COLLECTOR_WEIXIN_ARTICLE
+			task_params: {
+				source_id: "0f90f563-7c95-4be0-a592-7e5666f02c33"
+                sub_sources: [
+                    {name: "差评",type: USERS, external_id: "4db424f8-816f-4773-a2d2-9e950a1992b8"}
+                ]
+                header_params: [
+                    {key: "accept", value: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"},
+                    {key: "accept-language", value: "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7"},
+                    {key: "cache-control", value: "max-age=0"},
+                    {key: "user-agent", value: "\"Google Chrome\";v=\"95\", \"Chromium\";v=\"95\", \";Not A Brand\";v=\"99\""},
+                    {key: "sec-ch-ua-mobile", value: "?0"},
+                    {key: "sec-ch-ua-platform", value: "\"macOS\""},
+                    {key: "sec-fetch-dest", value: "document"},
+                    {key: "sec-fetch-mode", value: "navigate"},
+                    {key: "sec-fetch-site", value: "none"},
+                    {key: "sec-fetch-user", value: "?1"},
+                    {key: "upgrade-insecure-requests", value: "1"}
+                ]
+			}
+			task_metadata: {
+				config_name: "weixin_config"
+			}
+		}
+	]
+	debug: true
+}
