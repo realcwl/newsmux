@@ -108,6 +108,7 @@ message PanopticTask {
     COLLECTOR_WISBURG = 8;
     COLLECTOR_KR36 = 9;
     COLLECTOR_WEIXIN_ARTICLE= 10;
+    COLLECTOR_CAIXIN = 11;
     // ...
   }
 
@@ -136,12 +137,16 @@ message PanopticSubSource{
   // name: 加州分析员 
   // type: USERS 
   // external_id:15281511824122 
-  enum SubSourceType{
+  enum SubSourceType {
     UNSPECIFIED = 0;
     FLASHNEWS = 1;
     KEYNEWS = 2;
     USERS = 3;
     ARTICLE = 4;
+    // Sometimes a website can have multiple channels, each can be parsed with 
+    // the same set of selectors. (e.g. Caixin is using CHANNEL for choose
+    // subsource)
+    CHANNEL = 5;
   }
 
   // name of the sub source, this will be written to CrawlerMessage
@@ -154,6 +159,9 @@ message PanopticSubSource{
 
   // this will be used to construct external request/crawl uri
   string external_id = 3;
+
+  // Optional. Sometimes each subsource can have different url.
+  string link = 4;
 }
 
 // Created empty param here in case we need to pass in additional parameters to
