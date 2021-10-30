@@ -129,6 +129,9 @@ func TestMaybeSplitIntoMultipleSchedulerJobs(t *testing.T) {
 	assert.Equal(t, jobs[1].panopticConfig.TaskParams.SubSources[0].Name, "ss_3")
 	assert.Equal(t, jobs[1].panopticConfig.TaskParams.SubSources[1].Name, "ss_4")
 	assert.Equal(t, jobs[2].panopticConfig.TaskParams.SubSources[0].Name, "ss_5")
+	assert.Equal(t, jobs[0].panopticConfig.Name, "test-0")
+	assert.Equal(t, jobs[1].panopticConfig.Name, "test-1")
+	assert.Equal(t, jobs[2].panopticConfig.Name, "test-2")
 }
 
 func TestMaybeSplitIntoMultipleSchedulerJobs_UnsetShouldReturnOnlyOneJob(t *testing.T) {
@@ -154,4 +157,5 @@ func TestMaybeSplitIntoMultipleSchedulerJobs_UnsetShouldReturnOnlyOneJob(t *test
 	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[2].Name, "ss_3")
 	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[3].Name, "ss_4")
 	assert.Equal(t, jobs[0].panopticConfig.TaskParams.SubSources[4].Name, "ss_5")
+	assert.Equal(t, jobs[0].panopticConfig.Name, "test")
 }
