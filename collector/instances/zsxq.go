@@ -303,7 +303,7 @@ func (z ZsxqApiCollector) CollectOneSubsourceOnePage(
 			return utils.ImmediatePrintError(err)
 		}
 
-		if workingContext.Result != nil {
+		if workingContext.SharedContext.Result != nil {
 			sink.PushResultToSinkAndRecordInTaskMetadata(z.Sink, workingContext)
 		}
 	}

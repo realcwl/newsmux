@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
@@ -25,6 +26,7 @@ const (
 	WallstreetNewsSourceId    = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
 	JinseSourceId             = "5891f435-d51e-4575-b4af-47cd4ede5607"
 	CaUsSourceId              = "1c6ab31c-aebe-40ba-833d-7cc2d977e5a1"
+	WeixinSourceId            = "0f90f563-7c95-4be0-a592-7e5666f02c33"
 	WisburgSourceId           = "bb3c8ee2-c81e-43d9-8d98-7a6bb6ca0238"
 	Kr36SourceId              = "c0ae802e-3c12-4144-86ca-ab0f8fe629ce"
 	WallstreetArticleSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
@@ -79,6 +81,8 @@ func GetSourceLogoUrl(sourceId string) string {
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jinse.png"
 	case CaUsSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/caus.png"
+	case WeixinSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/weixin.png"
 	case WisburgSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wisburg.png"
 	case Kr36SourceId:
@@ -122,6 +126,18 @@ func InitializeApiCollectorResult(workingContext *working_context.ApiCollectorWo
 	workingContext.Result.CrawlerIp = workingContext.Task.TaskMetadata.IpAddr
 }
 
+func InitializeRssCollectorResult(workingContext *working_context.RssCollectorWorkingContext) {
+	workingContext.Result = &protocol.CrawlerMessage{Post: &protocol.CrawlerMessage_CrawledPost{}}
+
+	workingContext.Result.CrawledAt = timestamppb.Now()
+	workingContext.Result.CrawlerVersion = "1"
+	workingContext.Result.IsTest = !utils.IsProdEnv()
+
+	workingContext.Result.Post.SubSource = &protocol.CrawledSubSource{}
+	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
+	workingContext.Result.CrawlerIp = workingContext.Task.TaskMetadata.IpAddr
+}
+
 func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext ...string) {
 	if task.TaskMetadata.TotalMessageCollected == 0 {
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
@@ -145,7 +161,7 @@ func LineBreakerToSpace(content string) string {
 	return strings.ReplaceAll(content, "\n", " ")
 }
 
-func ParallelSubsourceApiCollect(task *protocol.PanopticTask, collector ApiCollector) {
+func ParallelSubsourceApiCollect(task *protocol.PanopticTask, collector ParallelCollector) {
 	task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
 
 	var wg sync.WaitGroup
@@ -215,4 +231,33 @@ func ParseGenerateTime(timeString string, format string, timeZoneString string, 
 		return nil, errors.Wrap(err, "fail to parse "+cralwer+" post time: "+timeString)
 	}
 	return timestamppb.New(t), nil
+}
+
+func IterateAllNodes(doc *goquery.Document, jquery string, callback func(*goquery.Selection)) {
+	doc.Find(jquery).Each(func(i int, s *goquery.Selection) {
+		callback(s)
+	})
+}
+
+func OffloadImageSourceFromHtml(sourceHtml string, imageStore file_store.CollectedFileStore) (string, error) {
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(sourceHtml))
+	if err != nil {
+		return "", utils.ImmediatePrintError(err)
+	}
+
+	IterateAllNodes(doc, "img", func(s *goquery.Selection) {
+		originUrl, exists := s.Attr("src")
+		if !exists {
+			return
+		}
+		key, err := imageStore.FetchAndStore(originUrl, "")
+		if err != nil {
+			return
+		}
+		newUrl := imageStore.GetUrlFromKey(key)
+		s.SetAttr("src", newUrl)
+	})
+
+	return doc.Html()
 }

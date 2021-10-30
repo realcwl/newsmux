@@ -1,11 +1,13 @@
 package validation
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
 	"github.com/pkg/errors"
 )
 
@@ -56,6 +58,8 @@ func getSourceIdFromDataCollectorId(collectorId protocol.PanopticTask_DataCollec
 		return collector.JinseSourceId
 	case protocol.PanopticTask_COLLECTOR_CAUS_ARTICLE:
 		return collector.CaUsSourceId
+	case protocol.PanopticTask_COLLECTOR_WEIXIN_ARTICLE:
+		return collector.WeixinSourceId
 	case protocol.PanopticTask_COLLECTOR_WISBURG:
 		return collector.WisburgSourceId
 	case protocol.PanopticTask_COLLECTOR_KR36:
@@ -98,7 +102,7 @@ func crawledMessageValidation(sharedContext *working_context.SharedContext) erro
 	}
 	for _, v := range messageValidators {
 		if err := v(sharedContext.Result); err != nil {
-			return err
+			return utils.ImmediatePrintError(err)
 		}
 	}
 	return nil
@@ -134,7 +138,10 @@ func crossTaskMessageValidation(sharedContext *working_context.SharedContext) er
 	}
 
 	if msg.Post.SubSource.SourceId != getSourceIdFromDataCollectorId(task.DataCollectorId) {
-		return errors.New("crawled message's source id doesn't match the data collector id")
+		return fmt.Errorf("crawled message's source id doesn't match the data collector id, msg: %s != task: %s",
+			msg.Post.SubSource.SourceId,
+			getSourceIdFromDataCollectorId(task.DataCollectorId),
+		)
 	}
 
 	return nil
