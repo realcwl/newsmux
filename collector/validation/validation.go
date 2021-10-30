@@ -172,8 +172,8 @@ func validateMessageSubSourceIsSetCorrectly(msg *protocol.CrawlerMessage) error 
 // - It is associated with a generated time to render correct timestamp
 // - It has a deduplicateId
 func validateMessagePostIsSetCorrectly(msg *protocol.CrawlerMessage) error {
-	if msg.Post.Content == "" {
-		return errors.New("crawled post must have Content at least")
+	if msg.Post.Content == "" && len(msg.Post.ImageUrls) == 0 && len(msg.Post.FilesUrls) == 0 {
+		return errors.New("crawled post must have Content / Image / File")
 	}
 
 	if msg.Post.ContentGeneratedAt == nil {
