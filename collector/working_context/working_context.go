@@ -29,6 +29,8 @@ type CrawlerWorkingContext struct {
 	OriginUrl      string
 	ExternalPostId string
 	NewsType       protocol.PanopticSubSource_SubSourceType
+	// Optional, this is the working subsource we're dealing with.
+	SubSource *protocol.PanopticSubSource
 }
 
 // This is the context we keep to be used for all steps
@@ -41,6 +43,16 @@ type ApiCollectorWorkingContext struct {
 	SubSource       *protocol.PanopticSubSource
 	NewsType        protocol.PanopticSubSource_SubSourceType
 	ApiResponseItem interface{}
+}
+
+// This is the context we keep to be used for all steps
+// for a post
+type RssCollectorWorkingContext struct {
+	SharedContext
+
+	RssUrl          string
+	SubSource       *protocol.PanopticSubSource
+	RssResponseItem interface{}
 }
 
 func (sc *SharedContext) String() string {

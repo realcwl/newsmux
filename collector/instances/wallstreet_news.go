@@ -147,7 +147,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 			continue
 		}
 
-		if workingContext.Result != nil {
+		if workingContext.SharedContext.Result != nil {
 			sink.PushResultToSinkAndRecordInTaskMetadata(w.Sink, workingContext)
 		}
 	}

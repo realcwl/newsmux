@@ -58,6 +58,7 @@ message TaskParams {
     ZsxqTaskParams zsxq_task_params = 22;
     WallstreetNewsTaskParams wallstreet_news_task_params = 23; 
     WisburgParams wisburg_task_params = 24;
+    CaUsNewsTaskParams caus_news_task_params = 25;
   }
 }
 
@@ -107,6 +108,10 @@ message PanopticTask {
     COLLECTOR_CAUS_ARTICLE= 7;
     COLLECTOR_WISBURG = 8;
     COLLECTOR_KR36 = 9;
+    COLLECTOR_WEIXIN_ARTICLE= 10;
+    COLLECTOR_CAUS_NEWS= 11;
+    COLLECTOR_CAIXIN = 12;
+    COLLECTOR_WALLSTREET_ARTICLE = 13;
     // ...
   }
 
@@ -135,12 +140,16 @@ message PanopticSubSource{
   // name: 加州分析员 
   // type: USERS 
   // external_id:15281511824122 
-  enum SubSourceType{
+  enum SubSourceType {
     UNSPECIFIED = 0;
     FLASHNEWS = 1;
     KEYNEWS = 2;
     USERS = 3;
     ARTICLE = 4;
+    // Sometimes a website can have multiple channels, each can be parsed with 
+    // the same set of selectors. (e.g. Caixin is using CHANNEL for choose
+    // subsource)
+    CHANNEL = 5;
   }
 
   // name of the sub source, this will be written to CrawlerMessage
@@ -153,6 +162,9 @@ message PanopticSubSource{
 
   // this will be used to construct external request/crawl uri
   string external_id = 3;
+
+  // Optional. Sometimes each subsource can have different url.
+  string link = 4;
 }
 
 // Created empty param here in case we need to pass in additional parameters to
@@ -194,4 +206,10 @@ message WisburgParams {
   } 
   // Specify what channels to crawl for Wisburg.
   repeated ChannelType channel_type = 1;
+}
+
+// Caus news has 4 items per page, using timestamp as cursor to query next batch
+message CaUsNewsTaskParams {
+  int32 max_pages = 1;
+  int32 lanmu_id = 2;
 }

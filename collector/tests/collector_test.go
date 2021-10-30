@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -332,6 +333,46 @@ func TestWeiboCollectorHandler(t *testing.T) {
 	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
 }
 
+func TestWallstreetArticleCollectorHandler(t *testing.T) {
+	job := protocol.PanopticJob{
+		Tasks: []*protocol.PanopticTask{{
+			TaskId:          "123",
+			DataCollectorId: protocol.PanopticTask_COLLECTOR_WALLSTREET_ARTICLE,
+			TaskParams: &protocol.TaskParams{
+				HeaderParams: []*protocol.KeyValuePair{},
+				Cookies:      []*protocol.KeyValuePair{},
+				SourceId:     "66251821-ef9a-464c-bde9-8b2fd8ef2405",
+				SubSources: []*protocol.PanopticSubSource{
+					{
+						Name:       "股市",
+						Type:       protocol.PanopticSubSource_ARTICLE,
+						ExternalId: "shares",
+					},
+					{
+						Name:       "债市",
+						Type:       protocol.PanopticSubSource_ARTICLE,
+						ExternalId: "bonds",
+					},
+				},
+			},
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_wallstreet_config",
+			},
+		},
+		},
+	}
+	var handler DataCollectJobHandler
+	err := handler.Collect(&job)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(job.Tasks))
+	require.Equal(t, "123", job.Tasks[0].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
+	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
+}
+
 func TestWallstreetNewsCollectorHandler(t *testing.T) {
 	job := protocol.PanopticJob{
 		Tasks: []*protocol.PanopticTask{{
@@ -424,4 +465,36 @@ func TestCaUsArticleCollectorHandler(t *testing.T) {
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
 	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
 	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
+}
+
+type TestImageStore struct {
+	file_store.S3FileStore
+}
+
+func (s *TestImageStore) FetchAndStore(url, fileName string) (string, error) {
+	key, err := s.GenerateS3KeyFromUrl(url, fileName)
+	fmt.Println(key)
+	if err != nil {
+		return "", err
+	}
+	return key, nil
+}
+
+func TestOffloadImageSourceFromHtml(t *testing.T) {
+	var imageStore TestImageStore
+	imageStore.SetCustomizeFileExtFunc(func(url string, fileName string) string {
+		var re = regexp.MustCompile(`\%3D(.*)\%22`)
+		found := re.FindStringSubmatch(url)
+		return "." + found[0][3:len(found[0])-3]
+	})
+	originalHtml := `
+	<![CDATA[ <section style="margin-right: 8px;margin-left: 8px;white-space: normal;" data-mpa-powered-by="yiban.io"><img referrerpolicy="no-referrer" data-cropselx1="0" data-cropselx2="578" data-cropsely1="0" data-cropsely2="233" data-fileid="506378232" data-ratio="0.4033333333333333" src="https://aaaaaaaabg%2F640%3Fwx_fmt%3Dpng%22" data-type="gif" data-w="600"> ]]> 
+	`
+	var re = regexp.MustCompile(`\<\!*\-*\[CDATA\[(.*)\]\]>`)
+	final := re.ReplaceAllString(originalHtml, `$1`)
+	res, err := OffloadImageSourceFromHtml(final, &imageStore)
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(res))
+	require.NoError(t, err)
+	require.Equal(t, "https://d20uffqoe1h0vv.cloudfront.net/6931eb26801b733de4fbc1b95043a26d.png", doc.Find("img").AttrOr("src", "notset"))
 }

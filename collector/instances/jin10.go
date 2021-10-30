@@ -211,7 +211,6 @@ func (j Jin10Crawler) GetStartUri() string {
 // todo: mock http response and test end to end Collect()
 func (j Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	metadata := task.TaskMetadata
-	metadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
 
 	c := colly.NewCollector()
 	// each crawled card(news) will go to this

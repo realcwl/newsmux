@@ -37,6 +37,7 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
+	github.com/mmcdole/gofeed v1.1.3
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
@@ -45,10 +46,9 @@ require (
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	github.com/ugorji/go v1.2.6 // indirect
 	github.com/vektah/gqlparser/v2 v2.2.0
-	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
+	golang.org/x/exp v0.0.0-20211029182501-9b944d235b9d // indirect
+	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1
-	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
-	golang.org/x/text v0.3.7 // indirect
 	gonum.org/v1/gonum v0.9.3
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.33.0
