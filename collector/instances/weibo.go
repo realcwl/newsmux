@@ -134,7 +134,8 @@ func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.Cra
 	for _, pic := range mBlog.Pics {
 		key, err := collector.ImageStore.FetchAndStore(pic.URL, "")
 		if err != nil {
-			Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).Errorln("fail to get weibo user image err :", err)
+			Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
+				Errorln("fail to get weibo user image, err:", err, "url:", pic.URL)
 			return utils.ImmediatePrintError(err)
 		}
 		s3Url := collector.ImageStore.GetUrlFromKey(key)

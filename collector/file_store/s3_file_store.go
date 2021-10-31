@@ -104,10 +104,9 @@ func (s *S3FileStore) FetchAndStore(url, fileName string) (key string, err error
 	}
 	key, err = s.GenerateS3KeyFromUrl(url, fileName)
 	if err != nil {
+		Logger.Log.Info("Fail to download file from url:", eventualUrl, "err:", err)
 		return "", err
 	}
-
-	Logger.Log.Info("Successfully downloaded file from url: ", eventualUrl, " key: ", key)
 
 	if !s.IsKeyExisted(key) {
 		// Upload the file to S3.
