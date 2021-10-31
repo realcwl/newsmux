@@ -14,6 +14,8 @@ import (
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -132,6 +134,8 @@ func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.Cra
 	for _, pic := range mBlog.Pics {
 		key, err := collector.ImageStore.FetchAndStore(pic.URL, "")
 		if err != nil {
+			Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
+				Errorln("fail to get weibo user image, err:", err, "url:", pic.URL)
 			return utils.ImmediatePrintError(err)
 		}
 		s3Url := collector.ImageStore.GetUrlFromKey(key)
@@ -150,7 +154,7 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 		post.SubSource.Name = "default"
 	} else {
 		post.SubSource.Name = mBlog.User.ScreenName
-		post.SubSource.AvatarUrl = "https://weibo.com/" + fmt.Sprint(mBlog.User.ID) + "/" + mBlog.Bid
+		post.SubSource.AvatarUrl = mBlog.User.ProfileImageURL
 		post.SubSource.ExternalId = fmt.Sprint(mBlog.User.ID)
 	}
 	w.UpdateImages(mBlog, post)
@@ -273,11 +277,10 @@ func (w WeiboApiCollector) CollectOneSubsource(task *protocol.PanopticTask, subs
 			break
 		}
 	}
-
-	collector.SetErrorBasedOnCounts(task, "weibo")
 	return nil
 }
 
 func (w WeiboApiCollector) CollectAndPublish(task *protocol.PanopticTask) {
 	collector.ParallelSubsourceApiCollect(task, w)
+	collector.SetErrorBasedOnCounts(task, "weibo")
 }
