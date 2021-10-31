@@ -129,14 +129,6 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 	return res.Data.LongTextContent, nil
 }
 
-func (collector WeiboApiCollector) StoreWeiboAvatar(profileImageUrl string, post *protocol.CrawlerMessage_CrawledPost) (string, error) {
-	key, err := collector.ImageStore.FetchAndStore(profileImageUrl, "")
-	if err != nil {
-		return "", utils.ImmediatePrintError(err)
-	}
-	return collector.ImageStore.GetUrlFromKey(key), nil
-}
-
 func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	post.ImageUrls = []string{}
 	for _, pic := range mBlog.Pics {
@@ -161,11 +153,7 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 		post.SubSource.Name = "default"
 	} else {
 		post.SubSource.Name = mBlog.User.ScreenName
-		post.SubSource.AvatarUrl, err = w.StoreWeiboAvatar(mBlog.User.ProfileImageURL, post)
-		if err != nil {
-			Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
-				Errorln("fail to get weibo user image err :", err, "url:", mBlog.User.ProfileImageURL)
-		}
+		post.SubSource.AvatarUrl = mBlog.User.ProfileImageURL
 		post.SubSource.ExternalId = fmt.Sprint(mBlog.User.ID)
 	}
 	w.UpdateImages(mBlog, post)
