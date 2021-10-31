@@ -142,7 +142,8 @@ func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.Cra
 	for _, pic := range mBlog.Pics {
 		key, err := collector.ImageStore.FetchAndStore(pic.URL, "")
 		if err != nil {
-			Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).Errorln("fail to get weibo user image err :", err)
+			Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
+				Errorln("fail to get weibo user image, err:", err, "url:", pic.URL)
 			return utils.ImmediatePrintError(err)
 		}
 		s3Url := collector.ImageStore.GetUrlFromKey(key)
@@ -161,10 +162,7 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 		post.SubSource.Name = "default"
 	} else {
 		post.SubSource.Name = mBlog.User.ScreenName
-		post.SubSource.AvatarUrl, err = w.StoreWeiboAvatar(mBlog.User.ProfileImageURL, post)
-		if err != nil {
-			Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).Errorln("fail to get weibo user image err :", err)
-		}
+		post.SubSource.AvatarUrl = mBlog.User.ProfileImageURL
 		post.SubSource.ExternalId = fmt.Sprint(mBlog.User.ID)
 	}
 	w.UpdateImages(mBlog, post)
