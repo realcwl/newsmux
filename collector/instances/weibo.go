@@ -129,6 +129,14 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 	return res.Data.LongTextContent, nil
 }
 
+func (collector WeiboApiCollector) StoreWeiboAvatar(profileImageUrl string, post *protocol.CrawlerMessage_CrawledPost) (string, error) {
+	key, err := collector.ImageStore.FetchAndStore(profileImageUrl, "")
+	if err != nil {
+		return "", utils.ImmediatePrintError(err)
+	}
+	return collector.ImageStore.GetUrlFromKey(key), nil
+}
+
 func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	post.ImageUrls = []string{}
 	for _, pic := range mBlog.Pics {
