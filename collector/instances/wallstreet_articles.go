@@ -37,7 +37,7 @@ func (w WallstreetArticleCollector) GetQueryPath() string {
 }
 
 func (w WallstreetArticleCollector) UpdateDedupId(workingContext *working_context.CrawlerWorkingContext) error {
-	md5, err := utils.TextToMd5Hash(workingContext.OriginUrl)
+	md5, err := utils.TextToMd5Hash(workingContext.Result.Post.Content)
 	if err != nil {
 		return err
 	}
@@ -82,17 +82,17 @@ func (w WallstreetArticleCollector) GetMessage(workingContext *working_context.C
 		return err
 	}
 
+	err = w.UpdateOriginUrl(workingContext)
+	if err != nil {
+		return err
+	}
+
 	err = w.UpdateDedupId(workingContext)
 	if err != nil {
 		return err
 	}
 
 	err = w.UpdateGeneratedTime(workingContext)
-	if err != nil {
-		return err
-	}
-
-	err = w.UpdateOriginUrl(workingContext)
 	if err != nil {
 		return err
 	}

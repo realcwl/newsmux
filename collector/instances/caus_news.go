@@ -32,9 +32,10 @@ type CaUsNewsResponseItem struct {
 		CreateTime    int64       `json:"createTime"`
 		CreateTimeStr interface{} `json:"createTimeStr"`
 	} `json:"lanmus"`
-	Type       string `json:"type"`
-	CreateTime int64  `json:"createTime"`
-	CountLike  int    `json:"countLike"`
+	Type       string   `json:"type"`
+	CreateTime int64    `json:"createTime"`
+	MatchPics  []string `json:"matchPics"`
+	CountLike  int      `json:"countLike"`
 }
 
 type CaUsNewsResponse struct {
@@ -60,6 +61,13 @@ func (caus CaUsNewsCrawler) UpdateDedupId(post *protocol.CrawlerMessage_CrawledP
 	return nil
 }
 
+func (caus CaUsNewsCrawler) UpdateImageUrls(wc *working_context.ApiCollectorWorkingContext) {
+	item := wc.ApiResponseItem.(CaUsNewsResponseItem)
+	if len(item.MatchPics) > 0 {
+		wc.Result.Post.ImageUrls = []string{item.MatchPics[0]}
+	}
+}
+
 func (caus CaUsNewsCrawler) UpdateResult(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(CaUsNewsResponseItem)
 	post := wc.Result.Post
@@ -72,12 +80,14 @@ func (caus CaUsNewsCrawler) UpdateResult(wc *working_context.ApiCollectorWorking
 	post.SubSource.ExternalId = fmt.Sprint(item.ContentID)
 
 	post.Content = item.Content
-	post.Title = item.Title
 
 	err := caus.UpdateDedupId(post)
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
+
+	// caus news does not have to have image
+	caus.UpdateImageUrls(wc)
 	return nil
 }
 
