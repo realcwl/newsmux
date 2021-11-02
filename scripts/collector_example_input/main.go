@@ -6,7 +6,7 @@ import (
 
 	"github.com/Luismorlan/newsmux/protocol"
 	. "github.com/Luismorlan/newsmux/utils/log"
-	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 )
 
 // use this script to generate a request you can use to send in Lambda->Test
@@ -15,34 +15,34 @@ func main() {
 	InitLogger()
 
 	job := protocol.PanopticJob{
-		Tasks: []*protocol.PanopticTask{
-			{
-				TaskId:          "123",
-				DataCollectorId: protocol.PanopticTask_COLLECTOR_JINSHI,
-				TaskParams: &protocol.TaskParams{
-					HeaderParams: []*protocol.KeyValuePair{},
-					Cookies:      []*protocol.KeyValuePair{},
-					SourceId:     "a882eb0d-0bde-401a-b708-a7ce352b7392",
-					SubSources: []*protocol.PanopticSubSource{
-						{
-							Name:       "快讯",
-							Type:       protocol.PanopticSubSource_FLASHNEWS,
-							ExternalId: "1",
-						},
-						{
-							Name:       "要闻",
-							Type:       protocol.PanopticSubSource_KEYNEWS,
-							ExternalId: "2",
-						},
+		Tasks: []*protocol.PanopticTask{{
+			TaskId:          "123",
+			DataCollectorId: protocol.PanopticTask_COLLECTOR_WEIBO,
+			TaskParams: &protocol.TaskParams{
+				HeaderParams: []*protocol.KeyValuePair{},
+				Cookies:      []*protocol.KeyValuePair{},
+				SourceId:     "0129417c-4987-45c9-86ac-d6a5c89fb4f7",
+				SubSources: []*protocol.PanopticSubSource{
+					{
+						Name:       "37度卡农",
+						Type:       protocol.PanopticSubSource_USERS,
+						ExternalId: "6103268173",
 					},
-					Params: &protocol.TaskParams_JinshiTaskParams{
-						JinshiTaskParams: &protocol.JinshiTaskParams{
-							SkipKeyWords: []string{"【黄金操作策略】"},
-						},
+				},
+				Params: &protocol.TaskParams_WeiboTaskParams{
+					WeiboTaskParams: &protocol.WeiboTaskParams{
+						MaxPages: 2,
 					},
 				},
 			},
-		}}
-	// bytes, _ := proto.Marshal(&job)
-	fmt.Println("serializedJob ", prototext.Format(&job))
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_weibo_config",
+			},
+		},
+		},
+	}
+	bytes, _ := proto.Marshal(&job)
+	// fmt.Println(string(bytes))
+	// To send it in Lambda UI, you need to split with comma instead of space
+	fmt.Println("{ SerializedJob: ", bytes, "}")
 }
