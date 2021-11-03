@@ -18,6 +18,10 @@ input SubsourcesInput {
   isFromSharedPost: Boolean!
 }
 
+input PostInput {
+  id: String!
+}
+
 input NewUserInput {
   id: String!
   name: String!
@@ -86,6 +90,7 @@ input DeleteFeedInput {
 
 type Query {
   allVisibleFeeds: [Feed!]
+  post(input: PostInput): Post!
   posts: [Post!]
   users: [User!]
 
