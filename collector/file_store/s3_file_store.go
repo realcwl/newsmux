@@ -110,6 +110,7 @@ func (s *S3FileStore) FetchAndStore(url, fileName string) (key string, err error
 	if !s.IsKeyExisted(key) {
 		// Upload the file to S3.
 		_, err = s.uploader.Upload(&s3manager.UploadInput{
+			ACL:    aws.String("public-read"),
 			Bucket: aws.String(s.bucket),
 			Key:    aws.String(key),
 			Body:   response.Body,
