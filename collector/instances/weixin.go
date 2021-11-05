@@ -14,7 +14,6 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/mmcdole/gofeed"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -105,19 +104,7 @@ func (w WeixinArticleRssCollector) UpdateResultFromArticle(
 	post.OriginUrl = article.Link
 	post.Title = article.Title
 
-	var re = regexp.MustCompile(`\<\!*\-*\[CDATA\[(.*)\]\]>`)
-	pruned := re.ReplaceAllString(article.Description, `$1`)
-
-	// post.Content, err = collector.OffloadImageSourceFromHtml(
-	// 	pruned,
-	// 	w.ImageStore,
-	// )
-	// if err != nil {
-	// 	return utils.ImmediatePrintError(err)
-	// }
-
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(pruned))
-	post.Content = doc.Text()
+	post.Content = post.OriginUrl
 
 	if err != nil {
 		return utils.ImmediatePrintError(err)
