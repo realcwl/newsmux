@@ -71,7 +71,7 @@ func (w WeixinArticleRssCollector) UpdateExternalPostId(workingContext *working_
 }
 
 func (w WeixinArticleRssCollector) UpdateDedupId(workingContext *working_context.RssCollectorWorkingContext) error {
-	md5, err := utils.TextToMd5Hash(workingContext.Task.TaskParams.SourceId + workingContext.Result.Post.Title)
+	md5, err := utils.TextToMd5Hash(workingContext.Task.TaskParams.SourceId + workingContext.Result.Post.OriginUrl)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (w WeixinArticleRssCollector) UpdateResultFromArticle(
 	post.OriginUrl = article.Link
 	post.Title = article.Title
 
-	post.Content = post.OriginUrl
+	post.Content = "点击右上角时间进入正文"
 
 	if err != nil {
 		return utils.ImmediatePrintError(err)
