@@ -45,4 +45,4 @@ The complete design can be seen in the following notion page:
 
 # Commands
 
-`make server_dev` to run dev server
+`make run_devserver` to run dev server

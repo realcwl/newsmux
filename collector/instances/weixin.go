@@ -14,7 +14,6 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/mmcdole/gofeed"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -72,7 +71,7 @@ func (w WeixinArticleRssCollector) UpdateExternalPostId(workingContext *working_
 }
 
 func (w WeixinArticleRssCollector) UpdateDedupId(workingContext *working_context.RssCollectorWorkingContext) error {
-	md5, err := utils.TextToMd5Hash(workingContext.Task.TaskParams.SourceId + workingContext.Result.Post.Title)
+	md5, err := utils.TextToMd5Hash(workingContext.Task.TaskParams.SourceId + workingContext.Result.Post.OriginUrl)
 	if err != nil {
 		return err
 	}
@@ -105,19 +104,7 @@ func (w WeixinArticleRssCollector) UpdateResultFromArticle(
 	post.OriginUrl = article.Link
 	post.Title = article.Title
 
-	var re = regexp.MustCompile(`\<\!*\-*\[CDATA\[(.*)\]\]>`)
-	pruned := re.ReplaceAllString(article.Description, `$1`)
-
-	// post.Content, err = collector.OffloadImageSourceFromHtml(
-	// 	pruned,
-	// 	w.ImageStore,
-	// )
-	// if err != nil {
-	// 	return utils.ImmediatePrintError(err)
-	// }
-
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(pruned))
-	post.Content = doc.Text()
+	post.Content = "点击右上角时间进入正文"
 
 	if err != nil {
 		return utils.ImmediatePrintError(err)
