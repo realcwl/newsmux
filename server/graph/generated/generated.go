@@ -110,6 +110,7 @@ type ComplexityRoot struct {
 	Query struct {
 		AllVisibleFeeds func(childComplexity int) int
 		Feeds           func(childComplexity int, input *model.FeedsGetPostsInput) int
+		Post            func(childComplexity int, input *model.PostInput) int
 		Posts           func(childComplexity int) int
 		Sources         func(childComplexity int, input *model.SourcesInput) int
 		SubSources      func(childComplexity int, input *model.SubsourcesInput) int
@@ -196,6 +197,7 @@ type PostResolver interface {
 }
 type QueryResolver interface {
 	AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error)
+	Post(ctx context.Context, input *model.PostInput) (*model.Post, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error)
@@ -571,6 +573,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Feeds(childComplexity, args["input"].(*model.FeedsGetPostsInput)), true
+
+	case "Query.post":
+		if e.complexity.Query.Post == nil {
+			break
+		}
+
+		args, err := ec.field_Query_post_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Post(childComplexity, args["input"].(*model.PostInput)), true
 
 	case "Query.posts":
 		if e.complexity.Query.Posts == nil {
@@ -1024,6 +1038,10 @@ input SubsourcesInput {
   isFromSharedPost: Boolean!
 }
 
+input PostInput {
+  id: String!
+}
+
 input NewUserInput {
   id: String!
   name: String!
@@ -1092,6 +1110,7 @@ input DeleteFeedInput {
 
 type Query {
   allVisibleFeeds: [Feed!]
+  post(input: PostInput): Post!
   posts: [Post!]
   users: [User!]
 
@@ -1400,6 +1419,21 @@ func (ec *executionContext) field_Query_feeds_args(ctx context.Context, rawArgs 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalOFeedsGetPostsInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedsGetPostsInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.PostInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalOPostInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2965,6 +2999,48 @@ func (ec *executionContext) _Query_allVisibleFeeds(ctx context.Context, field gr
 	res := resTmp.([]*model.Feed)
 	fc.Result = res
 	return ec.marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_post(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_post_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Post(rctx, args["input"].(*model.PostInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Post)
+	fc.Result = res
+	return ec.marshalNPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5743,6 +5819,29 @@ func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputPostInput(ctx context.Context, obj interface{}) (model.PostInput, error) {
+	var it model.PostInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSeedStateInput(ctx context.Context, obj interface{}) (model.SeedStateInput, error) {
 	var it model.SeedStateInput
 	asMap := map[string]interface{}{}
@@ -6449,6 +6548,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_allVisibleFeeds(ctx, field)
+				return res
+			})
+		case "post":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_post(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "posts":
@@ -8153,6 +8266,14 @@ func (ec *executionContext) marshalOPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._Post(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOPostInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostInput(ctx context.Context, v interface{}) (*model.PostInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPostInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx context.Context, sel ast.SelectionSet, v *model.SeedState) graphql.Marshaler {
