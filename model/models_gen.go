@@ -71,6 +71,10 @@ type PostInFeedOutput struct {
 	Cursor int   `json:"cursor"`
 }
 
+type PostInput struct {
+	ID string `json:"id"`
+}
+
 type SeedStateInput struct {
 	UserSeedState *UserSeedStateInput   `json:"userSeedState"`
 	FeedSeedState []*FeedSeedStateInput `json:"feedSeedState"`

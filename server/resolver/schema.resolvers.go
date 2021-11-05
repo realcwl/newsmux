@@ -351,6 +351,12 @@ func (r *queryResolver) AllVisibleFeeds(ctx context.Context) ([]*model.Feed, err
 	return feeds, nil
 }
 
+func (r *queryResolver) Post(ctx context.Context, input *model.PostInput) (*model.Post, error) {
+	var post *model.Post
+	result := r.DB.Preload(clause.Associations).Model(&model.Post{}).Where("id=?", input.ID).First(&post)
+	return post, result.Error
+}
+
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 	var posts []*model.Post
 	result := r.DB.Preload(clause.Associations).Find(&posts)
