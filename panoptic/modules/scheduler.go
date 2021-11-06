@@ -194,16 +194,15 @@ func (s *Scheduler) MergeConfigAndDb(configs *protocol.PanopticConfigs) {
 		var subSourcesFromDB []model.SubSource
 		s.DB.Where("source_id = ?", param.SourceId).Find(&subSourcesFromDB)
 
-		subSourcesFromConfig := param.SubSources
 		subsourceMap := map[string]bool{}
 		// subsource name is unique, using it to do lookup
-		for _, s := range subSourcesFromConfig {
+		for _, s := range param.SubSources {
 			subsourceMap[s.Name] = true
 		}
 
 		for _, s := range subSourcesFromDB {
 			if _, ok := subsourceMap[s.Name]; !ok {
-				subSourcesFromConfig = append(subSourcesFromConfig, &protocol.PanopticSubSource{
+				param.SubSources = append(param.SubSources, &protocol.PanopticSubSource{
 					Name:       s.Name,
 					Type:       protocol.PanopticSubSource_USERS,
 					ExternalId: s.ExternalIdentifier,
