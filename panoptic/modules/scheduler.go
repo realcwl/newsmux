@@ -204,7 +204,7 @@ func (s *Scheduler) MergeConfigAndDb(configs *protocol.PanopticConfigs) {
 			if _, ok := subsourceMap[s.Name]; !ok {
 				param.SubSources = append(param.SubSources, &protocol.PanopticSubSource{
 					Name:       s.Name,
-					Type:       protocol.PanopticSubSource_USERS,
+					Type:       protocol.PanopticSubSource_USERS, // default to users type
 					ExternalId: s.ExternalIdentifier,
 					Link:       s.OriginUrl,
 				})
