@@ -45,6 +45,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	github.com/ugorji/go v1.2.6 // indirect
+	github.com/vektah/gqlparser v1.3.1 // indirect
 	github.com/vektah/gqlparser/v2 v2.2.0
 	golang.org/x/exp v0.0.0-20211029182501-9b944d235b9d // indirect
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
