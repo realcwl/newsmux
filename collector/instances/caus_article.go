@@ -188,7 +188,6 @@ func (j CaUsArticleCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		workingContext := &working_context.CrawlerWorkingContext{
 			SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, Element: elem, OriginUrl: j.GetStartUri()}
 		if err = j.GetMessage(workingContext); err != nil {
-			fmt.Println("============", err)
 			metadata.TotalMessageFailed++
 			collector.LogHtmlParsingError(task, elem, err)
 			return
