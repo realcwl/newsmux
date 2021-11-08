@@ -32,15 +32,20 @@ type WeiboSearchApiResponse struct {
 	} `json:"data"`
 }
 
-const (
-	WeiboSourceId = "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
-)
-
 // constructSeedStateFromUser constructs SeedState with model.User with
 // pre-populated SubscribedFeeds.
 func AddWeiboSubsourceImp(db *gorm.DB, ctx context.Context, input model.AddWeiboSubSourceInput) (subSource *model.SubSource, err error) {
+	var weiboSource model.Source
+	queryWeiboSourceIdResult := db.
+		Where("name = ?", "微博").
+		First(&weiboSource)
+	if queryWeiboSourceIdResult.RowsAffected == 0 {
+		return nil, fmt.Errorf("weibo source not exist")
+	}
+
+	weiboSourceId := weiboSource.Id
 	queryResult := db.
-		Where("name = ?", input.Name, WeiboSourceId).
+		Where("name = ? AND source_id = ?", input.Name, weiboSourceId).
 		First(&subSource)
 
 	if queryResult.RowsAffected != 0 {
@@ -57,7 +62,7 @@ func AddWeiboSubsourceImp(db *gorm.DB, ctx context.Context, input model.AddWeibo
 		Id:                 uuid.New().String(),
 		Name:               input.Name,
 		ExternalIdentifier: externalId,
-		SourceID:           WeiboSourceId,
+		SourceID:           weiboSourceId,
 		IsFromSharedPost:   false,
 	}
 	queryResult = db.Create(subSource)
