@@ -76,7 +76,7 @@ func NewScheduler(
 
 	db, err := utils.GetDBConnection()
 	if err != nil {
-		panic("failed to connect database")
+		Logger.Log.Infoln("failed to connect to database")
 	}
 
 	scheduler := &Scheduler{
@@ -137,7 +137,7 @@ func (s *Scheduler) UpsertJobs(jobs []*SchedulerJob) {
 
 // Read config either from local workspace (dev) or from Github (production)
 func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
-	configs, err := s.ReadConfigFromLocalOrGit()
+	configs, err := s.ReadConfigFromLocalOrGithub()
 	if err != nil {
 		return nil, "", err
 	}
@@ -152,7 +152,7 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
 	return configs, digest, nil
 }
 
-func (s *Scheduler) ReadConfigFromLocalOrGit() (*protocol.PanopticConfigs, error) {
+func (s *Scheduler) ReadConfigFromLocalOrGithub() (*protocol.PanopticConfigs, error) {
 	configs := &protocol.PanopticConfigs{}
 
 	if AppSetting.FORCE_REMOTE_SCHEDULE_PULL || utils.IsProdEnv() {
@@ -188,20 +188,31 @@ func (s *Scheduler) ReadConfigFromLocalOrGit() (*protocol.PanopticConfigs, error
 }
 
 func (s *Scheduler) MergeConfigAndDb(configs *protocol.PanopticConfigs) {
+	var weiboSource model.Source
+	queryWeiboSourceIdResult := s.DB.
+		Where("name = ?", "微博").
+		First(&weiboSource)
+	if queryWeiboSourceIdResult.RowsAffected == 0 {
+		return
+	}
+	weiboSourceId := weiboSource.Id
 	// do merge for all source
 	for _, config := range configs.Config {
+		if config.TaskParams.SourceId != weiboSourceId {
+			continue
+		}
 		param := config.TaskParams
 		var subSourcesFromDB []model.SubSource
-		s.DB.Where("source_id = ?", param.SourceId).Order("name").Find(&subSourcesFromDB)
+		s.DB.Where("source_id = ? AND is_from_shared_post = false", param.SourceId).Order("name").Find(&subSourcesFromDB)
 
-		subsourceMap := map[string]bool{}
+		existingSubSourceMap := map[string]bool{}
 		// subsource name is unique, using it to do lookup
 		for _, s := range param.SubSources {
-			subsourceMap[s.Name] = true
+			existingSubSourceMap[s.Name] = true
 		}
 
 		for _, s := range subSourcesFromDB {
-			if _, ok := subsourceMap[s.Name]; !ok {
+			if _, ok := existingSubSourceMap[s.Name]; !ok {
 				param.SubSources = append(param.SubSources, &protocol.PanopticSubSource{
 					Name:       s.Name,
 					Type:       protocol.PanopticSubSource_USERS, // default to users type
