@@ -17,8 +17,12 @@ func (r *subSourceResolver) DeletedAt(ctx context.Context, obj *model.SubSource)
 
 func (r *subSourceResolver) Source(ctx context.Context, obj *model.SubSource) (*model.Source, error) {
 	var source model.Source
-	r.DB.Where("id = ?", obj.SourceID).First(&source)
-
+	// all calls into this resolver only need id, which is already in SubSource
+	// this is a perf optimization, current fix is a hot fix
+	// TODO: In UI, if we request subsource -> source -> id, alernatively we can request subsource -> source_id
+	//       to save query into DB (which is a lot and making DB out of connections)
+	source.Id = obj.SourceID
+	// r.DB.Where("id = ?", obj.SourceID).First(&source)
 	return &source, nil
 }
 
