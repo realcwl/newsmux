@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/protocol"
 	. "github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/server/resolver"
 	. "github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 )
@@ -20,13 +22,25 @@ import (
 type CrawlerpublisherMessageProcessor struct {
 	Reader MessageQueueReader
 	DB     *gorm.DB
+
+	// gRPC Client and connection
+	Client protocol.DeduplicatorClient
+	// The connection for this peer. Each peer/client has a dedicated connection.
+	Conn *grpc.ClientConn
 }
 
 // Create new processor with reader dependency injection
-func NewPublisherMessageProcessor(reader MessageQueueReader, db *gorm.DB) *CrawlerpublisherMessageProcessor {
+func NewPublisherMessageProcessor(
+	reader MessageQueueReader,
+	db *gorm.DB,
+	client protocol.DeduplicatorClient,
+	conn *grpc.ClientConn,
+) *CrawlerpublisherMessageProcessor {
 	return &CrawlerpublisherMessageProcessor{
 		Reader: reader,
 		DB:     db,
+		Client: client,
+		Conn:   conn,
 	}
 }
 
@@ -200,10 +214,11 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		processor.Reader.DeleteMessage(msg)
 		return nil, err
 	}
+
 	fmt.Println(decodedMsg)
 
 	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
-	if duplicated, _ := processor.findDuplicatedPost(decodedMsg); duplicated == true {
+	if duplicated, _ := processor.findDuplicatedPost(decodedMsg); duplicated {
 		// Log.Infof("[duplicated message] message has already been processed, existing deduplicate_id: %s, existing post_id: %s ", decodedMsg.Post.DeduplicateId, existingPost.Id)
 		// TODO: bump counter for deduplicated messages
 		err := processor.Reader.DeleteMessage(msg)

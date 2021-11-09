@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"github.com/Luismorlan/newsmux/deduplicator"
 	. "github.com/Luismorlan/newsmux/publisher"
 	. "github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
@@ -47,7 +48,7 @@ func main() {
 	}
 
 	// Main publish logic lives in processor
-	processor := NewPublisherMessageProcessor(reader, db)
+	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
 
 	// Exponentially backoff on
 	backOff := 0.0
