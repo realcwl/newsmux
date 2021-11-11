@@ -1,0 +1,22 @@
+syntax = "proto3";
+package protocol;
+
+option go_package = "github.com/Luismorlan/newsmux/publisher/protocol";
+
+// Deduplicator is a micro service that calculate the SimHash for a given text.
+service Deduplicator {
+  // Obtains the similarity hash for the incoming text.
+  rpc GetSimHash(GetSimHashRequest) returns (GetSimHashResponse) {}
+}
+
+message GetSimHashRequest {
+  // the text to hash
+  string text = 1;
+  // length of the output hash
+  int32 length = 2;
+}
+
+message GetSimHashResponse {
+  // The hashed binary string.
+  string binary = 1;
+}
