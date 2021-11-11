@@ -321,6 +321,10 @@ func (r *mutationResolver) UpsertSubSource(ctx context.Context, input model.Upse
 	return UpsertSubsourceImpl(r.DB, input)
 }
 
+func (r *mutationResolver) AddWeiboSubSource(ctx context.Context, input model.AddWeiboSubSourceInput) (*model.SubSource, error) {
+	return AddWeiboSubsourceImp(r.DB, ctx, input)
+}
+
 func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {
 	if err := r.DB.Transaction(syncUpTransaction(input)); err != nil {
 		return nil, err

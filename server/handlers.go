@@ -23,18 +23,16 @@ func HealthcheckHandler() gin.HandlerFunc {
 // GraphqlHandler is the universal handler for all GraphQL queries issued from
 // client, by default it binds to a POST method.
 func GraphqlHandler() gin.HandlerFunc {
-	// TODO(jamie): check if env is dev or prod
 	db, err := utils.GetDBConnection()
 	if err != nil {
-		// TODO(Jamie): check env and move to datadog if it is prod
 		panic("failed to connect database")
 	}
 
 	utils.DatabaseSetupAndMigration(db)
 
 	h := handler.New(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
-		DB:             db,
-		SignalChans:    resolver.NewSignalChannels(),
+		DB:          db,
+		SignalChans: resolver.NewSignalChannels(),
 	}}))
 
 	h.AddTransport(transport.Websocket{
