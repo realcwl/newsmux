@@ -67,6 +67,7 @@ func main() {
 	}
 
 	client, conn := getDeduplicatorClientAndConnection()
+	defer conn.Close()
 
 	reader, err := NewSQSMessageQueueReader(crawlerPublisherQueueName, 20)
 	if err != nil {
@@ -74,7 +75,7 @@ func main() {
 	}
 
 	// Main publish logic lives in processor
-	processor := NewPublisherMessageProcessor(reader, db, client, conn)
+	processor := NewPublisherMessageProcessor(reader, db, client)
 
 	// Exponentially backoff on
 	backOff := 0.0

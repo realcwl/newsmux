@@ -15,7 +15,6 @@ import (
 	. "github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 )
@@ -28,8 +27,6 @@ type CrawlerpublisherMessageProcessor struct {
 
 	// gRPC Client and connection
 	Client protocol.DeduplicatorClient
-	// The connection for this peer. Each peer/client has a dedicated connection.
-	Conn *grpc.ClientConn
 }
 
 // Create new processor with reader dependency injection
@@ -37,13 +34,11 @@ func NewPublisherMessageProcessor(
 	reader MessageQueueReader,
 	db *gorm.DB,
 	client protocol.DeduplicatorClient,
-	conn *grpc.ClientConn,
 ) *CrawlerpublisherMessageProcessor {
 	return &CrawlerpublisherMessageProcessor{
 		Reader: reader,
 		DB:     db,
 		Client: client,
-		Conn:   conn,
 	}
 }
 

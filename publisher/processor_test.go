@@ -86,7 +86,7 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 	})
 
 	// Inject test dependent reader
-	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
+	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 
 	msgs, _ := reader.ReceiveMessages(1)
 	assert.Equal(t, len(msgs), 1)
@@ -182,7 +182,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
-		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
@@ -204,7 +204,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
-		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
@@ -227,7 +227,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing Again, there should be no new post
-		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.NoError(t, err)
 
@@ -243,7 +243,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
-		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
@@ -310,7 +310,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
-		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
@@ -394,7 +394,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 		&msgOne,
 	})
 	msgs, _ := reader.ReceiveMessages(1)
-	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
+	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 	_, err := processor.ProcessOneCralwerMessage(msgs[0])
 	require.Nil(t, err)
 	var subScourceOne model.SubSource
@@ -448,7 +448,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 		&msgTwo,
 	})
 	msgs, _ = reader.ReceiveMessages(1)
-	processor = NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
+	processor = NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 	_, err = processor.ProcessOneCralwerMessage(msgs[0])
 	require.Nil(t, err)
 	processor.DB.Preload(clause.Associations).Where("name=?", "test_subsource_1").First(&subScourceOne)
@@ -501,7 +501,7 @@ func TestMessagePublishToManyFeeds(t *testing.T) {
 		&msgOne,
 	})
 	msgs, _ := reader.ReceiveMessages(1)
-	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{}, nil)
+	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 	_, err := processor.ProcessOneCralwerMessage(msgs[0])
 	require.NoError(t, err)
 	var post model.Post
