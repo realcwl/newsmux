@@ -36,7 +36,7 @@ func BotCommandHandler() gin.HandlerFunc {
 		panic("failed to connect to database")
 	}
 
-	utils.DatabaseSetupAndMigration(db)
+	utils.BotDBSetupAndMigration(db)
 
 	return func(c *gin.Context) {
 		var form CommandForm
@@ -44,8 +44,9 @@ func BotCommandHandler() gin.HandlerFunc {
 		switch form.Command {
 		case "/feeds":
 			var feeds []*model.Feed
-			if err := db.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds).Error; err != nil {
+			if err := db.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds).Order("subscribers").Error; err != nil {
 				c.JSON(http.StatusNotFound, gin.H{"text": "failed to get public feeds. please contact tech"})
+				return
 			}
 			sort.Slice(feeds, func(i, j int) bool {
 				return len(feeds[i].Subscribers) > len(feeds[j].Subscribers)

@@ -125,6 +125,15 @@ func getDB(connectionString string) (db *gorm.DB, err error) {
 	return gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 }
 
+func BotDBSetupAndMigration(db *gorm.DB) {
+	err := db.SetupJoinTable(&model.Channel{}, "SubscribedFeeds", &model.ChannelFeedSubscription{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	db.AutoMigrate(&model.Channel{})
+}
+
 func DatabaseSetupAndMigration(db *gorm.DB) {
 	var err error
 
