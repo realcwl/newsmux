@@ -262,6 +262,8 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	// without it.
 	if err == nil {
 		post.SemanticHashing = h
+	} else {
+		Log.Logger.Errorln("fail to calculate semantic hashing for message: ", decodedMsg.String(), "err: ", err)
 	}
 
 	// Match post with candidate feeds in parallel
