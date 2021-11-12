@@ -34,7 +34,7 @@ class RouteGuideServicer(deduplicator_pb2_grpc.DeduplicatorServicer):
         filtered_words = jio.remove_stopwords(filtered_words)
         h = Simhash(filtered_words, f=length).value
         # Remove '0b' in the front
-        binary_str = bin(h)[2:]
+        binary_str = bin(h)[2:].zfill(128)
 
         return deduplicator_pb2.GetSimHashResponse(binary=binary_str)
 

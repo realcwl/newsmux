@@ -24,7 +24,7 @@ func main() {
 	client := protocol.NewDeduplicatorClient(conn)
 
 	res, err := client.GetSimHash(context.TODO(), &protocol.GetSimHashRequest{
-		Text:   "谷歌C股价首次站上3000美元关口，市值逼近2万亿美元，现涨超1%。",
+		Text:   "字节跳动关联公司在厦门成立新公司 含房地产经纪业务 天眼查App显示，11月12日，厦门好房有幸信息技术有限公司成立，注册资本2000万，法定代表人为王奉坤，经营范围包括软件开发；广告设计、代理；房地产经纪等。股权穿透图显示，该公司由字节跳动关联公司北京好房有幸信息技术有限公司全资持股。\\n",
 		Length: 128,
 	})
 	if err != nil {

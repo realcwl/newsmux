@@ -227,8 +227,6 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		return nil, err
 	}
 
-	fmt.Println(decodedMsg)
-
 	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
 	if duplicated, _ := processor.findDuplicatedPost(decodedMsg); duplicated {
 		// Log.Infof("[duplicated message] message has already been processed, existing deduplicate_id: %s, existing post_id: %s ", decodedMsg.Post.DeduplicateId, existingPost.Id)
