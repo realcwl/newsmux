@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
 	. "github.com/Luismorlan/newsmux/protocol"
@@ -70,6 +71,12 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(sqsRea
 }
 
 func (processor *CrawlerpublisherMessageProcessor) calculateSemanticHashing(decodedMsg *CrawlerMessage) (string, error) {
+	// We don't calculate semantic hashing for Wechat message because their
+	// contents are all same.
+	if decodedMsg.Post.SubSource.SourceId == collector.WeixinSourceId {
+		return "", nil
+	}
+
 	// Calculate semanticHashing by calling Deduplicator.
 	ctx := context.Background()
 	res, err := processor.Client.GetSimHash(ctx, &protocol.GetSimHashRequest{
