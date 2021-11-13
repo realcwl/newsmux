@@ -122,11 +122,10 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 		switch form.Command {
 		case "/feeds":
 			var feeds []*model.Feed
-			if err := db.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds).Order("subscribers desc").Error; err != nil {
+			if err := db.Preload("Creator").Preload("SubSources").Where("visibility = 'GLOBAL'").Find(&feeds).Order("subscribers desc").Error; err != nil {
 				c.JSON(http.StatusNotFound, gin.H{"text": "failed to get public feeds. please contact tech"})
 				return
 			}
-
 			/* Building message body */
 			// subscribe section
 			divSection := slack.NewDividerBlock()
