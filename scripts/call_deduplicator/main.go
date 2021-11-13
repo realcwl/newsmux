@@ -31,14 +31,16 @@ func main() {
 	if err != nil {
 		log.Fatalln("fail to call deduplicator: ", err)
 	}
+	fmt.Println("hashing 1:", res.Binary)
 
 	res2, err := client.GetSimHash(context.TODO(), &protocol.GetSimHashRequest{
-		Text:   "感谢关注，这篇置顶帮助您对我的微博内容有个大体了解：  个人关键字：货币和信用体系研究者、西甲球队Eibar股东😂、CFA  一个努力中的Behavioral Macro交易员  微博内容关键字：流动性、中央银行、货币市场、金融市场监管......  我一直认为绝大多数市场参与者对于上述几块内容的理解有所欠缺，正好 ...全文",
+		Text:   "国家烟草专卖局原党组成员、中央纪委原派驻国家烟草专卖局纪检组组长潘家华严重违纪违法被开除党籍。（央视）",
 		Length: 128,
 	})
 	if err != nil {
 		log.Fatalln("fail to call deduplicator: ", err)
 	}
+	fmt.Println("hashing 2:", res.Binary)
 
 	count := 0
 	for i := 0; i < len(res.Binary); i++ {

@@ -258,10 +258,10 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	// Only do soft failure for semantic hashing uncalculated. This is because
 	// semantic hashing is a "Good to have" feature, App can still work properly
 	// without it.
-	if err == nil {
+	if err == nil || len(h) != SemanticHashingLength {
 		post.SemanticHashing = h
 	} else {
-		Log.Logger.Errorln("fail to calculate semantic hashing for message: ", decodedMsg.String(), "err: ", err)
+		Log.Logger.Errorln("fail to calculate semantic hashing for message:", decodedMsg.String(), "err:", err, "hashing:", h)
 	}
 
 	// Match post with candidate feeds in parallel

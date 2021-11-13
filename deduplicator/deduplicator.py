@@ -45,8 +45,6 @@ class RouteGuideServicer(deduplicator_pb2_grpc.DeduplicatorServicer):
             word for word in filtered_words if word not in punctuation]
         filtered_words = jio.remove_stopwords(filtered_words)
 
-        print(filtered_words)
-
         h = Simhash(filtered_words, f=length).value
         # Remove '0b' in the front, and left pad to specified length
         binary_str = bin(h)[2:].zfill(length)
@@ -58,7 +56,7 @@ def serve():
     ADDR = "[::]:50051"
     nltk.download('stopwords')
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=20))
     deduplicator_pb2_grpc.add_DeduplicatorServicer_to_server(
         RouteGuideServicer(), server)
     server.add_insecure_port(ADDR)
