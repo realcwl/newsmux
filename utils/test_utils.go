@@ -202,16 +202,13 @@ func TestCreateUserAndValidate(t *testing.T, name string, userId string, db *gor
 func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterDataExpression string, subSourceIds []string, visibility model.Visibility, db *gorm.DB, client *client.Client) (id string, updatedAt string) {
 	var resp struct {
 		UpsertFeed struct {
-			Id                   string `json:"id"`
-			Name                 string `json:"name"`
-			CreatedAt            string `json:"createdAt"`
-			UpdatedAt            string `json:"updatedAt"`
-			DeletedAt            string `json:"deletedAt"`
-			FilterDataExpression string `json:"filterDataExpression"`
-			SubSources           []struct {
-				Id string `json:"id"`
-			} `json:"subSources"`
-			Visibility model.Visibility `json:"visibility"`
+			Id                   string           `json:"id"`
+			Name                 string           `json:"name"`
+			CreatedAt            string           `json:"createdAt"`
+			UpdatedAt            string           `json:"updatedAt"`
+			DeletedAt            string           `json:"deletedAt"`
+			FilterDataExpression string           `json:"filterDataExpression"`
+			Visibility           model.Visibility `json:"visibility"`
 		} `json:"upsertFeed"`
 	}
 
@@ -229,9 +226,6 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 		  updatedAt
 		  filterDataExpression
 		  visibility
-		  subSources {
-			id
-		  }
 		}
 	  }
 	  `, userId, name, compactEscapedjson, subSourceIdsStr, visibility)
@@ -245,7 +239,6 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 
 	require.NotEmpty(t, resp.UpsertFeed.Id)
 	require.Equal(t, name, resp.UpsertFeed.Name)
-	require.Equal(t, len(subSourceIds), len(resp.UpsertFeed.SubSources))
 
 	// resp.UpsertFeed.FilterDataExpression do not need to replace the `\`
 	// reason is:
@@ -266,14 +259,14 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	require.Equal(t, "", resp.UpsertFeed.DeletedAt)
 	require.Equal(t, visibility, resp.UpsertFeed.Visibility)
 
-	if len(subSourceIds) > 0 {
-		require.Equal(t, subSourceIds[0], resp.UpsertFeed.SubSources[0].Id)
-	}
+	var f model.Feed
+	db.Preload("SubSources").First(&f, "id = ?", resp.UpsertFeed.Id)
+	require.Equal(t, len(subSourceIds), len(f.SubSources))
 
 	return resp.UpsertFeed.Id, resp.UpsertFeed.UpdatedAt
 }
 
-func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, client *client.Client) (updatedAt string, postIds []string) {
+func TestUpdateFeed(t *testing.T, feed model.Feed, db *gorm.DB, client *client.Client) string {
 	var resp struct {
 		UpsertFeed struct {
 			Id                   string           `json:"id"`
@@ -282,15 +275,6 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 			UpdatedAt            string           `json:"updatedAt"`
 			FilterDataExpression string           `json:"filterDataExpression"`
 			Visibility           model.Visibility `json:"visibility"`
-			SubSources           []struct {
-				Id string `json:"id"`
-			} `json:"subSources"`
-			Subscribers []struct {
-				Id string `json:"id"`
-			} `json:"subscribers"`
-			Posts []struct {
-				Id string `json:"id"`
-			} `json:"posts"`
 		} `json:"upsertFeed"`
 	}
 
@@ -318,15 +302,6 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 		  createdAt
 		  updatedAt
 		  filterDataExpression
-		  subSources {
-			id
-		  }
-		  subscribers {
-			  id
-		  }
-		  posts{
-			  id
-		  }
 		  visibility
 		}
 	  }
@@ -345,7 +320,6 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 	require.Truef(t, feed.CreatedAt.Before(updatedTime), "updated time should after created time")
 	require.Equal(t, feed.Id, resp.UpsertFeed.Id)
 	require.Equal(t, feed.Name, resp.UpsertFeed.Name)
-	require.Equal(t, len(feed.SubSources), len(resp.UpsertFeed.SubSources))
 	require.Equal(t, feed.Visibility, resp.UpsertFeed.Visibility)
 
 	compactEscapedjson = strings.ReplaceAll(compactEscapedjson, `\`, ``)
@@ -363,12 +337,12 @@ func TestUpdateFeedAndReturnPosts(t *testing.T, feed model.Feed, db *gorm.DB, cl
 	}
 	require.Truef(t, jsonEqual, "data expression invalid")
 
-	var posts []string
-	for _, post := range resp.UpsertFeed.Posts {
-		posts = append(posts, post.Id)
-	}
+	// var posts []string
+	// for _, post := range resp.UpsertFeed.Posts {
+	// 	posts = append(posts, post.Id)
+	// }
 
-	return resp.UpsertFeed.UpdatedAt, posts
+	return resp.UpsertFeed.UpdatedAt
 }
 
 // create source with name, do sanity checks and returns its Id

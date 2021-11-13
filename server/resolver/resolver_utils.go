@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 const (
@@ -148,8 +147,7 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 	}
 
 	// This call will also update feed object with posts, no need to append
-	db.Debug().Model(feed).Omit(clause.Associations).UpdateColumns(model.Feed{UpdatedAt: feed.UpdatedAt})
-	db.Debug().Model(feed).Omit("Posts").Association("Posts").Append(postsToPublish)
+	db.Model(feed).UpdateColumns(model.Feed{UpdatedAt: feed.UpdatedAt}).Association("Posts").Append(postsToPublish)
 }
 
 // get all feeds a user subscribed
