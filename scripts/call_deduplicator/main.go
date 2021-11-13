@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 
 	"github.com/Luismorlan/newsmux/protocol"
@@ -24,11 +25,28 @@ func main() {
 	client := protocol.NewDeduplicatorClient(conn)
 
 	res, err := client.GetSimHash(context.TODO(), &protocol.GetSimHashRequest{
-		Text:   "字节跳动关联公司在厦门成立新公司 含房地产经纪业务 天眼查App显示，11月12日，厦门好房有幸信息技术有限公司成立，注册资本2000万，法定代表人为王奉坤，经营范围包括软件开发；广告设计、代理；房地产经纪等。股权穿透图显示，该公司由字节跳动关联公司北京好房有幸信息技术有限公司全资持股。\\n",
+		Text:   "【#美国通胀率创30年来新高#，民众直言喝不起咖啡了】11月10日美国劳工部表示，10月该国消费者价格指数（CPI）同比涨幅达6.2%，增幅创1990年12月以来新高。有美国民众表示，为了给车加油，已经不喝咖啡了。澎湃视频的微博视频 ",
 		Length: 128,
 	})
 	if err != nil {
 		log.Fatalln("fail to call deduplicator: ", err)
 	}
-	log.Println("success with response: ", res)
+	fmt.Println("hashing 1:", res.Binary)
+
+	res2, err := client.GetSimHash(context.TODO(), &protocol.GetSimHashRequest{
+		Text:   "国家烟草专卖局原党组成员、中央纪委原派驻国家烟草专卖局纪检组组长潘家华严重违纪违法被开除党籍。（央视）",
+		Length: 128,
+	})
+	if err != nil {
+		log.Fatalln("fail to call deduplicator: ", err)
+	}
+	fmt.Println("hashing 2:", res.Binary)
+
+	count := 0
+	for i := 0; i < len(res.Binary); i++ {
+		if res.Binary[i] != res2.Binary[i] {
+			count++
+		}
+	}
+	fmt.Println("distance: ", count)
 }
