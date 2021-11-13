@@ -10,6 +10,8 @@ type Feed implements FeedSeedStateInterface @goModel(model: "model.Feed") {
   filterDataExpression: String!
   visibility: Visibility!
   # How many users are subscribing to this Feed, used in sharedFeed.
+  # TODO(evan): if you want to checkout when do we:
+  # only define in graphql, but not in database.
   subscriberCount: Int
 }
 

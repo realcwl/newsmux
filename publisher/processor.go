@@ -149,6 +149,7 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(m
 		return nil, errors.New("invalid subsource id " + currentPost.SubSource.Id)
 	}
 
+	// TODO(evan): Map tags from CrawlerMessage_CrawledPost to Post
 	post = &model.Post{
 		Id:                 uuid.New().String(),
 		Title:              currentPost.Title,
@@ -165,6 +166,7 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(m
 		ImageUrls:          currentPost.ImageUrls,
 		FileUrls:           currentPost.FilesUrls,
 		OriginUrl:          currentPost.OriginUrl,
+		// TODO(evan): Hint: add tag here.
 	}
 	if currentPost.SharedFromCrawledPost != nil {
 		sharedFromPost, e := processor.preparePostChainFromMessage(msg, currentPost.SharedFromCrawledPost, false)

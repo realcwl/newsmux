@@ -29,4 +29,13 @@ type Post @goModel(model: "model.Post") {
   deduplicateId: String!
 
   semanticHashing: String
+
+  # TODO(evan): return tags, similar to semanticHashing
+  # determine whenther split happens at backend or frontend
+  # I'd prefer do it in backend, but in this case you cannot declare the same
+  # name because gqlgen will assume that it already exist in DB and can be
+  # fetched as it is.
+  # run `make generate` to generate handlers, and implement that one.
+  #
+  # See subscriberCount for example.
 }

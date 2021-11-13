@@ -3,6 +3,11 @@
 # collectors, you should create a new file in this directory with the data
 # collector's name. They will be picked up automatically by collector/cmd/main.go
 jobs: {
+  # TODO(evan): This is the job you run to test your collector, it does nothing 
+  # but printout:
+  # 1. Final output CrawledPost
+  # 2. Anything you specified using fmt.Println()
+  # to your console.
 	job_id: "wisburg_view"
 	tasks: [
 		{

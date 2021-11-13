@@ -262,6 +262,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 	subSourceId1 := TestCreateSubSourceAndValidate(t, uid, "test_subsource_1", "test_externalid", sourceId1, false, db, client)
 	feedId, _ := TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", DataExpressionJsonForTest, []string{subSourceId1}, model.VisibilityPrivate, db, client)
 
+	// TODO(evan): test your "SQS->publisher->DB" logic here.
 	msgToOneFeed := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			DeduplicateId: "1",
@@ -300,7 +301,9 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",
 		CrawlerVersion: "vde",
-		IsTest:         false,
+		// TODO(evan): you should need something here to insert into test database.
+		// `make test` to test your change.
+		IsTest: false,
 	}
 	t.Run("Test publish post with retweet sharing", func(t *testing.T) {
 		// msgToTwoFeeds is from subsource 1 which in 2 feeds
@@ -341,6 +344,8 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.OriginUrl, subScourceShared.OriginUrl)
 		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.SubSource.AvatarUrl, subScourceShared.AvatarUrl)
 		require.True(t, subScourceShared.IsFromSharedPost)
+
+		// TODO(evan): verify here.
 	})
 }
 

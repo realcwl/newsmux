@@ -1,5 +1,10 @@
 package collector_instances
 
+// TODO(evan): This is the most important part! Testing:
+// In root directory:
+// `go run collector/cmd/main.go -job_id "wisburg_view"`
+// If your code is working correctly you should see your tags in the final output
+// messages in console.
 import (
 	"encoding/json"
 	"errors"
@@ -25,6 +30,7 @@ const (
 	WisburgBaseUrl    = "https://wisburg.com/"
 )
 
+// TODO(evan): You need to find out which one contains the tags you need.
 type UnifiedWisburgPost struct {
 	ID                 int           `json:"id"`
 	Title              string        `json:"title"`
@@ -307,6 +313,8 @@ func (w WisburgCrawler) GetResearchStruct(
 func (w WisburgCrawler) ProcessViewPoint(
 	channelType protocol.WisburgParams_ChannelType,
 	task *protocol.PanopticTask) error {
+	// This is where you get the viewpoint response.
+	// `res` is the response
 	res, err := w.GetViewpointStruct(channelType, task)
 	if err != nil {
 		return err
@@ -371,10 +379,15 @@ func (w WisburgCrawler) ProcessResearch(
 }
 
 // ======= The main logic for processing the post =======
+// TODO(evan): You need to process the (already downloaded) UnifiedWisburgPost
+// and find the tag, store it in CrawledMessage_CrawledPost.
 func (w WisburgCrawler) ProcessUnifiedWisburgPost(
 	channelType protocol.WisburgParams_ChannelType,
 	post *UnifiedWisburgPost,
 	workingContext *working_context.ApiCollectorWorkingContext) error {
+	// TODO(evan): Printout the UnifiedWisburgPost to checkout content
+	fmt.Println(collector.PrettyPrint(post))
+
 	collector.InitializeApiCollectorResult(workingContext)
 
 	dedupId, err := post.GetDedupId()
@@ -396,12 +409,16 @@ func (w WisburgCrawler) ProcessUnifiedWisburgPost(
 	workingContext.Result.Post.SubSource.AvatarUrl = collector.GetSourceLogoUrl(
 		workingContext.Task.TaskParams.SourceId)
 
+	// TODO(evan): Add tags from UnifiedWisburgPost (aka variable `post`) to workingContext.Result.Post.Tags (if that's the name
+	// you used)
+
 	return nil
 }
 
 func (w WisburgCrawler) CollectSingleSubSource(channelType protocol.WisburgParams_ChannelType, task *protocol.PanopticTask) error {
 	switch channelType {
 	case protocol.WisburgParams_CHANNEL_TYPE_VIEWPOINT:
+		// TODO(evan): This is the path you'll take
 		return w.ProcessViewPoint(channelType, task)
 	case protocol.WisburgParams_CHANNEL_TYPE_RESEARCH:
 		return w.ProcessResearch(channelType, task)
@@ -410,6 +427,8 @@ func (w WisburgCrawler) CollectSingleSubSource(channelType protocol.WisburgParam
 	}
 }
 
+// TODO(evan): This is the entry point to Wisburg crawler
+// All instance takes in protocol.PanopticTask (you can explore the data structure)
 func (w WisburgCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 	if len(task.TaskParams.GetWisburgTaskParams().ChannelType) == 0 {
 		Logger.Log.Error("No channel type specified for Wisburg")

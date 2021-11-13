@@ -15,6 +15,7 @@ func (r *feedResolver) FilterDataExpression(ctx context.Context, obj *model.Feed
 }
 
 func (r *feedResolver) SubscriberCount(ctx context.Context, obj *model.Feed) (*int, error) {
+	// TODO(evan): This is the example handler.
 	var count int64
 	r.DB.Model(&model.UserFeedSubscription{}).
 		Where("feed_id = ?", obj.Id).

@@ -84,4 +84,11 @@ type Post struct {
 
 	DeduplicateId   string
 	SemanticHashing string
+
+	// TODO(evan): Add tag definition here as well
+	// if you want to handle separator yourself:
+	// + Tags string
+	// if you want to use array
+	// find out yourself
+	// I think run `go generate`
 }

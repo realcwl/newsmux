@@ -61,6 +61,9 @@ message CrawlerMessage {
 
     // post which current post is shared from. For weibo share or retweet.
     CrawledPost shared_from_crawled_post = 9;
+
+    // TODO(evan): Add tags definition in proto file, run `go generate ./...` to
+    // generate all protobuf files.
   }
 
   // The post details that this message sends
