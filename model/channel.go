@@ -27,11 +27,17 @@ SubSources: All subsources this feed is listening to, "many-to-many" relationshi
 	Do not only rely on subsource to infer source, so that we can have Feed only subscribe to source
 */
 type Channel struct {
-	Id              string    `gorm:"primaryKey"`
-	CreatedAt       time.Time `gorm:"<-:create"`
-	UpdatedAt       time.Time
-	Name            string
-	WebhookUrl      string
-	SlackId         string
+	Id             string    `gorm:"primaryKey"`
+	CreatedAt      time.Time `gorm:"<-:create"`
+	UpdatedAt      time.Time
+	Name           string
+	WebhookUrl     string
+	ChannelSlackId string `gorm:"uniqueIndex"`
+
+	// Team is not used in our current product
+	// We save slack id and names here for future extensibility
+	// We will move it to a separate model when we are more serious about it
+	TeamSlackId     string
+	TeamSlackName   string
 	SubscribedFeeds []*Feed `json:"subscribed_feeds" gorm:"many2many;constraint:OnDelete:CASCADE;"`
 }

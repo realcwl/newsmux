@@ -3,8 +3,9 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
-	"sort"
+	"net/url"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -14,8 +15,10 @@ import (
 	"github.com/Luismorlan/newsmux/server/resolver"
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/slack-go/slack"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -30,27 +33,99 @@ type CommandForm struct {
 	Command string `form:"command" binding:"required"`
 }
 
-func BotCommandHandler() gin.HandlerFunc {
-	db, err := utils.GetDBConnection()
-	if err != nil {
-		panic("failed to connect to database")
+type SlackTeam struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type SlackIncomingWebhook struct {
+	Channel   string `json:"channel"`
+	ChannelId string `json:"channel_id"`
+	Url       string `json:"url"`
+}
+
+type SlackOAuthResponse struct {
+	Ok              bool                 `json:"ok"`
+	AppId           string               `json:"app_id"`
+	IncomingWebhook SlackIncomingWebhook `json:"incoming_webhook"`
+	Team            SlackTeam            `json:"team"`
+}
+
+func AuthHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		code, ok := c.GetQuery("code")
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
+			return
+		}
+		data := url.Values{
+			"client_id":     {"2628263675187.2627083261045"},
+			"client_secret": {"1a9fcd3aa4b4949292b5c254174dd3fe"},
+			"code":          {code},
+			"redirect_uri":  {"http://localhost:8080/auth"},
+		}
+
+		resp, err := http.PostForm("https://slack.com/api/oauth.v2.access", data)
+		if err != nil {
+			log.Fatal(err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "code is invalid"})
+			return
+		}
+
+		defer resp.Body.Close()
+		slackResp := new(SlackOAuthResponse)
+		json.NewDecoder(resp.Body).Decode(&slackResp)
+
+		if !slackResp.Ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to fetch the channel info from slack, please contact the tech team"})
+			return
+		}
+
+		if slackResp.IncomingWebhook.Channel[0] != '#' {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "the bot has to be added to a channel(not a user) currently, please readded it"})
+			return
+		}
+
+		err = db.Transaction(func(tx *gorm.DB) error {
+			db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "channel_slack_id"}},
+				DoUpdates: clause.AssignmentColumns([]string{"name", "webhook_url", "updated_at"}),
+			}).Create(&model.Channel{
+				Id:             uuid.New().String(),
+				Name:           slackResp.IncomingWebhook.Channel,
+				ChannelSlackId: slackResp.IncomingWebhook.ChannelId,
+				TeamSlackId:    slackResp.Team.ID,
+				TeamSlackName:  slackResp.Team.Name,
+				WebhookUrl:     slackResp.IncomingWebhook.Url,
+			})
+			return nil
+		})
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to save the channel to backend, contact tech please"})
+			return
+		}
+
+		c.Data(200, "application/json; charset=utf-8", []byte("Bot is successfully added. check your slack channel now!"))
 	}
+}
 
-	utils.BotDBSetupAndMigration(db)
+func SubscriberHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.GetQuery("channelId")
+	}
+}
 
+func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var form CommandForm
 		c.Bind(&form)
 		switch form.Command {
 		case "/feeds":
 			var feeds []*model.Feed
-			if err := db.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds).Order("subscribers").Error; err != nil {
+			if err := db.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds).Order("subscribers desc").Error; err != nil {
 				c.JSON(http.StatusNotFound, gin.H{"text": "failed to get public feeds. please contact tech"})
 				return
 			}
-			sort.Slice(feeds, func(i, j int) bool {
-				return len(feeds[i].Subscribers) > len(feeds[j].Subscribers)
-			})
 
 			/* Building message body */
 			// subscribe section
@@ -84,7 +159,6 @@ func BotCommandHandler() gin.HandlerFunc {
 			}
 
 			c.Data(http.StatusOK, "application/json", b)
-
 		default:
 			c.JSON(http.StatusNotFound, gin.H{
 				"response_type": "ephemeral",

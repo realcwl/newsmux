@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/Luismorlan/newsmux/server"
+	"github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	. "github.com/Luismorlan/newsmux/utils/flag"
 	. "github.com/Luismorlan/newsmux/utils/log"
@@ -29,8 +30,20 @@ func main() {
 	router.Use(cors.Default())
 	router.Use(gintrace.Middleware(*ServiceName))
 
-	handler := server.BotCommandHandler()
-	router.POST("/bot", handler)
+	db, err := utils.GetDBConnection()
+	utils.BotDBSetupAndMigration(db)
+	if err != nil {
+		panic("failed to connect to database")
+	}
+
+	slashCmdHandler := server.BotCommandHandler(db)
+	router.POST("/cmd", slashCmdHandler)
+
+	subscribeHandler := server.BotCommandHandler(db)
+	router.POST("/sub", subscribeHandler)
+
+	authHandler := server.AuthHandler(db)
+	router.GET("/auth", authHandler)
 
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{"message": "Newsfeed server - API not found"})
