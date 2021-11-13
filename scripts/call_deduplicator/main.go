@@ -25,7 +25,7 @@ func main() {
 	client := protocol.NewDeduplicatorClient(conn)
 
 	res, err := client.GetSimHash(context.TODO(), &protocol.GetSimHashRequest{
-		Text:   "【#美国通胀率创30年来新高#，民众直言喝不起咖啡了】11月10日美国劳工部表示，10月该国消费者价格指数（CPI）同比涨幅达6.2%，增幅创1990年12月以来新高。有美国民众表示，为了给车加油，已经不喝咖啡了。澎湃视频的微博视频 ",
+		Text:   "恒指收涨0.32%，科技、可选消费板块涨幅居前 恒指收涨0.32%，恒生科技指数涨1.56%。科技、可选消费板块涨幅居前，比亚迪电子涨近10%，小鹏汽车涨超10%。电子烟概念爆发，思摩尔国际涨超14%。地产股分化，中国恒大涨近10%。",
 		Length: 128,
 	})
 	if err != nil {
@@ -34,7 +34,7 @@ func main() {
 	fmt.Println("hashing 1:", res.Binary)
 
 	res2, err := client.GetSimHash(context.TODO(), &protocol.GetSimHashRequest{
-		Text:   "国家烟草专卖局原党组成员、中央纪委原派驻国家烟草专卖局纪检组组长潘家华严重违纪违法被开除党籍。（央视）",
+		Text:   "恒指收涨0.32%，科技、可选消费板块领涨，比亚迪电子涨近10%，小鹏汽车涨超10%。电子烟概念爆发，思摩尔国际涨超14%。地产股分化，中国恒大涨近10%。",
 		Length: 128,
 	})
 	if err != nil {
