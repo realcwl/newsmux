@@ -5,6 +5,7 @@ package resolver
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
@@ -21,6 +22,10 @@ func (r *postResolver) ImageUrls(ctx context.Context, obj *model.Post) ([]string
 
 func (r *postResolver) FileUrls(ctx context.Context, obj *model.Post) ([]string, error) {
 	return obj.FileUrls, nil
+}
+
+func (r *postResolver) Tags(ctx context.Context, obj *model.Post) ([]string, error) {
+	return strings.Split(obj.Tag, ","), nil
 }
 
 // Post returns generated.PostResolver implementation.
