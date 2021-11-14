@@ -1207,7 +1207,7 @@ type Mutation {
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
 
-  addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource!
+  addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource
 
   syncUp(input: SeedStateInput): SeedState
 }
@@ -2361,14 +2361,11 @@ func (ec *executionContext) _Mutation_addWeiboSubSource(ctx context.Context, fie
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.SubSource)
 	fc.Result = res
-	return ec.marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
+	return ec.marshalOSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_syncUp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6508,9 +6505,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addWeiboSubSource":
 			out.Values[i] = ec._Mutation_addWeiboSubSource(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "syncUp":
 			out.Values[i] = ec._Mutation_syncUp(ctx, field)
 		default:
@@ -8565,6 +8559,13 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) marshalOSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx context.Context, sel ast.SelectionSet, v *model.SubSource) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SubSource(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOSubsourcesInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubsourcesInput(ctx context.Context, v interface{}) (*model.SubsourcesInput, error) {
