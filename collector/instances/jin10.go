@@ -45,9 +45,15 @@ func (j Jin10Crawler) UpdateNewsType(workingContext *working_context.CrawlerWork
 
 // check if we should skip the message - ads for example
 func (j Jin10Crawler) ShouldSkipMessage(workingContext *working_context.CrawlerWorkingContext, content string) bool {
-	if strings.Contains(content, "金十") && strings.Contains(content, "VIP") {
-		return true
+	selection := workingContext.Element.DOM.Find(".jin-flash-item")
+	// filter ads in importatn news
+	if selection.HasClass("is-important") {
+		lastDiv := selection.Find(".right-content > div ")
+		if len(lastDiv.Children().Nodes) == 1 && lastDiv.Children().Nodes[0].Data == "b" {
+			return true
+		}
 	}
+
 	if workingContext.Task.TaskParams.GetJinshiTaskParams() != nil {
 		for _, key := range workingContext.Task.TaskParams.GetJinshiTaskParams().SkipKeyWords {
 			if strings.Contains(content, key) {
@@ -211,7 +217,6 @@ func (j Jin10Crawler) GetStartUri() string {
 // todo: mock http response and test end to end Collect()
 func (j Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 	metadata := task.TaskMetadata
-	metadata.ResultState = protocol.TaskMetadata_STATE_SUCCESS
 
 	c := colly.NewCollector()
 	// each crawled card(news) will go to this

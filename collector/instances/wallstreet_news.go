@@ -41,10 +41,7 @@ type WallstreetItem struct {
 func (w WallstreetItem) IsItemSkippable() bool {
 	// Check if item is skippable
 	// Economic stats must be skipped
-	if w.Author.DisplayName == "数据团队" {
-		return true
-	}
-	return false
+	return w.Author != nil && w.Author.DisplayName == "数据团队"
 }
 
 type WallstreetApiResponse struct {
@@ -150,7 +147,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 			continue
 		}
 
-		if workingContext.Result != nil {
+		if workingContext.SharedContext.Result != nil {
 			sink.PushResultToSinkAndRecordInTaskMetadata(w.Sink, workingContext)
 		}
 	}

@@ -3,7 +3,6 @@ package modules
 import (
 	"context"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -63,15 +62,16 @@ func NewSchedulerJob(config *protocol.PanopticConfig, ctx context.Context) *Sche
 func MaybeSplitIntoMultipleSchedulerJobs(config *protocol.PanopticConfig, ctx context.Context) []*SchedulerJob {
 	jobs := []*SchedulerJob{}
 
+	if config.TaskParams.MaxSubsourcePerTask <= 0 {
+		jobs = append(jobs, NewSchedulerJob(config, ctx))
+		return jobs
+	}
+
 	processed := 0
 	left := 0
 	right := 0
-	batch := int64(math.MaxInt64)
 	batch_count := 0
-
-	if config.TaskParams.MaxSubsourcePerTask != 0 {
-		batch = config.TaskParams.MaxSubsourcePerTask
-	}
+	batch := config.TaskParams.MaxSubsourcePerTask
 
 	for processed < len(config.TaskParams.SubSources) {
 		left = right

@@ -97,21 +97,20 @@ func (s *S3FileStore) GenerateS3KeyFromUrl(url, fileName string) (key string, er
 func (s *S3FileStore) FetchAndStore(url, fileName string) (key string, err error) {
 	// Download file
 	eventualUrl := s.processUrlBeforeFetchFunc(url)
-	Logger.Log.Info("Starting downloading file from url: ", eventualUrl)
 	response, err := http.Get(eventualUrl)
 	if err != nil {
 		return "", err
 	}
 	key, err = s.GenerateS3KeyFromUrl(url, fileName)
 	if err != nil {
+		Logger.Log.Info("Fail to download file from url:", eventualUrl, "err:", err)
 		return "", err
 	}
-
-	Logger.Log.Info("Successfully downloaded file from url: ", eventualUrl, " key: ", key)
 
 	if !s.IsKeyExisted(key) {
 		// Upload the file to S3.
 		_, err = s.uploader.Upload(&s3manager.UploadInput{
+			ACL:    aws.String("public-read"),
 			Bucket: aws.String(s.bucket),
 			Key:    aws.String(key),
 			Body:   response.Body,

@@ -1,0 +1,33 @@
+# This file should contain all caus_article job variations, each of different 
+# job_id, please do not add non-caus_news_job in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "caus_news_job"
+	tasks: [
+		{
+            task_id:  "123"
+            data_collector_id:  COLLECTOR_CAUS_NEWS
+            task_params:  {
+                header_params: [
+                    {key: "content-type", value: "application/json;charset=UTF-8"},
+                    {key: "user-agent", value: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"},
+                    {key: "uu_token", value: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIxNjIwMTgzNzczNjIzIiwiZXhwIjoxNjUxMjg3NzczfQ.09H378f2mfbQCpmnkTwFqhRnP9YHBymJxc9PGn9fZ8w"}
+                ]
+                source_id:  "1c6ab31c-aebe-40ba-833d-7cc2d977e5a1"
+                sub_sources:  {
+                    name:  "快讯"
+                    type:  FLASHNEWS
+                }
+                caus_news_task_params: {
+                    max_pages: 3
+                    lanmu_id: 3
+				}
+            }
+            task_metadata: {
+				config_name: "caus_news_config"
+			}
+        }
+	]
+	debug: true
+}

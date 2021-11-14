@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/app_setting"
+	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -18,6 +19,7 @@ import (
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/encoding/prototext"
+	"gorm.io/gorm"
 )
 
 var AppSetting *app_setting.PanopticAppSetting
@@ -62,6 +64,8 @@ type Scheduler struct {
 	Doer JobDoer
 
 	EventBus *gochannel.GoChannel
+
+	DB *gorm.DB
 }
 
 // Return a new instance of Scheduler.
@@ -70,6 +74,11 @@ func NewScheduler(
 	e *gochannel.GoChannel, doer JobDoer, ctx context.Context) *Scheduler {
 	AppSetting = panopticAppSetting
 
+	db, err := utils.GetDBConnection()
+	if err != nil {
+		Logger.Log.Infoln("failed to connect to database")
+	}
+
 	scheduler := &Scheduler{
 		Config:         config,
 		ctx:            ctx,
@@ -77,8 +86,8 @@ func NewScheduler(
 		ScheduleDigest: "",
 		Doer:           doer,
 		running:        false,
+		DB:             db,
 	}
-
 	return scheduler
 }
 
@@ -128,8 +137,23 @@ func (s *Scheduler) UpsertJobs(jobs []*SchedulerJob) {
 
 // Read config either from local workspace (dev) or from Github (production)
 func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
+	configs, err := s.ReadConfigFromLocalOrGithub()
+	if err != nil {
+		return nil, "", err
+	}
+
+	s.MergeConfigAndDb(configs)
+
+	digest, err := utils.TextToMd5Hash(configs.String())
+	if err != nil {
+		return nil, "", err
+	}
+
+	return configs, digest, nil
+}
+
+func (s *Scheduler) ReadConfigFromLocalOrGithub() (*protocol.PanopticConfigs, error) {
 	configs := &protocol.PanopticConfigs{}
-	digest := ""
 
 	if AppSetting.FORCE_REMOTE_SCHEDULE_PULL || utils.IsProdEnv() {
 		Logger.Log.Infoln("read PanopticConfig from Github project: https://github.com/Luismorlan/panoptic_config")
@@ -140,31 +164,64 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
 		client := github.NewClient(tc)
 		content, _, res, err := client.Repositories.GetContents(s.ctx, "Luismorlan", "panoptic_config", "config.textproto", nil)
 		if err != nil {
-			return nil, digest, err
+			return nil, err
 		}
 		if res.StatusCode != 200 {
-			return nil, digest, fmt.Errorf("fail to get config from Github, http code %d", res.StatusCode)
+			return nil, fmt.Errorf("fail to get config from Github, http code %d", res.StatusCode)
 		}
 		decode, _ := base64.StdEncoding.DecodeString(*content.Content)
 		if err := prototext.Unmarshal(decode, configs); err != nil {
-			return nil, digest, err
+			return nil, err
 		}
-		digest = *content.SHA
 	} else {
 		Logger.Log.Infoln("read PanopticConfig from local workspace, file", AppSetting.LOCAL_PANOPTIC_CONFIG_PATH)
 		in, err := ioutil.ReadFile(AppSetting.LOCAL_PANOPTIC_CONFIG_PATH)
 		if err != nil {
-			return nil, digest, err
+			return nil, err
 		}
 		if err := prototext.Unmarshal(in, configs); err != nil {
-			return nil, digest, err
-		}
-		if digest, err = utils.TextToMd5Hash(configs.String()); err != nil {
-			return nil, digest, err
+			return nil, err
 		}
 	}
 
-	return configs, digest, nil
+	return configs, nil
+}
+
+func (s *Scheduler) MergeConfigAndDb(configs *protocol.PanopticConfigs) {
+	var weiboSource model.Source
+	queryWeiboSourceIdResult := s.DB.
+		Where("name = ?", "微博").
+		First(&weiboSource)
+	if queryWeiboSourceIdResult.RowsAffected == 0 {
+		return
+	}
+	weiboSourceId := weiboSource.Id
+	// do merge for all source
+	for _, config := range configs.Config {
+		if config.TaskParams.SourceId != weiboSourceId {
+			continue
+		}
+		param := config.TaskParams
+		var subSourcesFromDB []model.SubSource
+		s.DB.Where("source_id = ? AND is_from_shared_post = false", param.SourceId).Order("name").Find(&subSourcesFromDB)
+
+		existingSubSourceMap := map[string]bool{}
+		// subsource name is unique, using it to do lookup
+		for _, s := range param.SubSources {
+			existingSubSourceMap[s.Name] = true
+		}
+
+		for _, s := range subSourcesFromDB {
+			if _, ok := existingSubSourceMap[s.Name]; !ok {
+				param.SubSources = append(param.SubSources, &protocol.PanopticSubSource{
+					Name:       s.Name,
+					Type:       protocol.PanopticSubSource_USERS, // default to users type
+					ExternalId: s.ExternalIdentifier,
+					Link:       s.OriginUrl,
+				})
+			}
+		}
+	}
 }
 
 func (s *Scheduler) ParseAndUpsertJobs() ( /*reschedule*/ bool, error) {

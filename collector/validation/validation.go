@@ -1,35 +1,35 @@
 package validation
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
+	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
 	"github.com/pkg/errors"
-)
-
-// Intentionally duplicate the code in collector_utils.go so that there's no
-// interference between the validation code and the generation code.
-const (
-	jin10SourceId          = "a882eb0d-0bde-401a-b708-a7ce352b7392"
-	weiboSourceId          = "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
-	kuailansiSourceId      = "6e1f6734-985b-4a52-865f-fc39a9daa2e8"
-	wallstreetNewsSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
-	JinseSourceId          = "5891f435-d51e-4575-b4af-47cd4ede5607"
 )
 
 func getSourceLogoUrl(sourceId string) string {
 	switch sourceId {
-	case jin10SourceId:
+	case collector.Jin10SourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jin10.png"
-	case weiboSourceId:
+	case collector.WeiboSourceId:
 		return ""
-	case wallstreetNewsSourceId:
+	case collector.WallstreetNewsSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wallstrt.png"
-	case kuailansiSourceId:
+	case collector.KuailansiSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/kuailansi.png"
-	case JinseSourceId:
+	case collector.JinseSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jinse.png"
+	case collector.WisburgSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wisburg.png"
+	case collector.Kr36SourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/36ke.png"
+	case collector.CaixinSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/caixin.png"
 	default:
 		return ""
 	}
@@ -38,15 +38,29 @@ func getSourceLogoUrl(sourceId string) string {
 func getSourceIdFromDataCollectorId(collectorId protocol.PanopticTask_DataCollectorId) string {
 	switch collectorId {
 	case protocol.PanopticTask_COLLECTOR_JINSHI:
-		return jin10SourceId
+		return collector.Jin10SourceId
 	case protocol.PanopticTask_COLLECTOR_KUAILANSI:
-		return kuailansiSourceId
+		return collector.KuailansiSourceId
 	case protocol.PanopticTask_COLLECTOR_WEIBO:
-		return weiboSourceId
+		return collector.WeiboSourceId
 	case protocol.PanopticTask_COLLECTOR_WALLSTREET_NEWS:
-		return wallstreetNewsSourceId
+		return collector.WallstreetNewsSourceId
 	case protocol.PanopticTask_COLLECTOR_JINSE:
-		return JinseSourceId
+		return collector.JinseSourceId
+	case protocol.PanopticTask_COLLECTOR_CAUS_ARTICLE:
+		return collector.CaUsSourceId
+	case protocol.PanopticTask_COLLECTOR_WEIXIN_ARTICLE:
+		return collector.WeixinSourceId
+	case protocol.PanopticTask_COLLECTOR_WISBURG:
+		return collector.WisburgSourceId
+	case protocol.PanopticTask_COLLECTOR_KR36:
+		return collector.Kr36SourceId
+	case protocol.PanopticTask_COLLECTOR_WALLSTREET_ARTICLE:
+		return collector.WallstreetArticleSourceId
+	case protocol.PanopticTask_COLLECTOR_CAUS_NEWS:
+		return collector.CaUsSourceId
+	case protocol.PanopticTask_COLLECTOR_CAIXIN:
+		return collector.CaixinSourceId
 	default:
 		return ""
 	}
@@ -83,7 +97,7 @@ func crawledMessageValidation(sharedContext *working_context.SharedContext) erro
 	}
 	for _, v := range messageValidators {
 		if err := v(sharedContext.Result); err != nil {
-			return err
+			return utils.ImmediatePrintError(err)
 		}
 	}
 	return nil
@@ -119,7 +133,10 @@ func crossTaskMessageValidation(sharedContext *working_context.SharedContext) er
 	}
 
 	if msg.Post.SubSource.SourceId != getSourceIdFromDataCollectorId(task.DataCollectorId) {
-		return errors.New("crawled message's source id doesn't match the data collector id")
+		return fmt.Errorf("crawled message's source id doesn't match the data collector id, msg: %s != task: %s",
+			msg.Post.SubSource.SourceId,
+			getSourceIdFromDataCollectorId(task.DataCollectorId),
+		)
 	}
 
 	return nil
@@ -131,18 +148,22 @@ func crossTaskMessageValidation(sharedContext *working_context.SharedContext) er
 // - Has SubSourceId
 func validateMessageSubSourceIsSetCorrectly(msg *protocol.CrawlerMessage) error {
 	if msg.Post.SubSource.AvatarUrl == "" {
-		return errors.New("crawled post must have avatar url")
+		return errors.New("crawled post subsource must have avatar url")
 	}
 
 	if msg.Post.SubSource.Name == "" {
-		return errors.New("crawled post must have name")
+		return errors.New("crawled post subsource must have name")
 	}
 
 	if msg.Post.SubSource.SourceId == "" {
-		return errors.New("crawled post must be associated with a source id")
+		return errors.New("crawled post subsource must be associated with a source id")
 	}
 
 	return nil
+}
+
+func isPostWithEmptyContent(post *protocol.CrawlerMessage_CrawledPost) bool {
+	return post.Content == "" && len(post.ImageUrls) == 0 && len(post.FilesUrls) == 0
 }
 
 // A Post is valid iff:
@@ -150,8 +171,16 @@ func validateMessageSubSourceIsSetCorrectly(msg *protocol.CrawlerMessage) error 
 // - It is associated with a generated time to render correct timestamp
 // - It has a deduplicateId
 func validateMessagePostIsSetCorrectly(msg *protocol.CrawlerMessage) error {
-	if msg.Post.Content == "" {
-		return errors.New("crawled post must have Content at least")
+	if msg.Post == nil {
+		return errors.New("crawled post must have be set")
+	}
+
+	if (msg.Post.SharedFromCrawledPost == nil && isPostWithEmptyContent(msg.Post)) ||
+		(isPostWithEmptyContent(msg.Post) && (msg.Post.SharedFromCrawledPost == nil || isPostWithEmptyContent(msg.Post.SharedFromCrawledPost))) {
+		if !strings.Contains(msg.Post.OriginUrl, "weixin") {
+			// Weixin is an exception given the fact that weixin posts can be an image and link to original article
+			return errors.New("crawled post must have Content / Image / File")
+		}
 	}
 
 	if msg.Post.ContentGeneratedAt == nil {

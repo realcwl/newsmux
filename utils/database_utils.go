@@ -80,6 +80,14 @@ func CreateTempDB(t *testing.T) (*gorm.DB, string) {
 	DatabaseSetupAndMigration(newDB)
 	t.Cleanup(func() {
 		dropTempDB(newDB, dbName)
+
+		// Also proactively clean up the DB connections instead of deferring to GC.
+		// Otherwise, we might exceed the DB max connection limit in test and
+		// causing some tests to fail.
+		conn, _ := db.DB()
+		conn.Close()
+		conn, _ = newDB.DB()
+		conn.Close()
 	})
 
 	return newDB, dbName

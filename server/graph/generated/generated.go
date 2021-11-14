@@ -72,14 +72,15 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreatePost      func(childComplexity int, input model.NewPostInput) int
-		CreateSource    func(childComplexity int, input model.NewSourceInput) int
-		CreateUser      func(childComplexity int, input model.NewUserInput) int
-		DeleteFeed      func(childComplexity int, input model.DeleteFeedInput) int
-		Subscribe       func(childComplexity int, input model.SubscribeInput) int
-		SyncUp          func(childComplexity int, input *model.SeedStateInput) int
-		UpsertFeed      func(childComplexity int, input model.UpsertFeedInput) int
-		UpsertSubSource func(childComplexity int, input model.UpsertSubSourceInput) int
+		AddWeiboSubSource func(childComplexity int, input model.AddWeiboSubSourceInput) int
+		CreatePost        func(childComplexity int, input model.NewPostInput) int
+		CreateSource      func(childComplexity int, input model.NewSourceInput) int
+		CreateUser        func(childComplexity int, input model.NewUserInput) int
+		DeleteFeed        func(childComplexity int, input model.DeleteFeedInput) int
+		Subscribe         func(childComplexity int, input model.SubscribeInput) int
+		SyncUp            func(childComplexity int, input *model.SeedStateInput) int
+		UpsertFeed        func(childComplexity int, input model.UpsertFeedInput) int
+		UpsertSubSource   func(childComplexity int, input model.UpsertSubSourceInput) int
 	}
 
 	Post struct {
@@ -97,6 +98,7 @@ type ComplexityRoot struct {
 		OriginUrl          func(childComplexity int) int
 		PublishedFeeds     func(childComplexity int) int
 		SavedByUser        func(childComplexity int) int
+		SemanticHashing    func(childComplexity int) int
 		SharedFromPost     func(childComplexity int) int
 		SubSource          func(childComplexity int) int
 		Title              func(childComplexity int) int
@@ -110,6 +112,7 @@ type ComplexityRoot struct {
 	Query struct {
 		AllVisibleFeeds func(childComplexity int) int
 		Feeds           func(childComplexity int, input *model.FeedsGetPostsInput) int
+		Post            func(childComplexity int, input *model.PostInput) int
 		Posts           func(childComplexity int) int
 		Sources         func(childComplexity int, input *model.SourcesInput) int
 		SubSources      func(childComplexity int, input *model.SubsourcesInput) int
@@ -186,6 +189,7 @@ type MutationResolver interface {
 	Subscribe(ctx context.Context, input model.SubscribeInput) (*model.User, error)
 	CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error)
 	UpsertSubSource(ctx context.Context, input model.UpsertSubSourceInput) (*model.SubSource, error)
+	AddWeiboSubSource(ctx context.Context, input model.AddWeiboSubSourceInput) (*model.SubSource, error)
 	SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error)
 }
 type PostResolver interface {
@@ -196,6 +200,7 @@ type PostResolver interface {
 }
 type QueryResolver interface {
 	AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error)
+	Post(ctx context.Context, input *model.PostInput) (*model.Post, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error)
@@ -323,6 +328,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FeedSeedState.Name(childComplexity), true
+
+	case "Mutation.addWeiboSubSource":
+		if e.complexity.Mutation.AddWeiboSubSource == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addWeiboSubSource_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddWeiboSubSource(childComplexity, args["input"].(model.AddWeiboSubSourceInput)), true
 
 	case "Mutation.createPost":
 		if e.complexity.Mutation.CreatePost == nil {
@@ -518,6 +535,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.SavedByUser(childComplexity), true
 
+	case "Post.semanticHashing":
+		if e.complexity.Post.SemanticHashing == nil {
+			break
+		}
+
+		return e.complexity.Post.SemanticHashing(childComplexity), true
+
 	case "Post.sharedFromPost":
 		if e.complexity.Post.SharedFromPost == nil {
 			break
@@ -571,6 +595,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Feeds(childComplexity, args["input"].(*model.FeedsGetPostsInput)), true
+
+	case "Query.post":
+		if e.complexity.Query.Post == nil {
+			break
+		}
+
+		args, err := ec.field_Query_post_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Post(childComplexity, args["input"].(*model.PostInput)), true
 
 	case "Query.posts":
 		if e.complexity.Query.Posts == nil {
@@ -1000,8 +1036,10 @@ type PostInFeedOutput {
   # is the post shared by another post, if true, this post will not be published if it is not published
   inSharingChain: Boolean
 
-  # deduplicate id is generated by crawler, purely depends on logic in crawler 
+  # deduplicate id is generated by crawler, purely depends on logic in crawler
   deduplicateId: String!
+
+  semanticHashing: String
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `# GraphQL schema
@@ -1022,6 +1060,10 @@ input SourcesInput {
 
 input SubsourcesInput {
   isFromSharedPost: Boolean!
+}
+
+input PostInput {
+  id: String!
 }
 
 input NewUserInput {
@@ -1072,6 +1114,11 @@ input UpsertSubSourceInput {
   isFromSharedPost: Boolean!
 }
 
+# Add weibo user to the database for panoptic to crawl
+input AddWeiboSubSourceInput {
+  name: String!
+}
+
 input FeedRefreshInput {
   feedId: String!
   limit: Int!
@@ -1092,6 +1139,7 @@ input DeleteFeedInput {
 
 type Query {
   allVisibleFeeds: [Feed!]
+  post(input: PostInput): Post!
   posts: [Post!]
   users: [User!]
 
@@ -1158,6 +1206,8 @@ type Mutation {
 
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
+
+  addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource!
 
   syncUp(input: SeedStateInput): SeedState
 }
@@ -1257,6 +1307,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_addWeiboSubSource_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AddWeiboSubSourceInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNAddWeiboSubSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐAddWeiboSubSourceInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createPost_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1400,6 +1465,21 @@ func (ec *executionContext) field_Query_feeds_args(ctx context.Context, rawArgs 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalOFeedsGetPostsInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedsGetPostsInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.PostInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalOPostInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2249,6 +2329,48 @@ func (ec *executionContext) _Mutation_upsertSubSource(ctx context.Context, field
 	return ec.marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_addWeiboSubSource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addWeiboSubSource_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddWeiboSubSource(rctx, args["input"].(model.AddWeiboSubSourceInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SubSource)
+	fc.Result = res
+	return ec.marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_syncUp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2865,6 +2987,38 @@ func (ec *executionContext) _Post_deduplicateId(ctx context.Context, field graph
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_semanticHashing(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SemanticHashing, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PostInFeedOutput_post(ctx context.Context, field graphql.CollectedField, obj *model.PostInFeedOutput) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2965,6 +3119,48 @@ func (ec *executionContext) _Query_allVisibleFeeds(ctx context.Context, field gr
 	res := resTmp.([]*model.Feed)
 	fc.Result = res
 	return ec.marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_post(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_post_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Post(rctx, args["input"].(*model.PostInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Post)
+	fc.Result = res
+	return ec.marshalNPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5470,6 +5666,29 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAddWeiboSubSourceInput(ctx context.Context, obj interface{}) (model.AddWeiboSubSourceInput, error) {
+	var it model.AddWeiboSubSourceInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDeleteFeedInput(ctx context.Context, obj interface{}) (model.DeleteFeedInput, error) {
 	var it model.DeleteFeedInput
 	asMap := map[string]interface{}{}
@@ -5734,6 +5953,29 @@ func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPostInput(ctx context.Context, obj interface{}) (model.PostInput, error) {
+	var it model.PostInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6264,6 +6506,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "addWeiboSubSource":
+			out.Values[i] = ec._Mutation_addWeiboSubSource(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "syncUp":
 			out.Values[i] = ec._Mutation_syncUp(ctx, field)
 		default:
@@ -6382,6 +6629,8 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "semanticHashing":
+			out.Values[i] = ec._Post_semanticHashing(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6449,6 +6698,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_allVisibleFeeds(ctx, field)
+				return res
+			})
+		case "post":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_post(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "posts":
@@ -7129,6 +7392,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) unmarshalNAddWeiboSubSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐAddWeiboSubSourceInput(ctx context.Context, v interface{}) (model.AddWeiboSubSourceInput, error) {
+	res, err := ec.unmarshalInputAddWeiboSubSourceInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
@@ -8153,6 +8421,14 @@ func (ec *executionContext) marshalOPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._Post(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOPostInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostInput(ctx context.Context, v interface{}) (*model.PostInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPostInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx context.Context, sel ast.SelectionSet, v *model.SeedState) graphql.Marshaler {

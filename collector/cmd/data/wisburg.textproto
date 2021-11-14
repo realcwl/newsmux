@@ -1,0 +1,62 @@
+# This file should contain all Wisburg job variations, each of different 
+# job_id, please do not add non-Wisburg jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "wisburg_view"
+	tasks: [
+		{
+      task_id: "wisburg_task"
+      data_collector_id: COLLECTOR_WISBURG
+      task_params: {
+        source_id:  "bb3c8ee2-c81e-43d9-8d98-7a6bb6ca0238"
+        wisburg_task_params: {
+          channel_type: CHANNEL_TYPE_VIEWPOINT
+        }
+      }
+      task_metadata: {
+				config_name: "wisburg_config_name"
+			}
+    }
+	]
+	debug: true
+}
+jobs: {
+	job_id: "wisburg_research"
+	tasks: [
+		{
+      task_id: "wisburg_task"
+      data_collector_id: COLLECTOR_WISBURG
+      task_params: {
+        source_id:  "bb3c8ee2-c81e-43d9-8d98-7a6bb6ca0238"
+        wisburg_task_params: {
+          channel_type: CHANNEL_TYPE_RESEARCH
+        }
+      }
+      task_metadata: {
+				config_name: "wisburg_config_name"
+			}
+    }
+	]
+	debug: true
+}
+jobs: {
+	job_id: "wisburg"
+	tasks: [
+		{
+      task_id: "wisburg_task"
+      data_collector_id: COLLECTOR_WISBURG
+      task_params: {
+        source_id:  "bb3c8ee2-c81e-43d9-8d98-7a6bb6ca0238"
+        wisburg_task_params: {
+          channel_type: CHANNEL_TYPE_RESEARCH
+          channel_type: CHANNEL_TYPE_VIEWPOINT
+        }
+      }
+      task_metadata: {
+				config_name: "wisburg_config_name"
+			}
+    }
+	]
+	debug: true
+}

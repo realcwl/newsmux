@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -85,6 +86,26 @@ func GetFakeTask(taskId, sourceId, subSourceName string, subsourceType protocol.
 		},
 		TaskMetadata: &protocol.TaskMetadata{},
 	}
+}
+func TestJin10Ads(t *testing.T) {
+	// var elem colly.HTMLElement
+	var s = sink.NewStdErrSink()
+	var builder CollectorBuilder
+	crawler := builder.NewJin10Crawler(s)
+	taskId := "task_1"
+	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
+	task := GetFakeTask(taskId, sourceId, "快讯", protocol.PanopticSubSource_FLASHNEWS)
+
+	t.Run("[get message from dom element][flash] html with title and <br/>", func(t *testing.T) {
+		htmlWithTitle := `<div data-v-c7711130="" data-v-1bfa56cb="" id="flash20211105105528759100" class="jin-flash-item-container is-normal"><!----><div data-v-c7711130="" class="jin-flash-item flash is-important"><div data-v-2b138c9f="" data-v-c7711130="" class="detail-btn"><div data-v-2b138c9f="" class="detail-btn_container"><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span></div></div><!----><div data-v-c7711130="" class="item-time">10:55:28</div><div data-v-c7711130="" class="item-right is-common"><div data-v-c7711130="" class="right-top"><!----><div data-v-c7711130="" class="right-content"><div data-v-c7711130=""><b>【双11·击穿底价】新用户开通88折，最高加赠41天，相当于享85折优惠！老用户续费更低至6.2元/日！非农数据公布在即，成为VIP，立即查收交易策略＞＞</b></div></div><!----><!----><div data-v-1696ba0d="" data-v-c7711130="" class="flash-remark"><!----><a data-v-1696ba0d="" href="https://www.jin10.com/activities/vip_promotion/double-eleven/index.html" target="_blank" class="remark-item"><i data-v-1696ba0d="" class="jin-icon iconfont icon-zhujielianjie"></i><span data-v-1696ba0d="" class="remark-item-title">相关链接 &gt;&gt;</span></a><!----><!----></div></div></div><div data-v-47f123d2="" data-v-c7711130="" class="flash-item-share" style="display: none;"><a data-v-47f123d2="" href="javascript:void('openShare')" class="share-btn"><i data-v-47f123d2="" class="jin-icon iconfont icon-fenxiang"></i><span data-v-47f123d2="">分享</span></a><a data-v-47f123d2="" href="https://flash.jin10.com/detail/20211105105528759100" target="_blank"><i data-v-47f123d2="" class="jin-icon iconfont icon-xiangqing"></i><span data-v-47f123d2="">详情</span></a><a data-v-47f123d2="" href="javascript:void('copyFlash')"><i data-v-47f123d2="" class="jin-icon iconfont icon-fuzhi"></i><span data-v-47f123d2="">复制</span></a><!----></div></div></div>`
+		elem := GetMockHtmlElem(htmlWithTitle, "flash20211105105528759100")
+		ctx := &working_context.CrawlerWorkingContext{
+			SharedContext: working_context.SharedContext{Task: &task, IntentionallySkipped: false},
+			Element:       elem, OriginUrl: "a.com"}
+		err := crawler.GetMessage(ctx)
+		require.NoError(t, err)
+		require.True(t, ctx.IntentionallySkipped)
+	})
 }
 
 func TestJin10CrawlerWithTitle(t *testing.T) {
@@ -332,6 +353,46 @@ func TestWeiboCollectorHandler(t *testing.T) {
 	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
 }
 
+func TestWallstreetArticleCollectorHandler(t *testing.T) {
+	job := protocol.PanopticJob{
+		Tasks: []*protocol.PanopticTask{{
+			TaskId:          "123",
+			DataCollectorId: protocol.PanopticTask_COLLECTOR_WALLSTREET_ARTICLE,
+			TaskParams: &protocol.TaskParams{
+				HeaderParams: []*protocol.KeyValuePair{},
+				Cookies:      []*protocol.KeyValuePair{},
+				SourceId:     "66251821-ef9a-464c-bde9-8b2fd8ef2405",
+				SubSources: []*protocol.PanopticSubSource{
+					{
+						Name:       "股市",
+						Type:       protocol.PanopticSubSource_ARTICLE,
+						ExternalId: "shares",
+					},
+					{
+						Name:       "债市",
+						Type:       protocol.PanopticSubSource_ARTICLE,
+						ExternalId: "bonds",
+					},
+				},
+			},
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_wallstreet_config",
+			},
+		},
+		},
+	}
+	var handler DataCollectJobHandler
+	err := handler.Collect(&job)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(job.Tasks))
+	require.Equal(t, "123", job.Tasks[0].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
+	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
+}
+
 func TestWallstreetNewsCollectorHandler(t *testing.T) {
 	job := protocol.PanopticJob{
 		Tasks: []*protocol.PanopticTask{{
@@ -385,4 +446,75 @@ func TestTimeUtil(t *testing.T) {
 
 	// equal to utc time 1136185445 == "Mon Jan 02 2006 07:04:05 GMT+0000"
 	require.Equal(t, "seconds:1136185445", time.String())
+}
+
+func TestCaUsArticleCollectorHandler(t *testing.T) {
+	job := protocol.PanopticJob{
+		Tasks: []*protocol.PanopticTask{{
+			TaskId:          "123",
+			DataCollectorId: protocol.PanopticTask_COLLECTOR_CAUS_ARTICLE,
+			TaskParams: &protocol.TaskParams{
+				HeaderParams: []*protocol.KeyValuePair{
+					{Key: "content-type", Value: "application/json;charset=UTF-8"},
+					{Key: "user-agent", Value: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"},
+					{Key: "uu_token", Value: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIxNjIwMTgzNzczNjIzIiwiZXhwIjoxNjUxMjg3NzczfQ.09H378f2mfbQCpmnkTwFqhRnP9YHBymJxc9PGn9fZ8w"},
+				},
+				Cookies:  []*protocol.KeyValuePair{},
+				SourceId: "1c6ab31c-aebe-40ba-833d-7cc2d977e5a1",
+				SubSources: []*protocol.PanopticSubSource{
+					{
+						Name: "商业",
+						Type: protocol.PanopticSubSource_ARTICLE,
+					},
+				},
+			},
+			TaskMetadata: &protocol.TaskMetadata{
+				ConfigName: "test_caus_config",
+			},
+		},
+		},
+	}
+	var handler DataCollectJobHandler
+	err := handler.Collect(&job)
+	fmt.Println("job", job.String())
+	require.NoError(t, err)
+	require.Equal(t, 1, len(job.Tasks))
+	require.Equal(t, "123", job.Tasks[0].TaskId)
+	require.Greater(t, job.Tasks[0].TaskMetadata.TotalMessageCollected, int32(0))
+	require.GreaterOrEqual(t, job.Tasks[0].TaskMetadata.TotalMessageFailed, int32(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskStartTime.Seconds, int64(0))
+	require.Greater(t, job.Tasks[0].TaskMetadata.TaskEndTime.Seconds, int64(0))
+	require.Equal(t, protocol.TaskMetadata_STATE_SUCCESS, job.Tasks[0].TaskMetadata.ResultState)
+}
+
+type TestImageStore struct {
+	file_store.S3FileStore
+}
+
+func (s *TestImageStore) FetchAndStore(url, fileName string) (string, error) {
+	key, err := s.GenerateS3KeyFromUrl(url, fileName)
+	fmt.Println(key)
+	if err != nil {
+		return "", err
+	}
+	return key, nil
+}
+
+func TestOffloadImageSourceFromHtml(t *testing.T) {
+	var imageStore TestImageStore
+	imageStore.SetCustomizeFileExtFunc(func(url string, fileName string) string {
+		var re = regexp.MustCompile(`\%3D(.*)\%22`)
+		found := re.FindStringSubmatch(url)
+		return "." + found[0][3:len(found[0])-3]
+	})
+	originalHtml := `
+	<![CDATA[ <section style="margin-right: 8px;margin-left: 8px;white-space: normal;" data-mpa-powered-by="yiban.io"><img referrerpolicy="no-referrer" data-cropselx1="0" data-cropselx2="578" data-cropsely1="0" data-cropsely2="233" data-fileid="506378232" data-ratio="0.4033333333333333" src="https://aaaaaaaabg%2F640%3Fwx_fmt%3Dpng%22" data-type="gif" data-w="600"> ]]> 
+	`
+	var re = regexp.MustCompile(`\<\!*\-*\[CDATA\[(.*)\]\]>`)
+	final := re.ReplaceAllString(originalHtml, `$1`)
+	res, err := OffloadImageSourceFromHtml(final, &imageStore)
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(res))
+	require.NoError(t, err)
+	require.Equal(t, "https://d20uffqoe1h0vv.cloudfront.net/6931eb26801b733de4fbc1b95043a26d.png", doc.Find("img").AttrOr("src", "notset"))
 }

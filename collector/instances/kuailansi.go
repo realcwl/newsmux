@@ -161,7 +161,7 @@ func (k KuailansiApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		// Returning nil in ProcessSinglePost doesn't necessarily mean success, it
 		// could just be that we're skiping that post (e.g. subsource type doesn't
 		// match)
-		if workingContext.Result != nil {
+		if workingContext.SharedContext.Result != nil {
 			sink.PushResultToSinkAndRecordInTaskMetadata(k.Sink, workingContext)
 		}
 	}

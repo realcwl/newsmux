@@ -93,10 +93,7 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector DataCollector
 		builder   CollectorBuilder
 	)
-	zsxqFileStore, err := GetZsxqS3FileStore(t, utils.IsProdEnv())
-	if err != nil {
-		return err
-	}
+
 	// forward task to corresponding collector
 	switch t.DataCollectorId {
 	case protocol.PanopticTask_COLLECTOR_JINSHI:
@@ -105,6 +102,10 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 	case protocol.PanopticTask_COLLECTOR_WEIBO:
 		collector = builder.NewWeiboApiCollector(sink, imageStore)
 	case protocol.PanopticTask_COLLECTOR_ZSXQ:
+		zsxqFileStore, err := GetZsxqS3FileStore(t, utils.IsProdEnv())
+		if err != nil {
+			return err
+		}
 		collector = builder.NewZsxqApiCollector(sink, imageStore, zsxqFileStore)
 	case protocol.PanopticTask_COLLECTOR_WALLSTREET_NEWS:
 		collector = builder.NewWallstreetNewsApiCollector(sink)
@@ -112,6 +113,24 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector = builder.NewKuailansiApiCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_JINSE:
 		collector = builder.NewJinseApiCollector(sink)
+	case protocol.PanopticTask_COLLECTOR_CAUS_ARTICLE:
+		collector = builder.NewCaUsArticleCrawlerCollector(sink)
+	case protocol.PanopticTask_COLLECTOR_WEIXIN_ARTICLE:
+		weixinImageStore, err := GetWeixinS3ImageStore(t, utils.IsProdEnv())
+		if err != nil {
+			return err
+		}
+		collector = builder.NewWeixinRssCollector(sink, weixinImageStore)
+	case protocol.PanopticTask_COLLECTOR_WISBURG:
+		collector = builder.NewWisburgCrawler(sink)
+	case protocol.PanopticTask_COLLECTOR_KR36:
+		collector = builder.NewKe36ApiCollector(sink)
+	case protocol.PanopticTask_COLLECTOR_WALLSTREET_ARTICLE:
+		collector = builder.NewWallstreetNewsArticleCollector(sink)
+	case protocol.PanopticTask_COLLECTOR_CAUS_NEWS:
+		collector = builder.NewCaUsNewsCrawlerCollector(sink)
+	case protocol.PanopticTask_COLLECTOR_CAIXIN:
+		collector = builder.NewCaixinCrawler(sink)
 	default:
 		return errors.New("unknown task data collector id")
 	}

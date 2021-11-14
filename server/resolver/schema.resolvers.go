@@ -128,7 +128,8 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	}
 
 	var updatedFeed model.Feed
-	r.DB.Preload(clause.Associations).First(&updatedFeed, "id = ?", feed.Id)
+	r.DB.First(&updatedFeed, "id = ?", feed.Id)
+	// r.DB.Preload(clause.Associations).First(&updatedFeed, "id = ?", feed.Id)
 
 	// If no data expression or subsources changed, skip, otherwise clear the feed's posts
 	if !needClearPosts {
@@ -321,6 +322,10 @@ func (r *mutationResolver) UpsertSubSource(ctx context.Context, input model.Upse
 	return UpsertSubsourceImpl(r.DB, input)
 }
 
+func (r *mutationResolver) AddWeiboSubSource(ctx context.Context, input model.AddWeiboSubSourceInput) (*model.SubSource, error) {
+	return AddWeiboSubsourceImp(r.DB, ctx, input)
+}
+
 func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {
 	if err := r.DB.Transaction(syncUpTransaction(input)); err != nil {
 		return nil, err
@@ -344,11 +349,21 @@ func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInp
 func (r *queryResolver) AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
 
-	if err := r.DB.Preload(clause.Associations).Where("visibility = 'GLOBAL'").Find(&feeds).Error; err != nil {
+	if err := r.DB.
+		Preload("Creator").
+		Preload("SubSources").
+		Where("visibility = 'GLOBAL'").
+		Find(&feeds).Error; err != nil {
 		return nil, err
 	}
 
 	return feeds, nil
+}
+
+func (r *queryResolver) Post(ctx context.Context, input *model.PostInput) (*model.Post, error) {
+	var post *model.Post
+	result := r.DB.Preload(clause.Associations).Model(&model.Post{}).Where("id=?", input.ID).First(&post)
+	return post, result.Error
 }
 
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {

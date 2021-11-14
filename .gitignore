@@ -3,3 +3,4 @@ tmp/
 *.local
 *.sql
 .DS_Store
+deduplicator/__pycache__/

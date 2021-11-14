@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -20,6 +21,27 @@ type HttpClient struct {
 
 func NewHttpClient(header http.Header, cookies []http.Cookie) *HttpClient {
 	return &HttpClient{header: header, cookies: cookies}
+}
+
+func (c HttpClient) Post(uri string, body io.Reader) (*http.Response, error) {
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", uri, body)
+	req.Header = c.header
+	for _, cookie := range c.cookies {
+		req.AddCookie(&cookie)
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if IsNon200HttpResponse(res) {
+		MaybeLogNon200HttpError(res)
+		return nil, errors.New("")
+	}
+
+	return res, err
 }
 
 func (c HttpClient) Get(uri string) (*http.Response, error) {
