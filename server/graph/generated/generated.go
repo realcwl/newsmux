@@ -101,6 +101,7 @@ type ComplexityRoot struct {
 		SemanticHashing    func(childComplexity int) int
 		SharedFromPost     func(childComplexity int) int
 		SubSource          func(childComplexity int) int
+		Tags               func(childComplexity int) int
 		Title              func(childComplexity int) int
 	}
 
@@ -197,6 +198,8 @@ type PostResolver interface {
 
 	ImageUrls(ctx context.Context, obj *model.Post) ([]string, error)
 	FileUrls(ctx context.Context, obj *model.Post) ([]string, error)
+
+	Tags(ctx context.Context, obj *model.Post) ([]string, error)
 }
 type QueryResolver interface {
 	AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error)
@@ -555,6 +558,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.SubSource(childComplexity), true
+
+	case "Post.tags":
+		if e.complexity.Post.Tags == nil {
+			break
+		}
+
+		return e.complexity.Post.Tags(childComplexity), true
 
 	case "Post.title":
 		if e.complexity.Post.Title == nil {
@@ -1040,6 +1050,9 @@ type PostInFeedOutput {
   deduplicateId: String!
 
   semanticHashing: String
+
+  # tags indicating post content
+  tags: [String!]!
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `# GraphQL schema
@@ -3014,6 +3027,41 @@ func (ec *executionContext) _Post_semanticHashing(ctx context.Context, field gra
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_tags(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Post().Tags(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostInFeedOutput_post(ctx context.Context, field graphql.CollectedField, obj *model.PostInFeedOutput) (ret graphql.Marshaler) {
@@ -6625,6 +6673,20 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "semanticHashing":
 			out.Values[i] = ec._Post_semanticHashing(ctx, field, obj)
+		case "tags":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_tags(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
