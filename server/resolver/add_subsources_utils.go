@@ -53,8 +53,7 @@ func AddWeiboSubsourceImp(db *gorm.DB, ctx context.Context, input model.AddWeibo
 	// In both case we update the the sub source, so that frontend will receive
 	// a response and add the sub source to its list.
 	if queryResult.RowsAffected != 0 {
-		subSource.IsFromSharedPost = true
-		if err := db.Save(subSource).Error; err != nil {
+		if err := db.Model(subSource).Update("is_from_shared_post", false).Error; err != nil {
 			return nil, fmt.Errorf("failed to update SubSource: %v", err)
 		}
 		return subSource, nil
