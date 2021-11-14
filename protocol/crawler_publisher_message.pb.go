@@ -228,7 +228,8 @@ type CrawlerMessage_CrawledPost struct {
 	OriginUrl string `protobuf:"bytes,8,opt,name=origin_url,json=originUrl,proto3" json:"origin_url,omitempty"`
 	// post which current post is shared from. For weibo share or retweet.
 	SharedFromCrawledPost *CrawlerMessage_CrawledPost `protobuf:"bytes,9,opt,name=shared_from_crawled_post,json=sharedFromCrawledPost,proto3" json:"shared_from_crawled_post,omitempty"`
-	Tags                  []string                    `protobuf:"bytes,10,rep,name=tags,proto3" json:"tags,omitempty"`
+	// content tags associated with a post
+	Tags []string `protobuf:"bytes,10,rep,name=tags,proto3" json:"tags,omitempty"`
 }
 
 func (x *CrawlerMessage_CrawledPost) Reset() {

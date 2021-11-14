@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -172,6 +173,8 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(m
 		ImageUrls:          currentPost.ImageUrls,
 		FileUrls:           currentPost.FilesUrls,
 		OriginUrl:          currentPost.OriginUrl,
+		// transform tags into serialized string separated by ","
+		Tag: strings.Join(currentPost.Tags, ","),
 	}
 	if currentPost.SharedFromCrawledPost != nil {
 		sharedFromPost, e := processor.preparePostChainFromMessage(msg, currentPost.SharedFromCrawledPost, false)
