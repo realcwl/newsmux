@@ -537,8 +537,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		feed.SubSources = []*model.SubSource{
 			&subSourceOne,
 		}
-		_, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-		require.Equal(t, 0, len(posts))
+		utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
 			[]string{postId1, postId2}, db, client)
 	})
@@ -560,8 +559,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 			&subSourceOne,
 			&subSourceTwo,
 		}
-		_, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-		require.Equal(t, 0, len(posts))
+		utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
 			[]string{postId1, postId2, postId3, postId4, postId5}, db, client)
 	})
@@ -582,8 +580,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 				}
 			}
 	 	}`)
-		_, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-		require.Equal(t, 0, len(posts))
+		utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
 			[]string{postId1, postId3}, db, client)
 	})
@@ -594,8 +591,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		feed.FilterDataExpression = datatypes.JSON(``)
 
 		// publish more by querying {feeds} with NEW
-		updatedAt, posts := utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
-		require.Equal(t, 0, len(posts))
+		updatedAt := utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 1, nil, model.FeedRefreshDirectionNew,
 			[]string{postId5}, db, client)
 
@@ -641,7 +637,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		feed.SubSources = []*model.SubSource{
 			&subSourceWithNestedPost,
 		}
-		utils.TestUpdateFeedAndReturnPosts(t, feed, db, client)
+		utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
 			[]string{postCommnetId}, db, client)
 	})

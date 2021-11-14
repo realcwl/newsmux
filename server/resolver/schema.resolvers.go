@@ -128,7 +128,8 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	}
 
 	var updatedFeed model.Feed
-	r.DB.Preload(clause.Associations).First(&updatedFeed, "id = ?", feed.Id)
+	r.DB.First(&updatedFeed, "id = ?", feed.Id)
+	// r.DB.Preload(clause.Associations).First(&updatedFeed, "id = ?", feed.Id)
 
 	// If no data expression or subsources changed, skip, otherwise clear the feed's posts
 	if !needClearPosts {

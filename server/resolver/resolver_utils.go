@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 const (
@@ -55,7 +54,8 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 	// try to read published posts
 	if query.Direction == model.FeedRefreshDirectionNew {
 		db.Model(&model.Post{}).
-			Preload(clause.Associations).
+			Preload("SubSource").
+			Preload("SharedFromPost").
 			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
@@ -70,7 +70,8 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 		feed.Posts = posts
 	} else {
 		db.Model(&model.Post{}).
-			Preload(clause.Associations).
+			Preload("SubSource").
+			Preload("SharedFromPost").
 			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
@@ -117,7 +118,8 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 		//    after the shared one is published.
 		//    however for re-publish,
 		db.Model(&model.Post{}).
-			Preload(clause.Associations).
+			Preload("SubSource").
+			Preload("SharedFromPost").
 			Preload("SharedFromPost.SubSource").
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
