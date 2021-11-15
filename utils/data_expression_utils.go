@@ -79,7 +79,7 @@ func DataExpressionMatch(dataExpressionWrap model.DataExpressionWrap, post *mode
 		return !match, nil
 	case model.PredicateWrap:
 		if expr.Predicate.Type == "LITERAL" {
-			return strings.Contains(post.Content, expr.Predicate.Param.Text), nil
+			return strings.Contains(strings.ToLower(post.Content), strings.ToLower(expr.Predicate.Param.Text)), nil
 		}
 	default:
 		return false, errors.New("unknown node type when matching data expression")
