@@ -76,7 +76,7 @@ func NewScheduler(
 
 	db, err := utils.GetDBConnection()
 	if err != nil {
-		Logger.Log.Infoln("failed to connect to database")
+		Logger.Log.Errorln("failed to connect to database")
 	}
 
 	scheduler := &Scheduler{
