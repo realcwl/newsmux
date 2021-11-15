@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -112,19 +111,6 @@ func (processor *CrawlerpublisherMessageProcessor) prepareFeedCandidates(
 		}
 	}
 	return feedCandidates
-}
-
-func (processor *CrawlerpublisherMessageProcessor) prepareSource(id string) (*model.Source, error) {
-	var res model.Source
-	if len(id) > 0 {
-		result := processor.DB.Preload("Feeds").Where("id = ?", id).First(&res)
-		if result.RowsAffected != 1 {
-			return nil, errors.New(fmt.Sprintf("source not found: %s", id))
-		}
-		return &res, nil
-	} else {
-		return nil, errors.New("source id can not be empty")
-	}
 }
 
 func (processor *CrawlerpublisherMessageProcessor) prepareSubSourceRecursive(post *CrawlerMessage_CrawledPost, isRoot bool) (*model.SubSource, error) {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Luismorlan/newsmux/server"
+	"github.com/Luismorlan/newsmux/bot"
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
 	. "github.com/Luismorlan/newsmux/utils/flag"
@@ -36,13 +36,13 @@ func main() {
 		panic("failed to connect to database")
 	}
 
-	slashCmdHandler := server.BotCommandHandler(db)
+	slashCmdHandler := bot.BotCommandHandler(db)
 	router.POST("/cmd", slashCmdHandler)
 
-	subscribeHandler := server.BotCommandHandler(db)
-	router.POST("/sub", subscribeHandler)
+	interactionHandler := bot.InteractionHandler(db)
+	router.POST("/interaction", interactionHandler)
 
-	authHandler := server.AuthHandler(db)
+	authHandler := bot.AuthHandler(db)
 	router.GET("/auth", authHandler)
 
 	router.NoRoute(func(c *gin.Context) {

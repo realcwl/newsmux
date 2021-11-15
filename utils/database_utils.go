@@ -139,6 +139,11 @@ func BotDBSetupAndMigration(db *gorm.DB) {
 		panic("failed to connect database")
 	}
 
+	err = db.SetupJoinTable(&model.Feed{}, "SubscribedChannels", &model.ChannelFeedSubscription{})
+	if err != nil {
+		panic("failed to connect datebase")
+	}
+
 	db.AutoMigrate(&model.Channel{})
 }
 
