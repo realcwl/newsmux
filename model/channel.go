@@ -6,25 +6,17 @@ import (
 
 /*
 
-Feed is a data model for a column of newsfeed
+Channel is a data model for slack channels
 
-Id: primary key, use to identify a feed
+Id: primary key, use to identify a channel
 CreatedAt: time when entity is created
-UpdatedAt: time when Feed is updated. This timestamp is used to determine whether
-this feed is unchanged.
-CreatorID:
-Creator: user who added this source, "belongs-to" relation
+UpdatedAt: time when Feed is updated.
+Name: the channel's slack name
+WebhookUrl: for pushing messages to a channel
+ChannelSlackId: this is the ID provided by Slack
 
-Name: feed's display name (title)
-Subscribers: all users who subscribed to this feed, "many-to-many" relation
-Posts: all posts published to this feed, "many-to-many" relation
-
--- Sources: All sources this feed is listening to, "many-to-many" relationship.
--- We don't keep sources, since we assume there is always a sub-source "default" for each source
--- For those sources without subsource like wall-street-news, we use the "default" subsource only
-
-SubSources: All subsources this feed is listening to, "many-to-many" relationship.
-	Do not only rely on subsource to infer source, so that we can have Feed only subscribe to source
+TeamSlackId, TeamSlackName: the info of the slack team this channel is in
+SubscribedFeeds: all feeds this channel subscribed to "many-to-many" relation
 */
 type Channel struct {
 	Id             string    `gorm:"primaryKey"`
