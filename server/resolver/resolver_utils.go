@@ -208,7 +208,7 @@ func isClearPostsNeededForFeedsUpsert(feed *model.Feed, input *model.UpsertFeedI
 
 func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.SubSource, error) {
 	var subSource model.SubSource
-	queryResult := db.Preload("Feeds").Preload("Channels").
+	queryResult := db.Preload("Feeds").Preload("Feeds.SubscribedChannels").
 		Where("name = ? AND source_id = ?", input.Name, input.SourceID).
 		First(&subSource)
 	if queryResult.RowsAffected == 0 {

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Luismorlan/newsmux/bot"
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -261,6 +262,12 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	feedsToPublish, err := processor.MatchMessageWithFeeds(feedCandidates, post)
 	if err != nil {
 		return decodedMsg, err
+	}
+
+	for _, f := range feedsToPublish {
+		for _, c := range f.SubscribedChannels {
+			bot.PushPostViaWebhook(*post, c.WebhookUrl)
+		}
 	}
 
 	// Write to DB, post creation and publish is in a transaction

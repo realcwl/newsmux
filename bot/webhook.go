@@ -77,7 +77,7 @@ func PushPostViaWebhook(post model.Post, webhookUrl string) {
 		if len(post.ImageUrls) > 1 {
 			blocks = append(blocks, slack.NewContextBlock("", buildImageElements(post)...))
 		}
-		if len(post.FileUrls) > 1 {
+		if len(post.FileUrls) > 0 {
 			blocks = append(blocks, slack.NewContextBlock("", buildFileObject(post)))
 		}
 	}

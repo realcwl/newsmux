@@ -93,7 +93,7 @@ func AuthHandler(db *gorm.DB) gin.HandlerFunc {
 			"client_id":     {"2628263675187.2627083261045"},
 			"client_secret": {"1a9fcd3aa4b4949292b5c254174dd3fe"},
 			"code":          {code},
-			"redirect_uri":  {"http://localhost:8080/auth"},
+			"redirect_uri":  {"https://alto.qingtan.ltd/auth"},
 		}
 
 		resp, err := http.PostForm("https://slack.com/api/oauth.v2.access", data)
@@ -205,6 +205,21 @@ func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 		var responseText string
 		if action.IsSubsribe() {
 			responseText = fmt.Sprintf("Successfully subscribed to %s", action.GetFeedName())
+			var post *model.Post
+			db.Preload("SubSource").Preload("SharedFromPost").Preload("SharedFromPost.SubSource").Where("id=?", "c566d53c-a5df-4524-aae1-6e1f23d9aaa6").First(&post)
+			PushPostViaWebhook(*post, channel.WebhookUrl)
+
+			var post2 *model.Post
+			db.Preload("SubSource").Where("id=?", "8720596d-4962-47e0-8177-16189b19b329").First(&post2)
+			PushPostViaWebhook(*post2, channel.WebhookUrl)
+
+			var post3 *model.Post
+			db.Preload("SubSource").Where("id=?", "ffffe72e-935c-4c4a-a615-14e80ac71702").First(&post3)
+			PushPostViaWebhook(*post3, channel.WebhookUrl)
+
+			var post4 *model.Post
+			db.Preload("SubSource").Where("id=?", "ffd5df1c-2920-41db-a927-febae788c08b").First(&post4)
+			PushPostViaWebhook(*post4, channel.WebhookUrl)
 		} else {
 			responseText = fmt.Sprintf("%s is unsubscribed", action.GetFeedName())
 		}
@@ -215,21 +230,6 @@ func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 
 		slack.PostWebhook(channel.WebhookUrl, webhookMsg)
 
-		var post *model.Post
-		db.Preload("SubSource").Preload("SharedFromPost").Preload("SharedFromPost.SubSource").Where("id=?", "c566d53c-a5df-4524-aae1-6e1f23d9aaa6").First(&post)
-		PushPostViaWebhook(*post, channel.WebhookUrl)
-
-		var post2 *model.Post
-		db.Preload("SubSource").Where("id=?", "ef56625f-6433-45cb-a06a-f70c03bd1907").First(&post2)
-		PushPostViaWebhook(*post2, channel.WebhookUrl)
-
-		var post3 *model.Post
-		db.Preload("SubSource").Where("id=?", "ffffe72e-935c-4c4a-a615-14e80ac71702").First(&post3)
-		PushPostViaWebhook(*post3, channel.WebhookUrl)
-
-		var post4 *model.Post
-		db.Preload("SubSource").Where("id=?", "ffd5df1c-2920-41db-a927-febae788c08b").First(&post4)
-		PushPostViaWebhook(*post4, channel.WebhookUrl)
 	}
 }
 
