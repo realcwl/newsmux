@@ -8,9 +8,9 @@ import (
 
 /*
 
-UserFeedSubscription is a "many-to-many" relation of user's subscription to a feed
+ChannelFeedSubscription is a "many-to-many" relation of channel's subscription to a feed
 
-UserID: user id
+ChannelId: channel id
 FeedID: feed id
 CreatedAt: time when relation is created
 DeletedAt: time when relation is deleted
@@ -21,6 +21,7 @@ type ChannelFeedSubscription struct {
 	ChannelID string `gorm:"primaryKey"`
 	FeedID    string `gorm:"primaryKey"`
 	CreatedAt time.Time
+	DeletedAt time.Time
 }
 
 func (ChannelFeedSubscription) BeforeCreate(db *gorm.DB) error {
