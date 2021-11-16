@@ -170,7 +170,7 @@ func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 
 		if len(payload.Actions) == 0 {
-			Logger.Log.Errorf("invalid payload without any action", payload)
+			Logger.Log.Errorln("invalid payload without any action", payload)
 		}
 
 		action := payload.Actions[0]
