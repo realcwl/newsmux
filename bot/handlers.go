@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -18,8 +17,8 @@ import (
 )
 
 const (
-	SUBSCRIBE_BUTTON_TEXT   = "Subscribe"
-	UNSUBSCRIBE_BUTTON_TEXT = "Unsubscribe"
+	SubscribeButtonText   = "Subscribe"
+	UnsubscribeButtonText = "Unsubscribe"
 )
 
 type CommandForm struct {
@@ -61,8 +60,8 @@ type Action struct {
 	Text     ActionText `json:"text"`
 }
 
-func (a Action) IsSubsribe() bool {
-	return a.Text.Text == SUBSCRIBE_BUTTON_TEXT
+func (a Action) IsSubscribe() bool {
+	return a.Text.Text == UnsubscribeButtonText
 }
 
 func (a Action) GetFeedId() string {
@@ -98,7 +97,7 @@ func AuthHandler(db *gorm.DB) gin.HandlerFunc {
 
 		resp, err := http.PostForm("https://slack.com/api/oauth.v2.access", data)
 		if err != nil {
-			log.Fatal(err)
+			Logger.Log.Error(err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "code is invalid"})
 			return
 		}
@@ -185,7 +184,7 @@ func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if action.IsSubsribe() {
+		if action.IsSubscribe() {
 			db.Transaction(func(tx *gorm.DB) error {
 				db.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ChannelFeedSubscription{
 					ChannelID: channel.Id,
@@ -194,7 +193,7 @@ func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 				return nil
 			})
 		} else {
-			db.Where("feed_id = ?", action.GetFeedId()).Delete(&model.ChannelFeedSubscription{})
+			db.Where("feed_id = ? AND channel_id = ?", action.GetFeedId(), channel.Id).Delete(&model.ChannelFeedSubscription{})
 		}
 
 		if err != nil {
@@ -203,7 +202,7 @@ func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var responseText string
-		if action.IsSubsribe() {
+		if action.IsSubscribe() {
 			responseText = fmt.Sprintf("Successfully subscribed to %s", action.GetFeedName())
 			var post *model.Post
 			db.Preload("SubSource").Preload("SharedFromPost").Preload("SharedFromPost.SubSource").Where("id=?", "c566d53c-a5df-4524-aae1-6e1f23d9aaa6").First(&post)
@@ -237,7 +236,6 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var form CommandForm
 		c.Bind(&form)
-		fmt.Println("form", form)
 		switch form.Command {
 		case "/feeds":
 			// TODO(boning): not familiar with gorm syntax, will merge the two db query below to one
@@ -279,7 +277,7 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 			blocks := []slack.Block{divSection}
 
 			for _, feed := range unsubscribedFeeds {
-				subscribeBtnText := slack.NewTextBlockObject("plain_text", SUBSCRIBE_BUTTON_TEXT, false, false)
+				subscribeBtnText := slack.NewTextBlockObject("plain_text", SubscribeButtonText, false, false)
 				subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
 				optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t _%s_", feed.Name, feed.Creator.Name), false, false)
 				optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))
@@ -289,7 +287,7 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 			blocks = append(blocks, divSection)
 
 			for _, feed := range subscribedFeeds {
-				subscribeBtnText := slack.NewTextBlockObject("plain_text", UNSUBSCRIBE_BUTTON_TEXT, false, false)
+				subscribeBtnText := slack.NewTextBlockObject("plain_text", UnsubscribeButtonText, false, false)
 				subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
 				optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t _%s_", feed.Name, feed.Creator.Name), false, false)
 				optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))

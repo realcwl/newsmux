@@ -13,7 +13,6 @@ ChannelFeedSubscription is a "many-to-many" relation of channel's subscription t
 ChannelId: channel id
 FeedID: feed id
 CreatedAt: time when relation is created
-DeletedAt: time when relation is deleted
 
 */
 
@@ -21,7 +20,6 @@ type ChannelFeedSubscription struct {
 	ChannelID string `gorm:"primaryKey"`
 	FeedID    string `gorm:"primaryKey"`
 	CreatedAt time.Time
-	DeletedAt time.Time
 }
 
 func (ChannelFeedSubscription) BeforeCreate(db *gorm.DB) error {

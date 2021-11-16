@@ -269,7 +269,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 
 	for _, f := range feedsToPublish {
 		for _, c := range f.SubscribedChannels {
-			bot.PushPostViaWebhook(*post, c.WebhookUrl)
+			go bot.PushPostViaWebhook(*post, c.WebhookUrl)
 		}
 	}
 
