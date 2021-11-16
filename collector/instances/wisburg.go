@@ -71,8 +71,16 @@ type UnifiedWisburgPost struct {
 	IsCooperation bool          `json:"is_cooperation"`
 	VipVisibility int           `json:"vip_visibility"`
 	FreeAt        interface{}   `json:"free_at"`
-	Themes        []interface{} `json:"themes"`
-	Author        struct {
+	Themes        []struct {
+		ID           int      `json:"id"`
+		Columns      []string `json:"columns"`
+		CoverUri     string   `json:"cover_uri"`
+		Description  string   `json:"description"`
+		IsPush       bool     `json:"is_push"`
+		IsSubscribed bool     `json:"is_subscribe"`
+		Title        string   `json:"title"`
+	}
+	Author struct {
 		ID              int         `json:"id"`
 		Nickname        string      `json:"nickname"`
 		Signature       string      `json:"signature"`
@@ -151,6 +159,15 @@ func (p *UnifiedWisburgPost) GetOriginUrl() string {
 
 func (p *UnifiedWisburgPost) GetImageUrls() []string {
 	return p.CoverSlideUris
+}
+
+func (p *UnifiedWisburgPost) GetTags() []string {
+	N := len(p.Themes)
+	tags := make([]string, N)
+	for idx, value := range p.Themes {
+		tags[idx] = value.Title
+	}
+	return tags
 }
 
 type WisburgViewpointApiResponse struct {
@@ -395,6 +412,7 @@ func (w WisburgCrawler) ProcessUnifiedWisburgPost(
 	}
 	workingContext.Result.Post.SubSource.AvatarUrl = collector.GetSourceLogoUrl(
 		workingContext.Task.TaskParams.SourceId)
+	workingContext.Result.Post.Tags = post.GetTags()
 
 	return nil
 }

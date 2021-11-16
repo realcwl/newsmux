@@ -117,6 +117,10 @@ func TestDataExpressionMatch(t *testing.T) {
 		matched, err = DataExpressionMatchPostChain(DataExpressionJsonForTest, &model.Post{Content: "老王做空bitcoin"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
+
+		matched, err = DataExpressionMatchPostChain(DataExpressionJsonForTest, &model.Post{Content: "老王做空BITCOIN"})
+		require.Nil(t, err)
+		require.Equal(t, true, matched)
 	})
 
 	t.Run("Test matching from json string with pure id expression", func(t *testing.T) {
@@ -133,6 +137,10 @@ func TestDataExpressionMatch(t *testing.T) {
 		require.Equal(t, false, matched)
 
 		matched, err = DataExpressionMatchPostChain(PureIdExpressionJson, &model.Post{Content: "老王做空bitcoin"})
+		require.Nil(t, err)
+		require.Equal(t, true, matched)
+
+		matched, err = DataExpressionMatchPostChain(PureIdExpressionJson, &model.Post{Content: "老王做空BITCOIN"})
 		require.Nil(t, err)
 		require.Equal(t, true, matched)
 	})
