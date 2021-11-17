@@ -144,6 +144,16 @@ func BotDBSetupAndMigration(db *gorm.DB) {
 		panic("failed to connect datebase when build many2many relationship with Feeds and Channels")
 	}
 
+	err = db.SetupJoinTable(&model.User{}, "SubscribedFeeds", &model.UserFeedSubscription{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	err = db.SetupJoinTable(&model.User{}, "SavedPosts", &model.UserPostSave{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
 	db.AutoMigrate(&model.Channel{})
 }
 

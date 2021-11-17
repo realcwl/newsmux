@@ -20,7 +20,7 @@ func buildSubsourceBlock(post model.Post) slack.Block {
 }
 
 func buildRetweetBlock(post model.Post, postLink string) slack.MixedElement {
-	return slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("><%s|%s> %s", postLink, post.SubSource.Name, buildContentWithShowMore(post)), false, false)
+	return slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("><%s|%s> %s", postLink, post.SubSource.Name, buildContentWithShowMore(post, postLink)), false, false)
 }
 
 // buildImageElements should be used only when we have 2+ images
@@ -44,9 +44,9 @@ func buildFileObject(post model.Post) *slack.TextBlockObject {
 	return slack.NewTextBlockObject("mrkdwn", fileBlockText, false, false)
 }
 
-func buildContentWithShowMore(post model.Post) string {
+func buildContentWithShowMore(post model.Post, postLink string) string {
 	if len(post.Content) > 600 {
-		return fmt.Sprintf("%s...<%s|[查看全文]>", post.Content[:600], buildPostLink(post))
+		return fmt.Sprintf("%s...<%s|[查看全文]>", post.Content[:600], postLink)
 	}
 	return post.Content
 }
@@ -59,7 +59,7 @@ func PushPostViaWebhook(post model.Post, webhookUrl string) {
 	if post.SharedFromPost != nil {
 		sharedFromPost := post.SharedFromPost
 		if post.Content != "" {
-			sharedFromContext := slack.NewContextBlock("", slack.NewTextBlockObject("mrkdwn", buildContentWithShowMore(post), false, false))
+			sharedFromContext := slack.NewContextBlock("", slack.NewTextBlockObject("mrkdwn", buildContentWithShowMore(post, buildPostLink(post)), false, false))
 			blocks = append(blocks, sharedFromContext)
 		}
 
@@ -73,7 +73,7 @@ func PushPostViaWebhook(post model.Post, webhookUrl string) {
 		if post.Title != "" {
 			bodyBlockElements = append(bodyBlockElements, slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s*", post.Title), false, false))
 		}
-		bodyBlockElements = append(bodyBlockElements, slack.NewTextBlockObject("mrkdwn", buildContentWithShowMore(post), false, false))
+		bodyBlockElements = append(bodyBlockElements, slack.NewTextBlockObject("mrkdwn", buildContentWithShowMore(post, buildPostLink(post)), false, false))
 		blocks = append(blocks, slack.NewContextBlock("", bodyBlockElements...))
 		if len(post.ImageUrls) > 1 {
 			blocks = append(blocks, slack.NewContextBlock("", buildImageElements(post)...))

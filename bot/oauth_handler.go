@@ -5,11 +5,14 @@ package bot
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/Luismorlan/newsmux/model"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -42,11 +45,12 @@ func AuthHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		data := url.Values{
-			"client_id":     {"2628263675187.2627083261045"},
-			"client_secret": {"1a9fcd3aa4b4949292b5c254174dd3fel"},
+			"client_id":     {os.Getenv("BOT_CLIENT_ID")},
+			"client_secret": {os.Getenv("BOT_CLIENT_SECRET")},
 			"code":          {code},
-			"redirect_uri":  {"https://alto.qingtan.ltd/auth"},
+			"redirect_uri":  {os.Getenv("BOT_REDIRECT_URL")},
 		}
+		fmt.Println(data)
 
 		resp, err := http.PostForm("https://slack.com/api/oauth.v2.access", data)
 		if err != nil {
@@ -64,10 +68,7 @@ func AuthHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if slackResp.IncomingWebhook.Channel[0] != '#' {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "the bot has to be added to a channel(not a user) currently, please readded it"})
-			return
-		}
+		Logger.Log.Info("Bot added to a channel", slackResp)
 
 		err = db.Transaction(func(tx *gorm.DB) error {
 			db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "channel_slack_id"}},
@@ -84,7 +85,7 @@ func AuthHandler(db *gorm.DB) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to save the channel to backend, contact tech please"})
+			Logger.Log.Error("failed to save the channel to backend, contact tech please", err)
 			return
 		}
 

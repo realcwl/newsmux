@@ -7,8 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/Luismorlan/newsmux/model"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"gorm.io/gorm"
@@ -19,14 +21,10 @@ const (
 	UNSUBSCRIBE_BUTTON_TEXT = "Unsubscribe"
 )
 
-type FeedResultForChannel struct {
-	model.Feed
-	IsSubscribed bool
-}
-
 type CommandForm struct {
 	Command   string `form:"command" binding:"required"`
 	ChannelId string `form:"channel_id" binding:"required"`
+	UserId    string `form:"user_id" binding:"required"`
 }
 
 func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
@@ -35,46 +33,34 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 		c.Bind(&form)
 		fmt.Println("form", form)
 		switch form.Command {
-		case "/feeds":
-			var visibleFeeds []FeedResultForChannel
-			if err := db.Debug().Model(&model.Feed{}).Preload("Creator").Select("feed.*, channel_feed_subscription").
-				Joins("LEFT JOIN channel_feed_subscription ON feeds.id = channel_feed_subscrpition.feed_id").
-				Joins("LEFT JOIN channels ON channels.id = channel_feed_subscriptions.channel_id").
-				Where("visibility = 'GLOBAL'").Or("channels.channel_slack_id = ?", form.ChannelId).
-				Or("creator.slack_id = ?").
-				Find(&visibleFeeds).Order("subscribers desc").Error; err != nil {
+		case "/news":
+			var user model.User
+			if err := db.Debug().Model(&model.User{}).Preload("SubscribedFeeds.Creator", "slack_id != ?", form.UserId).
+				Preload("SubscribedFeeds.SubscribedChannels", "channel_slack_id = ?", form.ChannelId).
+				Where("slack_id = ?", form.UserId).
+				First(&user).Error; err != nil {
+				Logger.Log.Error("failed to get user's feeds", err)
 				c.JSON(http.StatusNotFound, gin.H{"text": "failed to get public feeds. please contact tech"})
 				return
 			}
 
-			// var subscribedFeeds []*model.Feed
-			// db.Model(&model.ChannelFeedSubscription{}).
-			// 	Select("feeds.id").
-			// 	Joins("INNER JOIN feeds ON feeds.id = channel_feed_subscriptions.feed_id").
-			// 	Joins("INNER JOIN channels ON channels.id = channel_feed_subscriptions.channel_id").
-			// 	Where("channels.channel_slack_id = ?", form.ChannelId).
-			// 	Find(&subscribedFeeds)
-
-			// subscribedFeedIds := map[string]struct{}{}
-			// for _, feed := range subscribedFeeds {
-			// 	subscribedFeedIds[feed.Id] = struct{}{}
-			// }
-
-			// var unsubscribedFeeds []*model.Feed
-			// subscribedFeeds = []*model.Feed{}
-
-			/* Building message body
-			examples can be found here https://github.com/slack-go/slack/tree/master/examples/blocks
-			*/
 			// subscribe section
 			divSection := slack.NewDividerBlock()
 			blocks := []slack.Block{divSection}
 
-			for _, feed := range visibleFeeds {
-				if feed.IsSubscribed {
+			sort.Slice(user.SubscribedFeeds, func(i, j int) bool {
+				return user.SubscribedFeeds[i].Name < user.SubscribedFeeds[j].Name
+			})
+
+			for _, feed := range user.SubscribedFeeds {
+				if len(feed.SubscribedChannels) == 0 {
+					creator := ""
+					if feed.Creator.Name != "" {
+						creator = fmt.Sprintf("_%s_", feed.Creator.Name)
+					}
 					subscribeBtnText := slack.NewTextBlockObject("plain_text", SUBSCRIBE_BUTTON_TEXT, false, false)
 					subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
-					optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t _%s_", feed.Name, feed.Creator.Name), false, false)
+					optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t %s", feed.Name, creator), false, false)
 					optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))
 					blocks = append(blocks, optionSection)
 				}
@@ -82,11 +68,15 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 
 			blocks = append(blocks, divSection)
 
-			for _, feed := range visibleFeeds {
-				if !feed.IsSubscribed {
+			for _, feed := range user.SubscribedFeeds {
+				if len(feed.SubscribedChannels) == 1 {
+					creator := ""
+					if feed.Creator.Name != "" {
+						creator = fmt.Sprintf("_%s_", feed.Creator.Name)
+					}
 					subscribeBtnText := slack.NewTextBlockObject("plain_text", UNSUBSCRIBE_BUTTON_TEXT, false, false)
 					subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
-					optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t _%s_", feed.Name, feed.Creator.Name), false, false)
+					optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t %s", feed.Name, creator), false, false)
 					optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))
 					blocks = append(blocks, optionSection)
 				}

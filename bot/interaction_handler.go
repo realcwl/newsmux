@@ -6,6 +6,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -56,18 +57,23 @@ type SlackInteractionPayload struct {
 	Actions     []Action              `json:"actions"`
 }
 
-func parseRequestToInteractionPayload(body []byte) (*SlackInteractionPayload, error) {
+func parseRequestToInteractionPayload(body io.ReadCloser) (*SlackInteractionPayload, error) {
+	bodybytes, err := ioutil.ReadAll(body)
+	if err != nil {
+		return nil, err
+	}
+
 	payload := SlackInteractionPayload{}
 	const prefix = "payload="
 	// https://api.slack.com/interactivity/handling#payloads
 	// Slack sent this interaction post request in a weird format
 	// Instead of a normal json body, they put "payload" param in request body
 	// and encode the json with url escape characters
-	if strings.HasPrefix(string(body), prefix) {
+	if !strings.HasPrefix(string(bodybytes), prefix) {
 		return nil, fmt.Errorf("unsupported request")
 	}
 
-	unescaped, err := url.QueryUnescape(string(body[len(prefix):]))
+	unescaped, err := url.QueryUnescape(string(bodybytes[len(prefix):]))
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +88,7 @@ func parseRequestToInteractionPayload(body []byte) (*SlackInteractionPayload, er
 func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		bodybytes, _ := ioutil.ReadAll(c.Request.Body)
-
-		payload, err := parseRequestToInteractionPayload(bodybytes)
+		payload, err := parseRequestToInteractionPayload(c.Request.Body)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported format"})
 			return
@@ -129,21 +133,22 @@ func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 		var responseText string
 		if action.IsSubsribe() {
 			responseText = fmt.Sprintf("Successfully subscribed to %s", action.GetFeedName())
-			var post *model.Post
-			db.Preload("SubSource").Preload("SharedFromPost").Preload("SharedFromPost.SubSource").Where("id=?", "c566d53c-a5df-4524-aae1-6e1f23d9aaa6").First(&post)
-			PushPostViaWebhook(*post, channel.WebhookUrl)
+			// For testing purpose only
+			// var post *model.Post
+			// db.Preload("SubSource").Preload("SharedFromPost").Preload("SharedFromPost.SubSource").Where("id=?", "c566d53c-a5df-4524-aae1-6e1f23d9aaa6").First(&post)
+			// PushPostViaWebhook(*post, channel.WebhookUrl)
 
-			var post2 *model.Post
-			db.Preload("SubSource").Where("id=?", "8720596d-4962-47e0-8177-16189b19b329").First(&post2)
-			PushPostViaWebhook(*post2, channel.WebhookUrl)
+			// var post2 *model.Post
+			// db.Preload("SubSource").Where("id=?", "8720596d-4962-47e0-8177-16189b19b329").First(&post2)
+			// PushPostViaWebhook(*post2, channel.WebhookUrl)
 
-			var post3 *model.Post
-			db.Preload("SubSource").Where("id=?", "ffffe72e-935c-4c4a-a615-14e80ac71702").First(&post3)
-			PushPostViaWebhook(*post3, channel.WebhookUrl)
+			// var post3 *model.Post
+			// db.Preload("SubSource").Where("id=?", "ffffe72e-935c-4c4a-a615-14e80ac71702").First(&post3)
+			// PushPostViaWebhook(*post3, channel.WebhookUrl)
 
-			var post4 *model.Post
-			db.Preload("SubSource").Where("id=?", "ffd5df1c-2920-41db-a927-febae788c08b").First(&post4)
-			PushPostViaWebhook(*post4, channel.WebhookUrl)
+			// var post4 *model.Post
+			// db.Preload("SubSource").Where("id=?", "ffd5df1c-2920-41db-a927-febae788c08b").First(&post4)
+			// PushPostViaWebhook(*post4, channel.WebhookUrl)
 		} else {
 			responseText = fmt.Sprintf("%s is unsubscribed", action.GetFeedName())
 		}
