@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sort"
 
 	"github.com/Luismorlan/newsmux/model"
@@ -22,9 +23,10 @@ const (
 )
 
 type CommandForm struct {
-	Command   string `form:"command" binding:"required"`
-	ChannelId string `form:"channel_id" binding:"required"`
-	UserId    string `form:"user_id" binding:"required"`
+	Command     string `form:"command" binding:"required"`
+	ChannelId   string `form:"channel_id" binding:"required"`
+	UserId      string `form:"user_id" binding:"required"`
+	ResponseUrl string `form:"response_url" binding:"required"`
 }
 
 func buildUserSubscribedFeedsMessageBody(feeds []*model.Feed) slack.Message {
@@ -77,8 +79,16 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 		c.Bind(&form)
 		switch form.Command {
 		case "/news":
+			var channel model.Channel
+			err := db.Model(&model.Channel{}).Where("channel_slack_id = ?", form.ChannelId).First(&channel).Error
+			if err != nil {
+				webhookMsg := &slack.WebhookMessage{
+					Text: "The bot is not added to this channel yet, please add bot to this channel first: " + os.Getenv("BOT_ADDING_URL"),
+				}
+				slack.PostWebhook(form.ResponseUrl, webhookMsg)
+			}
 			var user model.User
-			if err := db.Debug().Model(&model.User{}).Preload("SubscribedFeeds.Creator", "slack_id != ?", form.UserId).
+			if err := db.Model(&model.User{}).Preload("SubscribedFeeds.Creator", "slack_id != ?", form.UserId).
 				Preload("SubscribedFeeds.SubscribedChannels", "channel_slack_id = ?", form.ChannelId).
 				Where("slack_id = ?", form.UserId).
 				First(&user).Error; err != nil {
