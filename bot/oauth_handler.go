@@ -5,7 +5,6 @@ package bot
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -50,7 +49,6 @@ func AuthHandler(db *gorm.DB) gin.HandlerFunc {
 			"code":          {code},
 			"redirect_uri":  {os.Getenv("BOT_REDIRECT_URL")},
 		}
-		fmt.Println(data)
 
 		resp, err := http.PostForm("https://slack.com/api/oauth.v2.access", data)
 		if err != nil {

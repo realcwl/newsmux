@@ -31,7 +31,6 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var form CommandForm
 		c.Bind(&form)
-		fmt.Println("form", form)
 		switch form.Command {
 		case "/news":
 			var user model.User
@@ -85,7 +84,7 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 			msg := slack.NewBlockMessage(blocks...)
 			b, err := json.MarshalIndent(msg, "", "    ")
 			if err != nil {
-				fmt.Println(err)
+				Logger.Log.Error("failed to build the message", err)
 				return
 			}
 			c.Data(http.StatusOK, "application/json", b)
