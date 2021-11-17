@@ -99,7 +99,7 @@ func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 
 		if len(payload.Actions) == 0 {
-			Logger.Log.Errorf("invalid payload without any action", payload)
+			Logger.Log.Errorln("invalid payload without any action", payload)
 		}
 
 		action := payload.Actions[0]
@@ -124,11 +124,6 @@ func InteractionHandler(db *gorm.DB) gin.HandlerFunc {
 		} else {
 			db.Where("feed_id = ?", action.GetFeedId()).Delete(&model.ChannelFeedSubscription{})
 		}
-
-		// if err != nil {
-		// 	c.JSON(http.StatusBadRequest, gin.H{"error": "failed to save the channel to backend, contact tech please"})
-		// 	return
-		// }
 
 		var responseText string
 		if action.IsSubsribe() {
