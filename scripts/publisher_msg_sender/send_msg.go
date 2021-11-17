@@ -7,7 +7,6 @@ import (
 	b64 "encoding/base64"
 
 	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -17,7 +16,6 @@ import (
 
 // This binary is to generate a test message for end to end testing
 func main() {
-	dotenv.LoadDotEnvs()
 
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -26,10 +24,9 @@ func main() {
 	svc := sqs.New(sess)
 
 	queueName := "crawler-publisher-queue"
-	qURL, _ := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
+	qURL, err := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
 		QueueName: &queueName,
 	})
-	fmt.Println(qURL)
 
 	// Example crawled Post
 	origin := protocol.CrawlerMessage{

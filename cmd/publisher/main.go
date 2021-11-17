@@ -18,7 +18,7 @@ import (
 
 const (
 	// TODO: Move to .env
-	crawlerPublisherQueueName = "crawler-publisher-queue"
+	crawlerPublisherQueueName = "newsfeed_crawled_items_queue.fifo"
 	// Read batch size must be within [1, 10]
 	sqsReadBatchSize                 = 10
 	publishMaxBackOffSeconds float64 = 2.0
