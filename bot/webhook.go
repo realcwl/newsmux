@@ -1,8 +1,10 @@
 package bot
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Luismorlan/newsmux/model"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -49,6 +51,25 @@ func buildContentWithShowMore(post model.Post, postLink string) string {
 		return fmt.Sprintf("%s...<%s|[查看全文]>", post.Content[:600], postLink)
 	}
 	return post.Content
+}
+
+func TimeBoundedPushPostViaWebhook(ctx context.Context, webhookUrl string, post model.Post) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		done <- PushPostViaWebhook(post, webhookUrl)
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			Logger.Log.Error("failed to push post to channel", err)
+		}
+		return
+	case <-ctx.Done():
+		Logger.Log.Errorf("push post via webhook timed out. post: %s, webhook: %s", post.Id, webhookUrl)
+		return
+	}
 }
 
 // PushPostViaWebhook is an async call to push a post to a channel
