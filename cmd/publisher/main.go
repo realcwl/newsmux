@@ -65,6 +65,7 @@ func main() {
 	if err != nil {
 		Log.Fatal("fail to connect database : ", err)
 	}
+	PublisherDBSetup(db)
 
 	client, conn := getDeduplicatorClientAndConnection()
 	defer conn.Close()
