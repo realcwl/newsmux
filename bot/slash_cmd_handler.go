@@ -86,6 +86,7 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 					Text: "The bot is not added to this channel yet, please add bot to this channel first: " + os.Getenv("BOT_ADDING_URL"),
 				}
 				slack.PostWebhook(form.ResponseUrl, webhookMsg)
+				return
 			}
 			var user model.User
 			if err := db.Model(&model.User{}).Preload("SubscribedFeeds.Creator", "slack_id != ?", form.UserId).
