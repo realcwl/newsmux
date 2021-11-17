@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	// TODO: Move to .env
-	crawlerPublisherQueueName = "newsfeed_crawled_items_queue.fifo"
+	crawlerPublisherQueueName    = "newsfeed_crawled_items_queue.fifo"
+	devCrawlerPublisherQueueName = "crawler-publisher-queue"
 	// Read batch size must be within [1, 10]
 	sqsReadBatchSize                 = 10
 	publishMaxBackOffSeconds float64 = 2.0
@@ -70,7 +70,11 @@ func main() {
 	client, conn := getDeduplicatorClientAndConnection()
 	defer conn.Close()
 
-	reader, err := NewSQSMessageQueueReader(crawlerPublisherQueueName, 20)
+	sqsName := crawlerPublisherQueueName
+	if !utils.IsProdEnv() {
+		sqsName = devCrawlerPublisherQueueName
+	}
+	reader, err := NewSQSMessageQueueReader(sqsName, 20)
 	if err != nil {
 		Log.Fatal("fail initialize SQS message queue reader : ", err)
 	}
