@@ -2,7 +2,6 @@ package collector_job_handler
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	. "github.com/Luismorlan/newsmux/collector"
@@ -38,9 +37,6 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 	)
 	ip, err := GetCurrentIpAddress(httpClient)
 	if err == nil {
-		if job == nil {
-			fmt.Println("============= nil job ============")
-		}
 		UpdateIpAddressesInTasks(ip, job)
 	} else {
 		Logger.Log.Error("ip fetching error: ", err)

@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/Luismorlan/newsmux/bot"
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -113,19 +113,6 @@ func (processor *CrawlerpublisherMessageProcessor) prepareFeedCandidates(
 		}
 	}
 	return feedCandidates
-}
-
-func (processor *CrawlerpublisherMessageProcessor) prepareSource(id string) (*model.Source, error) {
-	var res model.Source
-	if len(id) > 0 {
-		result := processor.DB.Preload("Feeds").Where("id = ?", id).First(&res)
-		if result.RowsAffected != 1 {
-			return nil, errors.New(fmt.Sprintf("source not found: %s", id))
-		}
-		return &res, nil
-	} else {
-		return nil, errors.New("source id can not be empty")
-	}
 }
 
 func (processor *CrawlerpublisherMessageProcessor) prepareSubSourceRecursive(post *CrawlerMessage_CrawledPost, isRoot bool) (*model.SubSource, error) {
@@ -278,6 +265,12 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	feedsToPublish, err := processor.MatchMessageWithFeeds(feedCandidates, post)
 	if err != nil {
 		return decodedMsg, err
+	}
+
+	for _, f := range feedsToPublish {
+		for _, c := range f.SubscribedChannels {
+			go bot.TimeBoundedPushPostViaWebhook(context.Background(), c.WebhookUrl, *post)
+		}
 	}
 
 	// Write to DB, post creation and publish is in a transaction

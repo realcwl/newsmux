@@ -69,13 +69,13 @@ func (o *Orchestrator) RunModule(ctx context.Context) error {
 		go func(job *protocol.PanopticJob) {
 			res, err := o.executor.Execute(ctx, &panopticJob)
 			if err != nil {
-				Logger.Log.Infof("fail to execute job: %s, error: %s", panopticJob.String(), err)
+				Logger.Log.Errorf("fail to execute job: %s, error: %s", panopticJob.String(), err)
 				return
 			}
 
 			err = o.PublishFinishedJob(res)
 			if err != nil {
-				Logger.Log.Infof("fail to publish job into executed job channel, error: %s", err)
+				Logger.Log.Errorf("fail to publish job into executed job channel, error: %s", err)
 				return
 			}
 		}(&panopticJob)

@@ -208,7 +208,7 @@ func isClearPostsNeededForFeedsUpsert(feed *model.Feed, input *model.UpsertFeedI
 
 func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.SubSource, error) {
 	var subSource model.SubSource
-	queryResult := db.Preload("Feeds").
+	queryResult := db.Preload("Feeds").Preload("Feeds.SubscribedChannels").
 		Where("name = ? AND source_id = ?", input.Name, input.SourceID).
 		First(&subSource)
 	if queryResult.RowsAffected == 0 {
@@ -229,7 +229,7 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 	subSource.ExternalIdentifier = input.ExternalIdentifier
 	subSource.AvatarUrl = input.AvatarURL
 	subSource.OriginUrl = input.OriginURL
-	if input.IsFromSharedPost == false {
+	if !input.IsFromSharedPost {
 		// can only update IsFromSharedPost from true to false
 		// meaning from hidden to display
 		// to prevent an already needed subsource got shared, and become IsFromSharedPost = true
