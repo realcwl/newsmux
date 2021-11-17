@@ -19,11 +19,11 @@ run_prodserver:
 	NEWSMUX_ENV=prod go run ./cmd/server/main.go -no_auth -service=api_server
 
 run_devbot:
-	$(info ******************** running dev api server ********************)
+	$(info ******************** running dev bot server ********************)
 	NEWSMUX_ENV=dev go run ./cmd/bot/main.go -service=bot_server
 
 run_prodbot:
-	$(info ******************** running prod api server ********************)
+	$(info ******************** running prod bot server ********************)
 	NEWSMUX_ENV=prod go run ./cmd/bot/main.go -service=bot_server
 
 run_prodpublisher:

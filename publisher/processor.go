@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -159,6 +160,8 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(m
 		ImageUrls:          currentPost.ImageUrls,
 		FileUrls:           currentPost.FilesUrls,
 		OriginUrl:          currentPost.OriginUrl,
+		// transform tags into serialized string separated by ","
+		Tag: strings.Join(currentPost.Tags, ","),
 	}
 	if currentPost.SharedFromCrawledPost != nil {
 		sharedFromPost, e := processor.preparePostChainFromMessage(msg, currentPost.SharedFromCrawledPost, false)
@@ -266,7 +269,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 
 	for _, f := range feedsToPublish {
 		for _, c := range f.SubscribedChannels {
-			bot.PushPostViaWebhook(*post, c.WebhookUrl)
+			go bot.PushPostViaWebhook(*post, c.WebhookUrl)
 		}
 	}
 

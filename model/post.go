@@ -84,4 +84,5 @@ type Post struct {
 
 	DeduplicateId   string
 	SemanticHashing string
+	Tag             string
 }

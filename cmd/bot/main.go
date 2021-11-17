@@ -36,19 +36,16 @@ func main() {
 		panic("failed to connect to database")
 	}
 
-	slashCmdHandler := bot.BotCommandHandler(db)
-	router.POST("/cmd", slashCmdHandler)
+	router.POST("/cmd", bot.BotCommandHandler(db))
 
-	interactionHandler := bot.InteractionHandler(db)
-	router.POST("/interaction", interactionHandler)
+	router.POST("/interaction", bot.InteractionHandler(db))
 
-	authHandler := bot.AuthHandler(db)
-	router.GET("/auth", authHandler)
+	router.GET("/auth", bot.AuthHandler(db))
 
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{"message": "Newsfeed server - API not found"})
 	})
 
 	Log.Info("bot server starts up")
-	router.Run(":8080")
+	router.Run(":9090")
 }

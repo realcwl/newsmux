@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Luismorlan/newsmux/model"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/slack-go/slack"
 )
 
@@ -18,8 +19,8 @@ func buildSubsourceBlock(post model.Post) slack.Block {
 		slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%s|%s>", buildPostLink(post), post.SubSource.Name), false, false))
 }
 
-func buildRetweetBlock(post model.Post) slack.MixedElement {
-	return slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("><%s|%s> %s", buildPostLink(post), post.SubSource.Name, buildContentWithShowMore(post)), false, false)
+func buildRetweetBlock(post model.Post, postLink string) slack.MixedElement {
+	return slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("><%s|%s> %s", postLink, post.SubSource.Name, buildContentWithShowMore(post)), false, false)
 }
 
 // buildImageElements should be used only when we have 2+ images
@@ -62,7 +63,7 @@ func PushPostViaWebhook(post model.Post, webhookUrl string) {
 			blocks = append(blocks, sharedFromContext)
 		}
 
-		sharedFromContextElements := []slack.MixedElement{buildRetweetBlock(*sharedFromPost)}
+		sharedFromContextElements := []slack.MixedElement{buildRetweetBlock(*sharedFromPost, buildPostLink(post))}
 		if len(sharedFromPost.ImageUrls) > 1 {
 			sharedFromContextElements = append(sharedFromContextElements, buildImageElements(*sharedFromPost)...)
 		}
@@ -91,6 +92,6 @@ func PushPostViaWebhook(post model.Post, webhookUrl string) {
 	}
 	err := slack.PostWebhook(webhookUrl, webhookMsg)
 	if err != nil {
-		fmt.Println(err)
+		Logger.Log.Error(err)
 	}
 }

@@ -61,6 +61,9 @@ message CrawlerMessage {
 
     // post which current post is shared from. For weibo share or retweet.
     CrawledPost shared_from_crawled_post = 9;
+
+    // content tags associated with a post
+    repeated string tags = 10;
   }
 
   // The post details that this message sends

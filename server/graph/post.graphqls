@@ -29,4 +29,7 @@ type Post @goModel(model: "model.Post") {
   deduplicateId: String!
 
   semanticHashing: String
+
+  # tags indicating post content
+  tags: [String!]!
 }

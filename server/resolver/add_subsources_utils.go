@@ -48,8 +48,15 @@ func AddWeiboSubsourceImp(db *gorm.DB, ctx context.Context, input model.AddWeibo
 		Where("name = ? AND source_id = ?", input.Name, weiboSourceId).
 		First(&subSource)
 
+	// If the sub source already exists, it could either mean that we already
+	// have this sub source, or that the sub source is hidden (due to isFromSharedPost).
+	// In both case we update the the sub source, so that frontend will receive
+	// a response and add the sub source to its list.
 	if queryResult.RowsAffected != 0 {
-		return nil, fmt.Errorf("subsource already exists: %+v", subSource)
+		if err := db.Model(subSource).Update("is_from_shared_post", false).Error; err != nil {
+			return nil, fmt.Errorf("failed to update SubSource: %v", err)
+		}
+		return subSource, nil
 	}
 
 	externalId, err := GetWeiboExternalIdFromName(input.Name)
