@@ -27,6 +27,50 @@ type CommandForm struct {
 	UserId    string `form:"user_id" binding:"required"`
 }
 
+func buildUserSubscribedFeedsMessageBody(feeds []*model.Feed) slack.Message {
+	// subscribe section
+	divSection := slack.NewDividerBlock()
+	blocks := []slack.Block{divSection}
+
+	sort.Slice(feeds, func(i, j int) bool {
+		return feeds[i].Name < feeds[j].Name
+	})
+
+	// feeds this channel hasn't subscribed
+	for _, feed := range feeds {
+		if len(feed.SubscribedChannels) == 0 {
+			creator := ""
+			if feed.Creator.Name != "" {
+				creator = fmt.Sprintf("_%s_", feed.Creator.Name)
+			}
+			subscribeBtnText := slack.NewTextBlockObject("plain_text", SUBSCRIBE_BUTTON_TEXT, false, false)
+			subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
+			optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t %s", feed.Name, creator), false, false)
+			optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))
+			blocks = append(blocks, optionSection)
+		}
+	}
+
+	blocks = append(blocks, divSection)
+	// feeds this channel has subscribed
+	for _, feed := range feeds {
+		if len(feed.SubscribedChannels) == 1 {
+			creator := ""
+			if feed.Creator.Name != "" {
+				creator = fmt.Sprintf("_%s_", feed.Creator.Name)
+			}
+			subscribeBtnText := slack.NewTextBlockObject("plain_text", UNSUBSCRIBE_BUTTON_TEXT, false, false)
+			subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
+			optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t %s", feed.Name, creator), false, false)
+			optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))
+			blocks = append(blocks, optionSection)
+		}
+	}
+
+	return slack.NewBlockMessage(blocks...)
+
+}
+
 func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var form CommandForm
@@ -43,45 +87,7 @@ func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			// subscribe section
-			divSection := slack.NewDividerBlock()
-			blocks := []slack.Block{divSection}
-
-			sort.Slice(user.SubscribedFeeds, func(i, j int) bool {
-				return user.SubscribedFeeds[i].Name < user.SubscribedFeeds[j].Name
-			})
-
-			for _, feed := range user.SubscribedFeeds {
-				if len(feed.SubscribedChannels) == 0 {
-					creator := ""
-					if feed.Creator.Name != "" {
-						creator = fmt.Sprintf("_%s_", feed.Creator.Name)
-					}
-					subscribeBtnText := slack.NewTextBlockObject("plain_text", SUBSCRIBE_BUTTON_TEXT, false, false)
-					subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
-					optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t %s", feed.Name, creator), false, false)
-					optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))
-					blocks = append(blocks, optionSection)
-				}
-			}
-
-			blocks = append(blocks, divSection)
-
-			for _, feed := range user.SubscribedFeeds {
-				if len(feed.SubscribedChannels) == 1 {
-					creator := ""
-					if feed.Creator.Name != "" {
-						creator = fmt.Sprintf("_%s_", feed.Creator.Name)
-					}
-					subscribeBtnText := slack.NewTextBlockObject("plain_text", UNSUBSCRIBE_BUTTON_TEXT, false, false)
-					subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
-					optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t %s", feed.Name, creator), false, false)
-					optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))
-					blocks = append(blocks, optionSection)
-				}
-			}
-
-			msg := slack.NewBlockMessage(blocks...)
+			msg := buildUserSubscribedFeedsMessageBody(user.SubscribedFeeds)
 			b, err := json.MarshalIndent(msg, "", "    ")
 			if err != nil {
 				Logger.Log.Error("failed to build the message", err)

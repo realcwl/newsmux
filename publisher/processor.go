@@ -269,7 +269,24 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 
 	for _, f := range feedsToPublish {
 		for _, c := range f.SubscribedChannels {
-			go bot.PushPostViaWebhook(*post, c.WebhookUrl)
+			go func(ctx context.Context, webhookUrl string) {
+				ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+				defer cancel()
+				done := make(chan error, 1)
+				go func() {
+					done <- bot.PushPostViaWebhook(*post, webhookUrl)
+				}()
+				select {
+				case err := <-done:
+					if err != nil {
+						Log.Error("failed to push post to channel", err)
+					}
+					return
+				case <-ctx.Done():
+					Log.Errorf("push post via webhook timed out. post: %s, webhook: %s", post.Id, webhookUrl)
+					return
+				}
+			}(context.Background(), c.WebhookUrl)
 		}
 	}
 

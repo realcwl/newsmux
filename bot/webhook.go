@@ -52,7 +52,7 @@ func buildContentWithShowMore(post model.Post, postLink string) string {
 }
 
 // PushPostViaWebhook is an async call to push a post to a channel
-func PushPostViaWebhook(post model.Post, webhookUrl string) {
+func PushPostViaWebhook(post model.Post, webhookUrl string) error {
 	blocks := []slack.Block{}
 	blocks = append(blocks, buildSubsourceBlock(post))
 	// build subsource and post body blocks
@@ -90,8 +90,12 @@ func PushPostViaWebhook(post model.Post, webhookUrl string) {
 	webhookMsg := &slack.WebhookMessage{
 		Blocks: &slack.Blocks{BlockSet: blocks},
 	}
+
 	err := slack.PostWebhook(webhookUrl, webhookMsg)
 	if err != nil {
 		Logger.Log.Error(err)
+		return err
 	}
+
+	return nil
 }
