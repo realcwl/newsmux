@@ -36,7 +36,7 @@ func main() {
 		panic("failed to connect to database")
 	}
 
-	router.POST("/bot/cmd", bot.BotCommandHandler(db))
+	router.POST("/bot/cmd", bot.SlashCommandHandler(db))
 
 	router.POST("/bot/interaction", bot.InteractionHandler(db))
 
