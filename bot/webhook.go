@@ -47,8 +47,9 @@ func buildFileObject(post model.Post) *slack.TextBlockObject {
 }
 
 func buildContentWithShowMore(post model.Post, postLink string) string {
-	if len(post.Content) > 600 {
-		return fmt.Sprintf("%s...<%s|[查看全文]>", post.Content[:600], postLink)
+	contentRunes := []rune(post.Content)
+	if len(contentRunes) > 400 {
+		return fmt.Sprintf("%s...<%s|[查看全文]>", string(contentRunes[:400]), postLink)
 	}
 	return post.Content
 }
@@ -109,6 +110,7 @@ func PushPostViaWebhook(post model.Post, webhookUrl string) error {
 	}
 
 	webhookMsg := &slack.WebhookMessage{
+		Text:   fmt.Sprintf("%s: %s...", post.SubSource.Name, string([]rune(post.Content)[:30])),
 		Blocks: &slack.Blocks{BlockSet: blocks},
 	}
 

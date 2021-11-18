@@ -11,6 +11,7 @@ import (
 	"sort"
 
 	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
@@ -73,12 +74,16 @@ func buildUserSubscribedFeedsMessageBody(feeds []*model.Feed) slack.Message {
 
 }
 
-func BotCommandHandler(db *gorm.DB) gin.HandlerFunc {
+func SlashCommandHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var form CommandForm
 		c.Bind(&form)
+		var newsCommand = "/news"
+		if !utils.IsProdEnv() {
+			newsCommand = "/devnews"
+		}
 		switch form.Command {
-		case "/news":
+		case newsCommand:
 			var channel model.Channel
 			err := db.Model(&model.Channel{}).Where("channel_slack_id = ?", form.ChannelId).First(&channel).Error
 			if err != nil {
