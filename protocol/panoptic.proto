@@ -112,6 +112,7 @@ message PanopticTask {
     COLLECTOR_CAUS_NEWS= 11;
     COLLECTOR_CAIXIN = 12;
     COLLECTOR_WALLSTREET_ARTICLE = 13;
+    COLLECTOR_CLS_NEWS=14;
     // ...
   }
 
