@@ -5,7 +5,6 @@ package bot
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,6 +39,7 @@ func AuthHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		code, ok := c.GetQuery("code")
 		if !ok {
+			Logger.Log.Error("got an oauth request without code")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
 			return
 		}
@@ -52,7 +52,7 @@ func AuthHandler(db *gorm.DB) gin.HandlerFunc {
 
 		resp, err := http.PostForm("https://slack.com/api/oauth.v2.access", data)
 		if err != nil {
-			log.Fatal(err)
+			Logger.Log.Error("got invalid oauth code", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "code is invalid"})
 			return
 		}
@@ -62,6 +62,7 @@ func AuthHandler(db *gorm.DB) gin.HandlerFunc {
 		json.NewDecoder(resp.Body).Decode(&slackResp)
 
 		if !slackResp.Ok {
+			Logger.Log.Error("failed to fetch channel info from slack", slackResp)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to fetch the channel info from slack, please contact the tech team"})
 			return
 		}

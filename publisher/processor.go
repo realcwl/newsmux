@@ -267,9 +267,14 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		return decodedMsg, err
 	}
 
+	channelsPushed := map[string]struct{}{}
 	for _, f := range feedsToPublish {
 		for _, c := range f.SubscribedChannels {
+			if _, ok := channelsPushed[c.Id]; ok {
+				continue
+			}
 			go bot.TimeBoundedPushPostViaWebhook(context.Background(), c.WebhookUrl, *post)
+			channelsPushed[c.Id] = struct{}{}
 		}
 	}
 

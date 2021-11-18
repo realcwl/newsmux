@@ -36,11 +36,11 @@ func main() {
 		panic("failed to connect to database")
 	}
 
-	router.POST("/cmd", bot.BotCommandHandler(db))
+	router.POST("/bot/cmd", bot.SlashCommandHandler(db))
 
-	router.POST("/interaction", bot.InteractionHandler(db))
+	router.POST("/bot/interaction", bot.InteractionHandler(db))
 
-	router.GET("/auth", bot.AuthHandler(db))
+	router.GET("/bot/auth", bot.AuthHandler(db))
 
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{"message": "Newsfeed server - API not found"})
