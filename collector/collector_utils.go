@@ -91,6 +91,8 @@ func GetSourceLogoUrl(sourceId string) string {
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/36ke.png"
 	case CaixinSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/caixin.png"
+	case ClsSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/cls.png"
 	default:
 		return ""
 	}
