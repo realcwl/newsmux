@@ -31,6 +31,7 @@ const (
 	Kr36SourceId              = "c0ae802e-3c12-4144-86ca-ab0f8fe629ce"
 	CaixinSourceId            = "cc2a61b1-721f-4529-8afc-6da686f23b36"
 	WallstreetArticleSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
+	ClsSourceId               = "acdd7449-1d34-4bce-ac90-902b4a50f015"
 )
 
 // Hard code subsource type to name

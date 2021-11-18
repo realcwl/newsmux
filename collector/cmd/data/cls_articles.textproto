@@ -1,0 +1,39 @@
+# This file should contain all CLS Article job variations, each of different 
+# job_id, please do not add non-Wallstreet Article jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "cls_article_job"
+	tasks: [
+		{
+			task_id: "cls_article_task"
+			data_collector_id: COLLECTOR_CLS_ARTICLE
+			task_params: {
+                header_params: [
+                    {key: "content-type", value: "application/json;charset=UTF-8"},
+                    {key: "user-agent", value: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"}
+                ]
+				source_id: "acdd7449-1d34-4bce-ac90-902b4a50f015"
+				sub_sources: [{
+                    name: "头条"
+                    type: ARTICLE
+                    external_id:  "1000?app=CailianpressWeb&id=1000&last_time=&os=web&rn=20&sv=7.7.5&sign=963c8e5e61f85ac1b3c03ace0025471e"
+                },
+                {
+                    name: "股市"
+                    type: ARTICLE
+                    external_id:  "1003?app=CailianpressWeb&id=1003&last_time=&os=web&rn=20&sv=7.7.5&sign=deb20e41daa4eb69c928ba6befdb09f2"
+                },
+                {
+                    name: "环球"
+                    type: ARTICLE
+                    external_id:  "1007?app=CailianpressWeb&id=1007&last_time=&os=web&rn=20&sv=7.7.5&sign=66eaa73f68b9b9c6c0c2bf5c03f8fc32"
+                }]
+			}
+			task_metadata: {
+				config_name: "cls_article_config"
+			}
+		}
+	]
+	debug: true
+}

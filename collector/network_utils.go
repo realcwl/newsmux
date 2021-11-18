@@ -48,6 +48,9 @@ func (c HttpClient) Get(uri string) (*http.Response, error) {
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header = c.header
 	for _, cookie := range c.cookies {
 		req.AddCookie(&cookie)

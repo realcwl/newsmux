@@ -61,6 +61,8 @@ func getSourceIdFromDataCollectorId(collectorId protocol.PanopticTask_DataCollec
 		return collector.CaUsSourceId
 	case protocol.PanopticTask_COLLECTOR_CAIXIN:
 		return collector.CaixinSourceId
+	case protocol.PanopticTask_COLLECTOR_CLS_ARTICLE:
+		return collector.ClsSourceId
 	default:
 		return ""
 	}
