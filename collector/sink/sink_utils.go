@@ -21,6 +21,11 @@ func PushResultToSinkAndRecordInTaskMetadata(s CollectedDataSink, workingContext
 		shared_context = &workingContext.SharedContext
 	}
 
+	if shared_context.IntentionallySkipped {
+		shared_context.Task.TaskMetadata.TotalMessageSkipped++
+		return
+	}
+
 	if err := validation.ValidateSharedContext(shared_context); err != nil {
 		shared_context.Task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		shared_context.Task.TaskMetadata.TotalMessageFailed++

@@ -34,6 +34,11 @@ func (j ClsNewsCrawler) UpdateNewsType(workingContext *working_context.CrawlerWo
 		return nil
 	}
 	workingContext.NewsType = protocol.PanopticSubSource_FLASHNEWS
+
+	if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
+		workingContext.IntentionallySkipped = true
+	}
+
 	return nil
 }
 
@@ -71,34 +76,18 @@ func (j ClsNewsCrawler) UpdateSubsourceName(workingContext *working_context.Craw
 func (j ClsNewsCrawler) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
 	collector.InitializeCrawlerResult(workingContext)
 
-	err := j.UpdateContent(workingContext)
-	if err != nil {
-		return err
+	updaters := []func(workingContext *working_context.CrawlerWorkingContext) error{
+		j.UpdateContent,
+		j.UpdateDedupId,
+		j.UpdateNewsType,
+		j.UpdateGeneratedTime,
+		j.UpdateSubsourceName,
 	}
-
-	err = j.UpdateDedupId(workingContext)
-	if err != nil {
-		return err
-	}
-
-	err = j.UpdateNewsType(workingContext)
-	if err != nil {
-		return err
-	}
-
-	if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
-		workingContext.Result = nil
-		return nil
-	}
-
-	err = j.UpdateGeneratedTime(workingContext)
-	if err != nil {
-		return err
-	}
-
-	err = j.UpdateSubsourceName(workingContext)
-	if err != nil {
-		return err
+	for _, updater := range updaters {
+		err := updater(workingContext)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -128,12 +117,7 @@ func (j ClsNewsCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 			collector.LogHtmlParsingError(task, elem, err)
 			return
 		}
-		if workingContext.Result == nil {
-			return
-		}
-		if !workingContext.IntentionallySkipped {
-			sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
-		}
+		sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
 	})
 
 	// Set error handler
@@ -148,7 +132,9 @@ func (j ClsNewsCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 	})
 
 	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36")
+		for _, kv := range task.TaskParams.HeaderParams {
+			r.Headers.Set(kv.Key, kv.Value)
+		}
 	})
 
 	c.Visit(j.GetStartUri())

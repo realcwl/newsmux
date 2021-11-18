@@ -138,9 +138,7 @@ func (w WallstreetArticleCollector) CollectAndPublish(task *protocol.PanopticTas
 			if workingContext.Result == nil {
 				return
 			}
-			if !workingContext.IntentionallySkipped {
-				sink.PushResultToSinkAndRecordInTaskMetadata(w.Sink, workingContext)
-			}
+			sink.PushResultToSinkAndRecordInTaskMetadata(w.Sink, workingContext)
 		})
 
 		// Set error handler
