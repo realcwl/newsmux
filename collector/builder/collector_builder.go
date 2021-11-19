@@ -61,3 +61,7 @@ func (CollectorBuilder) NewCaUsNewsCrawlerCollector(s sink.CollectedDataSink) Da
 func (CollectorBuilder) NewCaixinCrawler(s sink.CollectedDataSink) DataCollector {
 	return &CaixinCollector{Sink: s}
 }
+
+func (CollectorBuilder) NewClsNewsCrawlerCollector(s sink.CollectedDataSink) DataCollector {
+	return &ClsNewsCrawler{Sink: s}
+}

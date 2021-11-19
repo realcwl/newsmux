@@ -87,6 +87,10 @@ message TaskMetadata {
   }
 
   TaskResultState result_state = 7;
+
+  // How many CrawlerMessage this task skipeed to collect, eg. ads, request subsource different from crawled
+	int32 total_message_skipped = 8;
+  
   // ...
 }
 
@@ -112,6 +116,7 @@ message PanopticTask {
     COLLECTOR_CAUS_NEWS= 11;
     COLLECTOR_CAIXIN = 12;
     COLLECTOR_WALLSTREET_ARTICLE = 13;
+    COLLECTOR_CLS_NEWS=14;
     // ...
   }
 
