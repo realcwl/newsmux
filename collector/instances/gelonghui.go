@@ -3,6 +3,7 @@ package collector_instances
 import (
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/sink"
@@ -45,9 +46,20 @@ func (glh GelonghuiCrawler) UpdateNewsType(workingContext *working_context.Crawl
 	return nil
 }
 
+func (glh GelonghuiCrawler) cleanContent(workingContext *working_context.CrawlerWorkingContext) error {
+	re, err := regexp.Compile(`格隆汇\d+月\d+日丨`)
+	if err != nil {
+		return err
+	}
+	workingContext.Result.Post.Content = re.ReplaceAllString(workingContext.Result.Post.Content, "")
+	return nil
+}
+
 func (glh GelonghuiCrawler) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
 	workingContext.Result.Post.Title = workingContext.Element.DOM.Find(".desc-title").Text()
 	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(".desc").Text()
+
+	glh.cleanContent(workingContext)
 	return nil
 }
 
