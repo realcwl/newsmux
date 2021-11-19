@@ -201,9 +201,7 @@ func (cx CaixinCollector) CollectTopNews(task *protocol.PanopticTask, subSource 
 		if workingContext.Result == nil {
 			return
 		}
-		if !workingContext.IntentionallySkipped {
-			sink.PushResultToSinkAndRecordInTaskMetadata(cx.Sink, workingContext)
-		}
+		sink.PushResultToSinkAndRecordInTaskMetadata(cx.Sink, workingContext)
 	})
 
 	c.Visit(subSource.Link)

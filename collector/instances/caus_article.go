@@ -195,9 +195,7 @@ func (j CaUsArticleCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		if workingContext.Result == nil {
 			return
 		}
-		if !workingContext.IntentionallySkipped {
-			sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
-		}
+		sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
 	})
 
 	// Set error handler
