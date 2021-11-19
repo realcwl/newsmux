@@ -3,6 +3,7 @@ package collector_instances
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/sink"
@@ -19,21 +20,34 @@ type ClsNewsCrawler struct {
 	Sink sink.CollectedDataSink
 }
 
+func (cls ClsNewsCrawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
+	workingContext.Result.Post.ImageUrls = []string{}
+	selection := workingContext.Element.DOM.Find(".telegraph-images-box > img")
+	for i := 0; i < selection.Length(); i++ {
+		img := selection.Eq(i)
+		imageUrl := img.AttrOr("src", "")
+		parts := strings.Split(imageUrl, "?")
+		imageUrl = parts[0]
+		if len(imageUrl) == 0 {
+			return errors.New("image DOM exist but src not found")
+		}
+		workingContext.Result.Post.ImageUrls = append(workingContext.Result.Post.ImageUrls, imageUrl)
+	}
+	return nil
+}
+
 func (j ClsNewsCrawler) UpdateFileUrls(workingContext *working_context.CrawlerWorkingContext) error {
 	return errors.New("UpdateFileUrls not implemented, should not be called")
 }
 
 func (j ClsNewsCrawler) UpdateNewsType(workingContext *working_context.CrawlerWorkingContext) error {
-	selection := workingContext.Element.DOM.Find(":nth-child(2)")
-	if len(selection.Nodes) == 0 {
-		workingContext.NewsType = protocol.PanopticSubSource_UNSPECIFIED
-		return errors.New("cls news item not found")
-	}
-	if selection.HasClass("c-de0422") {
+	s := workingContext.Element.DOM.Find(".telegraph-content-box")
+	selection := s.Find(":nth-child(2)")
+	if len(selection.Nodes) > 0 && selection.HasClass("c-de0422") {
 		workingContext.NewsType = protocol.PanopticSubSource_KEYNEWS
-		return nil
+	} else {
+		workingContext.NewsType = protocol.PanopticSubSource_FLASHNEWS
 	}
-	workingContext.NewsType = protocol.PanopticSubSource_FLASHNEWS
 
 	if !collector.IsRequestedNewsType(workingContext.Task.TaskParams.SubSources, workingContext.NewsType) {
 		workingContext.IntentionallySkipped = true
@@ -43,18 +57,26 @@ func (j ClsNewsCrawler) UpdateNewsType(workingContext *working_context.CrawlerWo
 }
 
 func (j ClsNewsCrawler) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
-	selection := workingContext.Element.DOM.Find(":nth-child(2)")
-	if len(selection.Nodes) == 0 {
-		return errors.New("cls news DOM not found")
+	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(".telegraph-content-box span:not(.telegraph-time-box)").Text()
+	title_selection := workingContext.Element.DOM.Find(".telegraph-content-box span:not(.telegraph-time-box) > strong")
+	if title_selection.Length() > 0 {
+		workingContext.Result.Post.Title = title_selection.Text()
+		workingContext.Result.Post.Content = strings.ReplaceAll(workingContext.Result.Post.Content, workingContext.Result.Post.Title, "")
 	}
-	text := selection.Text()
-	workingContext.Result.Post.Content = text
+	return nil
+}
+
+func (j ClsNewsCrawler) UpdateTags(workingContext *working_context.CrawlerWorkingContext) error {
+	workingContext.Result.Post.Tags = []string{}
+	selection := workingContext.Element.DOM.Find(".label-item")
+	for i := 0; i < selection.Length(); i++ {
+		tag := selection.Eq(i)
+		workingContext.Result.Post.Tags = append(workingContext.Result.Post.Tags, tag.Text())
+	}
 	return nil
 }
 
 func (j ClsNewsCrawler) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
-	// timeText := workingContext.Element.DOM.Find(".telegraph-time-box").Text()
-	// 20:27
 	workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
 	return nil
 }
@@ -73,15 +95,26 @@ func (j ClsNewsCrawler) UpdateSubsourceName(workingContext *working_context.Craw
 	return nil
 }
 
+func (j ClsNewsCrawler) UpdateVipSkip(workingContext *working_context.CrawlerWorkingContext) error {
+	selection := workingContext.Element.DOM.Find(".telegraph-vip-box")
+	if selection.Length() > 0 {
+		workingContext.IntentionallySkipped = true
+	}
+	return nil
+}
+
 func (j ClsNewsCrawler) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
 	collector.InitializeCrawlerResult(workingContext)
 
 	updaters := []func(workingContext *working_context.CrawlerWorkingContext) error{
 		j.UpdateContent,
+		j.UpdateImageUrls,
+		j.UpdateTags,
 		j.UpdateDedupId,
 		j.UpdateNewsType,
 		j.UpdateGeneratedTime,
 		j.UpdateSubsourceName,
+		j.UpdateVipSkip,
 	}
 	for _, updater := range updaters {
 		err := updater(workingContext)
@@ -94,7 +127,7 @@ func (j ClsNewsCrawler) GetMessage(workingContext *working_context.CrawlerWorkin
 }
 
 func (j ClsNewsCrawler) GetQueryPath() string {
-	return `.telegraph-content-box`
+	return `.telegraph-list`
 }
 
 func (j ClsNewsCrawler) GetStartUri() string {
