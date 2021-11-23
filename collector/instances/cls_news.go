@@ -62,7 +62,7 @@ func (j ClsNewsCrawler) UpdateContent(workingContext *working_context.CrawlerWor
 	if title_selection.Length() > 0 {
 		replacer := strings.NewReplacer("【", "", "】", "")
 		workingContext.Result.Post.Title = replacer.Replace(title_selection.Text())
-		workingContext.Result.Post.Content = strings.ReplaceAll(workingContext.Result.Post.Content, workingContext.Result.Post.Title, "")
+		workingContext.Result.Post.Content = strings.ReplaceAll(workingContext.Result.Post.Content, title_selection.Text(), "")
 	}
 	return nil
 }
