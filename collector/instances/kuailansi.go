@@ -1,6 +1,7 @@
 package collector_instances
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -35,6 +36,25 @@ type KuailansiPost struct {
 	Level    string `json:"Level"`
 	Type     string `json:"Type"`
 	Keywords string `json:"Keywords"`
+}
+
+func (p *KuailansiPost) GetContent() string {
+	re := regexp.MustCompile(`【.*】`)
+	match := re.FindStringSubmatch(p.Content)
+	if len(match) != 1 {
+		return p.Content
+	}
+	return strings.ReplaceAll(p.Content, match[0], "")
+}
+
+func (p *KuailansiPost) GetTitle() string {
+	re := regexp.MustCompile(`【.*】`)
+	match := re.FindStringSubmatch(p.Content)
+	if len(match) != 1 {
+		return ""
+	}
+	replacer := strings.NewReplacer("【", "", "】", "")
+	return replacer.Replace(match[0])
 }
 
 type KuailansiApiResponse struct {
@@ -113,7 +133,10 @@ func (k KuailansiApiCrawler) ProcessSinglePost(post *KuailansiPost,
 	}
 
 	workingContext.Result.Post.ContentGeneratedAt = ts
-	workingContext.Result.Post.Content = post.Content
+	if post.GetTitle() != "" {
+		workingContext.Result.Post.Title = post.GetTitle()
+	}
+	workingContext.Result.Post.Content = post.GetContent()
 	workingContext.Result.Post.SubSource.Name = name
 	workingContext.Result.Post.SubSource.AvatarUrl = collector.GetSourceLogoUrl(
 		workingContext.Task.TaskParams.SourceId)
