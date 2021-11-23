@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -71,7 +72,7 @@ type Kr36ApiCollector struct {
 }
 
 func (k Kr36ApiCollector) Get36KrFlashCardResponse(task *protocol.PanopticTask) (string, error) {
-	httpClient := collector.NewHttpClientFromTaskParams(task)
+	httpClient := clients.NewHttpClientFromTaskParams(task)
 	res, err := httpClient.Get(Kr36StartingUrl)
 	if err != nil {
 		return "", err

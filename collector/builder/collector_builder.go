@@ -1,7 +1,10 @@
 package collector_builder
 
 import (
+	"net/http"
+
 	. "github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/collector/file_store"
 	. "github.com/Luismorlan/newsmux/collector/instances"
 	"github.com/Luismorlan/newsmux/collector/sink"
@@ -76,4 +79,8 @@ func (CollectorBuilder) NewCustomizedCrawlerCollector(s sink.CollectedDataSink) 
 
 func (CollectorBuilder) NewCustomizedSubSourceCollector(s sink.CollectedDataSink) DataCollector {
 	return &CustomizedSubSourceCrawler{Sink: s}
+}
+
+func (CollectorBuilder) NewTwitterCollector(s sink.CollectedDataSink, bearerToken string) DataCollector {
+	return &TwitterApiCrawler{Sink: s, Client: clients.NewTwitterClient(&http.Client{}, bearerToken)}
 }

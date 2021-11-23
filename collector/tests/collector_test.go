@@ -12,6 +12,7 @@ import (
 	"github.com/Luismorlan/newsmux/collector"
 	. "github.com/Luismorlan/newsmux/collector"
 	. "github.com/Luismorlan/newsmux/collector/builder"
+	clients "github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/collector/file_store"
 	. "github.com/Luismorlan/newsmux/collector/handler"
 	. "github.com/Luismorlan/newsmux/collector/instances"
@@ -256,8 +257,8 @@ func TestJin10CollectorHandler(t *testing.T) {
 }
 
 func TestIpAddressFetch(t *testing.T) {
-	var client HttpClient
-	ip, err := GetCurrentIpAddress(client)
+	var client clients.HttpClient
+	ip, err := GetCurrentIpAddress(&client)
 	require.NoError(t, err)
 	fmt.Println("ip: ", ip)
 	require.Greater(t, len(ip), 0)

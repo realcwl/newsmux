@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/clients"
 	sink "github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -106,7 +107,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 	subsource *protocol.PanopticSubSource,
 	paginationInfo *working_context.PaginationInfo,
 ) error {
-	var client collector.HttpClient
+	var client clients.HttpClient
 	url := w.ConstructUrl(task, subsource, paginationInfo)
 	resp, err := client.Get(url)
 	if err != nil {

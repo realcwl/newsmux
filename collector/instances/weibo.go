@@ -17,6 +17,7 @@ import (
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	clients "github.com/Luismorlan/newsmux/collector/clients"
 )
 
 const (
@@ -103,7 +104,7 @@ func (w WeiboApiCollector) UpdateDedupId(post *protocol.CrawlerMessage_CrawledPo
 }
 
 func (w WeiboApiCollector) GetFullText(url string) (string, error) {
-	var client collector.HttpClient
+	var client clients.HttpClient
 	resp, err := client.Get(url)
 	if err != nil {
 		return "", utils.ImmediatePrintError(err)
@@ -217,7 +218,7 @@ func (w WeiboApiCollector) CollectOneSubsourceOnePage(
 	subsource *protocol.PanopticSubSource,
 	paginationInfo *working_context.PaginationInfo,
 ) error {
-	var client collector.HttpClient
+	var client clients.HttpClient
 	url := w.ConstructUrl(task, subsource, paginationInfo)
 	resp, err := client.Get(url)
 	if err != nil {

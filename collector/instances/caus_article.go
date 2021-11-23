@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -39,7 +40,7 @@ func (j CaUsArticleCrawler) UpdateArticleDom(workingContext *working_context.Cra
 	url := "https://caus.com" + path
 	workingContext.Result.Post.OriginUrl = url
 
-	client := collector.NewHttpClientFromTaskParams(workingContext.Task)
+	client := clients.NewHttpClientFromTaskParams(workingContext.Task)
 	resp, err := client.Get(url)
 	if err != nil {
 		collector.LogHtmlParsingError(workingContext.Task, workingContext.Element, err)
