@@ -84,7 +84,7 @@ func (w WallstreetApiCollector) UpdateResultFromItem(item *WallstreetItem, worki
 	if err := w.UpdateDedupId(workingContext.Result.Post); err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	workingContext.Result.Post.Content = item.Content
+	workingContext.Result.Post.Content = item.ContentText
 	if item.Title != "" {
 		workingContext.Result.Post.Title = item.Title
 	}
