@@ -84,10 +84,9 @@ func (w WallstreetApiCollector) UpdateResultFromItem(item *WallstreetItem, worki
 	if err := w.UpdateDedupId(workingContext.Result.Post); err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-	if item.Title == "" {
-		workingContext.Result.Post.Content = item.Title + item.ContentText
-	} else {
-		workingContext.Result.Post.Content = item.Title + " " + item.ContentText
+	workingContext.Result.Post.Content = item.Content
+	if item.Title != "" {
+		workingContext.Result.Post.Title = item.Title
 	}
 	newsType := protocol.PanopticSubSource_FLASHNEWS
 	if item.Score != 1 {
