@@ -60,7 +60,8 @@ func (j ClsNewsCrawler) UpdateContent(workingContext *working_context.CrawlerWor
 	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(".telegraph-content-box span:not(.telegraph-time-box)").Text()
 	title_selection := workingContext.Element.DOM.Find(".telegraph-content-box span:not(.telegraph-time-box) > strong")
 	if title_selection.Length() > 0 {
-		workingContext.Result.Post.Title = title_selection.Text()
+		replacer := strings.NewReplacer("【", "", "】", "")
+		workingContext.Result.Post.Title = replacer.Replace(title_selection.Text())
 		workingContext.Result.Post.Content = strings.ReplaceAll(workingContext.Result.Post.Content, workingContext.Result.Post.Title, "")
 	}
 	return nil
