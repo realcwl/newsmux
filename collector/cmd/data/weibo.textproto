@@ -11,7 +11,9 @@ jobs: {
 			task_params: {
 				source_id: "0129417c-4987-45c9-86ac-d6a5c89fb4f7"
                 sub_sources: 
-                [{name: "caoz",type: USERS, external_id: "1495169251"},
+                [
+                {name: "子陵在听歌" ,type: USERS, external_id: "1251560221"}
+                # {name: "caoz",type: USERS, external_id: "1495169251"},
                 # {name: "雷尼尔雪山2021",type: USERS, external_id: "7386730191"},
                 # {name: "whigzhou",type: USERS, external_id: "1400461002"},
                 # {name: "徐佳杰plus",type: USERS, external_id: "6874177470"},
@@ -78,7 +80,8 @@ jobs: {
                 # {name: "北京塞冬",type: USERS, external_id: "2191707743"},
                 # {name: "伊洛牧",type: USERS, external_id: "2987102112"},
                 # {name: "Value_at_risk_1",type: USERS, external_id: "5894926648"},
-                {name: "冲波逐浪",type: USERS, external_id: "6113037558"}]
+                # {name: "冲波逐浪",type: USERS, external_id: "6113037558"}
+                ]
 			}
 			task_metadata: {
 				config_name: "weibo_config"

@@ -188,7 +188,7 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 		return err
 	}
 
-	post.Content = collector.LineBreakerToSpace(post.Content)
+	// post.Content = collector.LineBreakerToSpace(post.Content)
 
 	err = w.UpdateDedupId(post)
 	if err != nil {
