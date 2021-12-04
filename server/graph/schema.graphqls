@@ -54,6 +54,7 @@ input NewSourceInput {
   userId: String!
   name: String!
   domain: String!
+  crawlerPanopticConfig: String
 }
 
 # isFromSharedPost = true means the subsource is not for cralwing

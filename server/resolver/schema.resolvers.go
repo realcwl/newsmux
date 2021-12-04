@@ -297,11 +297,12 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 	r.DB.Where("id = ?", input.UserID).First(&user)
 
 	source := model.Source{
-		Id:        uuid.New().String(),
-		Name:      input.Name,
-		Domain:    input.Domain,
-		CreatedAt: time.Now(),
-		Creator:   user,
+		Id:                    uuid.New().String(),
+		Name:                  input.Name,
+		Domain:                input.Domain,
+		CreatedAt:             time.Now(),
+		Creator:               user,
+		CrawlerPanopticConfig: input.CrawlerPanopticConfig,
 	}
 
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
