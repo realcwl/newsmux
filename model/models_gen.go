@@ -60,9 +60,10 @@ type NewPostInput struct {
 }
 
 type NewSourceInput struct {
-	UserID string `json:"userId"`
-	Name   string `json:"name"`
-	Domain string `json:"domain"`
+	UserID                string  `json:"userId"`
+	Name                  string  `json:"name"`
+	Domain                string  `json:"domain"`
+	CrawlerPanopticConfig *string `json:"crawlerPanopticConfig"`
 }
 
 type NewUserInput struct {

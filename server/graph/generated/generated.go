@@ -1111,6 +1111,7 @@ input NewSourceInput {
   userId: String!
   name: String!
   domain: String!
+  crawlerPanopticConfig: String
 }
 
 # isFromSharedPost = true means the subsource is not for cralwing
@@ -5967,6 +5968,14 @@ func (ec *executionContext) unmarshalInputNewSourceInput(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("domain"))
 			it.Domain, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "crawlerPanopticConfig":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("crawlerPanopticConfig"))
+			it.CrawlerPanopticConfig, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
