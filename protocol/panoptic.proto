@@ -59,6 +59,8 @@ message TaskParams {
     WallstreetNewsTaskParams wallstreet_news_task_params = 23; 
     WisburgParams wisburg_task_params = 24;
     CaUsNewsTaskParams caus_news_task_params = 25;
+    // customized crawler is from user
+    CustomizedCrawlerParams customized_crawler_task_params = 26;
   }
 }
 
@@ -118,6 +120,7 @@ message PanopticTask {
     COLLECTOR_WALLSTREET_ARTICLE = 13;
     COLLECTOR_CLS_NEWS=14;
     COLLECTOR_GELONGHUI_NEWS = 15;
+    COLLECTOR_CUSTOMIZED = 16;
     // ...
   }
 
@@ -218,4 +221,17 @@ message WisburgParams {
 message CaUsNewsTaskParams {
   int32 max_pages = 1;
   int32 lanmu_id = 2;
+}
+
+message CustomizedCrawlerParams {
+  optional string crawl_url = 1;
+  optional string base_selector = 2; // base selector is the section of each post to generate
+  optional string title_relative_selector= 3; // relative selector to the base selector
+  optional string content_relative_selector = 4;
+  optional string external_id_relative_selector = 5;
+  optional string time_relative_selector = 6;
+  optional string image_relative_selector = 7;
+  optional string subsource_relative_selector = 8; // how to deal with subsource spec
+  optional string origin_url_relative_selector = 9; // by default is the url 
+  // To support multiple subsources -> (keyword, avatar_url, name)
 }

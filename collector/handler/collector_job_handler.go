@@ -131,6 +131,8 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector = builder.NewGelonghuiCrawler(sink)
 	case protocol.PanopticTask_COLLECTOR_CLS_NEWS:
 		collector = builder.NewClsNewsCrawlerCollector(sink)
+	case protocol.PanopticTask_COLLECTOR_CUSTOMIZED:
+		collector = builder.NewCustomizedCrawlerCollector(sink)
 	default:
 		return errors.New("unknown task data collector id")
 	}

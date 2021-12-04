@@ -136,7 +136,8 @@ func crossTaskMessageValidation(sharedContext *working_context.SharedContext) er
 		return errors.New("crawled message's avatar doesn't match the source's default avatar url: " + defaultUrl)
 	}
 
-	if msg.Post.SubSource.SourceId != getSourceIdFromDataCollectorId(task.DataCollectorId) {
+	// There is no data collector id <-> source id mapping for customized collector
+	if task.DataCollectorId != protocol.PanopticTask_COLLECTOR_CUSTOMIZED && msg.Post.SubSource.SourceId != getSourceIdFromDataCollectorId(task.DataCollectorId) {
 		return fmt.Errorf("crawled message's source id doesn't match the data collector id, msg: %s != task: %s",
 			msg.Post.SubSource.SourceId,
 			getSourceIdFromDataCollectorId(task.DataCollectorId),
