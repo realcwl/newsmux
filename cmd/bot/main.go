@@ -40,6 +40,8 @@ func main() {
 
 	router.POST("/bot/interaction", bot.InteractionHandler(db))
 
+	router.POST("/bot/sharepost", bot.PostShareHandler(db))
+
 	router.GET("/bot/auth", bot.AuthHandler(db))
 
 	router.NoRoute(func(c *gin.Context) {
