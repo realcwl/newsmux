@@ -130,7 +130,6 @@ func InitializeApiCollectorResult(workingContext *working_context.ApiCollectorWo
 	// like weibo
 	workingContext.Result.Post.SubSource.AvatarUrl = GetSourceLogoUrl(workingContext.Task.TaskParams.SourceId)
 	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
-	workingContext.Result.Post.OriginUrl = workingContext.ApiUrl
 
 	workingContext.Result.CrawlerIp = workingContext.Task.TaskMetadata.IpAddr
 }
