@@ -1,0 +1,198 @@
+package collector_instances
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/sink"
+	"github.com/Luismorlan/newsmux/collector/working_context"
+	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/araddon/dateparse"
+	"github.com/gocolly/colly"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+type CustomizedCrawler struct {
+	Sink sink.CollectedDataSink
+}
+
+func (j CustomizedCrawler) UpdateTitle(workingContext *working_context.CrawlerWorkingContext) error {
+	titleSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().TitleRelativeSelector
+	if len(titleSelector) == 0 {
+		return nil
+	}
+	workingContext.Result.Post.Title = workingContext.Element.DOM.Find(titleSelector).Text()
+	return nil
+}
+
+func (j CustomizedCrawler) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
+	contentSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().ContentRelativeSelector
+	if len(contentSelector) == 0 {
+		return nil
+	}
+	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(contentSelector).Text()
+	return nil
+}
+
+func (j CustomizedCrawler) UpdateExternalId(workingContext *working_context.CrawlerWorkingContext) error {
+	contentSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().ExternalIdRelativeSelector
+	if len(contentSelector) == 0 {
+		return nil
+	}
+	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(contentSelector).Text()
+	return nil
+}
+
+func (j CustomizedCrawler) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
+	contentSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().ExternalIdRelativeSelector
+	if len(contentSelector) == 0 {
+		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
+		return nil
+	}
+
+	dateString := workingContext.Element.DOM.Find(contentSelector).Text()
+	t, err := dateparse.ParseLocal(dateString)
+	if err != nil {
+		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
+	} else {
+		workingContext.Result.Post.ContentGeneratedAt = timestamppb.New(t)
+	}
+	return nil
+}
+
+// Dedup id in customized crawler is fixed logic, user don't have UI to modify it
+func (j CustomizedCrawler) UpdateDedupId(workingContext *working_context.CrawlerWorkingContext) error {
+	md5, err := utils.TextToMd5Hash(workingContext.Result.Post.Content)
+	if err != nil {
+		return err
+	}
+	workingContext.Result.Post.DeduplicateId = md5
+	return nil
+}
+
+func (j CustomizedCrawler) UpdateSubsource(workingContext *working_context.CrawlerWorkingContext) error {
+	subSourceSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().SubsourceRelativeSelector
+	if len(subSourceSelector) == 0 {
+		workingContext.Result.Post.SubSource.Name = workingContext.Task.TaskParams.SubSources[0].Name
+	} else {
+		workingContext.Result.Post.SubSource.Name = workingContext.Element.DOM.Find(subSourceSelector).Text()
+		if len(workingContext.Result.Post.SubSource.Name) == 0 {
+			workingContext.Result.Post.SubSource.Name = workingContext.Task.TaskParams.SubSources[0].Name
+		}
+	}
+
+	// TODO: support subsource url, avatar
+	workingContext.Result.Post.SubSource.AvatarUrl = "https://newsfeed-logo.s3.us-west-1.amazonaws.com/test.png"
+	return nil
+}
+
+func (j CustomizedCrawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
+	workingContext.Result.Post.ImageUrls = []string{}
+	imageSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().ImageRelativeSelector
+	selection := workingContext.Element.DOM.Find(imageSelector)
+	for i := 0; i < selection.Length(); i++ {
+		img := selection.Eq(i)
+		imageUrl := img.AttrOr("src", "")
+		parts := strings.Split(imageUrl, "?")
+		imageUrl = parts[0]
+		if len(imageUrl) == 0 {
+			return errors.New("image DOM exist but src not found")
+		}
+		workingContext.Result.Post.ImageUrls = append(workingContext.Result.Post.ImageUrls, imageUrl)
+	}
+	return nil
+}
+
+func (j CustomizedCrawler) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
+	collector.InitializeCrawlerResult(workingContext)
+
+	updaters := []func(workingContext *working_context.CrawlerWorkingContext) error{
+		j.UpdateTitle,
+		j.UpdateContent,
+		j.UpdateExternalId,
+		j.UpdateGeneratedTime,
+		j.UpdateSubsource,
+		j.UpdateImageUrls,
+		j.UpdateDedupId,
+	}
+	for _, updater := range updaters {
+		err := updater(workingContext)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (j CustomizedCrawler) GetBaseSelector(task *protocol.PanopticTask) (string, error) {
+	baseQuery := task.TaskParams.GetCustomizedCrawlerTaskParams().BaseSelector
+	if baseQuery == nil {
+		return "", errors.New("baseQuery is nil")
+	}
+	return *baseQuery, nil
+}
+
+func (j CustomizedCrawler) GetCrawlUrl(task *protocol.PanopticTask) (string, error) {
+	crawlUrl := task.TaskParams.GetCustomizedCrawlerTaskParams().CrawlUrl
+	if crawlUrl == nil {
+		return "", errors.New("CrawlUrl is nil")
+	}
+	return *crawlUrl, nil
+}
+
+func (j CustomizedCrawler) CollectAndPublish(task *protocol.PanopticTask) {
+	metadata := task.TaskMetadata
+
+	startUrl, err := j.GetCrawlUrl(task)
+	if err != nil {
+		collector.MarkAndLogCrawlError(task, err, "")
+		return
+	}
+
+	baseSelector, err := j.GetBaseSelector(task)
+	if err != nil {
+		collector.MarkAndLogCrawlError(task, err, "")
+		return
+	}
+
+	c := colly.NewCollector()
+	// each crawled card(news) will go to this
+	// for each page loaded, there are multiple calls into this func
+	c.OnHTML(baseSelector, func(elem *colly.HTMLElement) {
+		var err error
+
+		workingContext := &working_context.CrawlerWorkingContext{
+			SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, Element: elem, OriginUrl: startUrl}
+		if err = j.GetMessage(workingContext); err != nil {
+			metadata.TotalMessageFailed++
+			collector.LogHtmlParsingError(task, elem, err)
+			return
+		}
+		sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
+	})
+
+	// Set error handler
+	c.OnError(func(r *colly.Response, err error) {
+		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
+		Logger.Log.WithFields(logrus.Fields{"source": "customized"}).Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err, " path ", baseSelector)
+	})
+
+	c.OnScraped(func(_ *colly.Response) {
+		// Set Fail/Success in task meta based on number of message succeeded
+		collector.SetErrorBasedOnCounts(task, startUrl, fmt.Sprintf(" path: %s", baseSelector))
+	})
+
+	c.OnRequest(func(r *colly.Request) {
+		for _, kv := range task.TaskParams.HeaderParams {
+			r.Headers.Set(kv.Key, kv.Value)
+		}
+	})
+
+	c.Visit(startUrl)
+}
