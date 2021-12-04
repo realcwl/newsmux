@@ -34,7 +34,7 @@ type Source struct {
 	Name                  string
 	Domain                string
 	SubSources            []SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	CrawlerPanopticConfig string
+	CrawlerPanopticConfig *string
 }
 
 func (Source) IsSourceSeedStateInterface() {}
