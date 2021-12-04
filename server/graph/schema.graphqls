@@ -54,7 +54,6 @@ input NewSourceInput {
   userId: String!
   name: String!
   domain: String!
-  customizedCrawlerPanopticConfigForm: CustomizedCrawlerPanopticConfigForm
 }
 
 # This schema has all information needed to construct a PanopticConfig in panoptic_config.proto

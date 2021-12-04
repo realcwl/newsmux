@@ -98,7 +98,6 @@ type NewSourceInput struct {
 	UserID                              string                               `json:"userId"`
 	Name                                string                               `json:"name"`
 	Domain                              string                               `json:"domain"`
-	CustomizedCrawlerPanopticConfigForm *CustomizedCrawlerPanopticConfigForm `json:"customizedCrawlerPanopticConfigForm"`
 }
 
 type NewUserInput struct {

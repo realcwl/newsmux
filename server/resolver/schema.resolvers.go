@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"google.golang.org/protobuf/encoding/prototext"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -304,26 +303,12 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 	}
 
 	newSourceId := uuid.New().String()
-	var serializedCustomizedCrawlerConfig *string
-	if input.CustomizedCrawlerPanopticConfigForm != nil {
-		config, err := ConstructCustomizedPanopticConfig(input, newSourceId)
-		if err != nil {
-			return nil, err
-		}
-		bytes, err := prototext.Marshal(&config)
-		if err != nil {
-			return nil, err
-		}
-		str := string(bytes)
-		serializedCustomizedCrawlerConfig = &str
-	}
 	source := model.Source{
-		Id:             newSourceId,
-		Name:           input.Name,
-		Domain:         input.Domain,
-		CreatedAt:      time.Now(),
-		Creator:        user,
-		PanopticConfig: serializedCustomizedCrawlerConfig,
+		Id:        newSourceId,
+		Name:      input.Name,
+		Domain:    input.Domain,
+		CreatedAt: time.Now(),
+		Creator:   user,
 	}
 
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
