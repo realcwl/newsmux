@@ -142,7 +142,9 @@ func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
 		return nil, "", err
 	}
 
-	s.MergeConfigAndDb(configs)
+	s.MergeSourcesFromConfigAndDb(configs)
+
+	s.MergeSubsourcesFromConfigAndDb(configs)
 
 	digest, err := utils.TextToMd5Hash(configs.String())
 	if err != nil {
@@ -187,7 +189,28 @@ func (s *Scheduler) ReadConfigFromLocalOrGithub() (*protocol.PanopticConfigs, er
 	return configs, nil
 }
 
-func (s *Scheduler) MergeConfigAndDb(configs *protocol.PanopticConfigs) {
+func (s *Scheduler) MergeSourcesFromConfigAndDb(configs *protocol.PanopticConfigs) {
+	var sourcesFromDB []model.Source
+	s.DB.Where("crawler_panoptic_config is NOT NULL AND crawler_panoptic_config != '' ").Order("name").Find(&sourcesFromDB)
+	allSourceIds := make(map[string]bool)
+	for _, config := range configs.Config {
+		allSourceIds[config.TaskParams.SourceId] = true
+	}
+
+	for _, sourceFromDB := range sourcesFromDB {
+		var panopticConfig *protocol.PanopticConfig
+		if err := prototext.Unmarshal([]byte(sourceFromDB.CrawlerPanopticConfig), panopticConfig); err != nil {
+			fmt.Printf("can't unmarshal panoptic config for source_name %s, error %+v", sourceFromDB.Name, err)
+			return
+		}
+		// only append when DB source is not in configs (Config source has higher priority)
+		if _, ok := allSourceIds[panopticConfig.TaskParams.SourceId]; !ok {
+			configs.Config = append(configs.Config, panopticConfig)
+		}
+	}
+}
+
+func (s *Scheduler) MergeSubsourcesFromConfigAndDb(configs *protocol.PanopticConfigs) {
 	var weiboSource model.Source
 	queryWeiboSourceIdResult := s.DB.
 		Where("name = ?", "微博").
@@ -196,8 +219,9 @@ func (s *Scheduler) MergeConfigAndDb(configs *protocol.PanopticConfigs) {
 		return
 	}
 	weiboSourceId := weiboSource.Id
-	// do merge for all source
+	// merge DB and config subsources for all source
 	for _, config := range configs.Config {
+		// only support weibo combine
 		if config.TaskParams.SourceId != weiboSourceId {
 			continue
 		}
