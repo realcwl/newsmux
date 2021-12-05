@@ -1,7 +1,9 @@
 package bot
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -56,15 +58,17 @@ func buildContentWithShowMore(post model.Post, postLink string) string {
 	return post.Content
 }
 
-func TimeBoundedPushPost(ctx context.Context, channelId string, postId string) {
+func TimeBoundedPushPost(ctx context.Context, webhookUrl string, post model.Post) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 	done := make(chan error, 1)
 	go func() {
-		r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s?channel_id=%s&post_id=%s", os.Getenv("BOT_SHARE_POST_URL"), channelId, postId), nil)
-		r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-		client := &http.Client{}
-		_, err := client.Do(r)
+		sharePost := SharePostPayload{
+			Post:       post,
+			WebhookUrl: webhookUrl,
+		}
+		postBytes, _ := json.Marshal(sharePost)
+		_, err := http.Post(os.Getenv("BOT_SHARE_POST_URL"), "application/json", bytes.NewReader(postBytes))
 		done <- err
 	}()
 	select {
@@ -74,7 +78,7 @@ func TimeBoundedPushPost(ctx context.Context, channelId string, postId string) {
 		}
 		return
 	case <-ctx.Done():
-		Logger.Log.Errorf("push post via webhook timed out. post: %s, channel: %s", postId, channelId)
+		Logger.Log.Errorf("push post via webhook timed out. post: %s, webhook url: %s", post.Id, webhookUrl)
 		return
 	}
 }

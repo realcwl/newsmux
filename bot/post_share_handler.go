@@ -4,7 +4,9 @@ package bot
 // https://api.slack.com/interactivity/slash-commands
 
 import (
-	"fmt"
+	"encoding/json"
+	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"sync"
@@ -16,15 +18,22 @@ import (
 	"gorm.io/gorm"
 )
 
-const SIMILARITY_THRESHOLD = 37
-const SIMILARITY_WINDOW_HOURS = 1
+const (
+	SIMILARITY_THRESHOLD    = 37
+	SIMILARITY_WINDOW_HOURS = 1
+)
 
 var PostsSent sync.Map
 
 type postMeta struct {
-	Id           string `json:"id"`
-	SemanticHash string `json:"semantic_hash"`
-	PostTime     time.Time
+	Id                 string `json:"id"`
+	SemanticHash       string `json:"semantic_hash"`
+	ContentGeneratedAt time.Time
+}
+
+type SharePostPayload struct {
+	model.Post
+	WebhookUrl string `json:"webhook_url"`
 }
 
 func isHashingSemanticallyIdentical(h1 string, h2 string) bool {
@@ -46,7 +55,7 @@ func isHashingSemanticallyIdentical(h1 string, h2 string) bool {
 }
 
 func isPostDuplicated(
-	lhs model.Post,
+	post model.Post,
 	channelId string,
 ) bool {
 	posts, ok := PostsSent.Load(channelId)
@@ -56,77 +65,69 @@ func isPostDuplicated(
 	for k, v := range posts.([]postMeta) {
 		// the collector has some interval(up to 12 hours for zsxq) to collect the data
 		// we will keep the cache for one day
-		if math.Abs(time.Since(v.PostTime).Hours()) > 24 {
+		if math.Abs(time.Since(v.ContentGeneratedAt).Hours()) > 24 {
 			PostsSent.Store(channelId, append(posts.([]postMeta)[:k], posts.([]postMeta)[k+1:]...))
 		}
 
-		if lhs.SemanticHashing == "" ||
+		if post.SemanticHashing == "" ||
 			v.SemanticHash == "" {
 			return false
 		}
 
-		if (math.Abs(lhs.ContentGeneratedAt.Sub(v.PostTime).Hours())) < SIMILARITY_WINDOW_HOURS {
-			return isHashingSemanticallyIdentical(lhs.SemanticHashing, v.SemanticHash)
+		if (math.Abs(post.ContentGeneratedAt.Sub(v.ContentGeneratedAt).Hours())) < SIMILARITY_WINDOW_HOURS {
+			return isHashingSemanticallyIdentical(post.SemanticHashing, v.SemanticHash)
 		}
 	}
 	return false
 }
 
+func parsePostSharePayload(body io.ReadCloser) (*SharePostPayload, error) {
+	bodybytes, err := ioutil.ReadAll(body)
+	if err != nil {
+		return nil, err
+	}
+
+	payload := SharePostPayload{}
+
+	err = json.Unmarshal(bodybytes, &payload)
+	if err != nil {
+		return nil, err
+	}
+	return &payload, nil
+}
+
 func PostShareHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		channelId, ok := c.GetQuery("channel_id")
-		if !ok {
-			Logger.Log.Error("got an post share request without channel")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "channel id is required"})
+
+		payload, err := parsePostSharePayload(c.Request.Body)
+		if err != nil {
+			Logger.Log.Error("invalid post share payload", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 			return
 		}
 
-		var channel model.Channel
-		res := db.Where("id = ?", channelId).First(&channel)
-		if res.RowsAffected == 0 {
-			Logger.Log.Errorf("invalid channel id: %s", channelId)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel id"})
-			return
-		}
-		fmt.Println("c", channel)
-
-		postId, ok := c.GetQuery("post_id")
-		if !ok {
-			Logger.Log.Error("got an post share request without post")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "post id is required"})
-			return
-		}
-
-		var post *model.Post
-		res = db.Preload("SubSource").Preload("SharedFromPost").Preload("SharedFromPost.SubSource").Where("id=?", postId).First(&post)
-		if res.RowsAffected == 0 {
-			Logger.Log.Errorf("invalid post id: %s", postId)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
-			return
-		}
-
-		if isPostDuplicated(*post, channelId) {
+		if isPostDuplicated(payload.Post, payload.WebhookUrl) {
 			c.Data(200, "application/json; charset=utf-8", []byte("Post duplicated"))
 			return
 		}
 
-		if err := PushPostViaWebhook(*post, channel.WebhookUrl); err != nil {
+		if err := PushPostViaWebhook(payload.Post, payload.WebhookUrl); err != nil {
 			Logger.Log.Error("Fail to post via webhook", err)
 		}
 
-		if posts, ok := PostsSent.Load(channelId); ok {
-			PostsSent.Store(channelId, append(posts.([]postMeta),
+		if posts, ok := PostsSent.Load(payload.WebhookUrl); ok {
+			PostsSent.Store(payload.WebhookUrl, append(posts.([]postMeta),
 				postMeta{
-					Id:           post.Id,
-					SemanticHash: post.SemanticHashing,
-					PostTime:     post.ContentGeneratedAt,
+					Id:                 payload.Post.Id,
+					SemanticHash:       payload.Post.SemanticHashing,
+					ContentGeneratedAt: payload.Post.ContentGeneratedAt,
 				}))
 		} else {
-			PostsSent.Store(channelId, []postMeta{
+			PostsSent.Store(payload.WebhookUrl, []postMeta{
 				{
-					Id:           post.Id,
-					SemanticHash: post.SemanticHashing,
-					PostTime:     post.ContentGeneratedAt,
+					Id:                 payload.Post.Id,
+					SemanticHash:       payload.Post.SemanticHashing,
+					ContentGeneratedAt: payload.Post.ContentGeneratedAt,
 				},
 			})
 		}
