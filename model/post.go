@@ -64,25 +64,25 @@ type Post struct {
 	Id                 string `gorm:"primaryKey"`
 	CreatedAt          time.Time
 	DeletedAt          gorm.DeletedAt
-	Title              string
-	Content            string
+	Title              string    `json:"title"`
+	Content            string    `json:"content"`
 	SubSourceID        string    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	SubSource          SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	SharedFromPostID   *string
-	SharedFromPost     *Post
-	SavedByUser        []*User `json:"saved_by_user" gorm:"many2many;"`
-	PublishedFeeds     []*Feed `json:"published_feeds" gorm:"many2many:post_feed_publishes;constraint:OnDelete:CASCADE;"`
-	Cursor             int32   `gorm:"autoIncrement"`
-	CrawledAt          time.Time
-	OriginUrl          string
-	ContentGeneratedAt time.Time
-	InSharingChain     bool
+	SharedFromPostID   *string   `json:"shared_from_post_id"`
+	SharedFromPost     *Post     `json:"shared_from_post"`
+	SavedByUser        []*User   `json:"saved_by_user" gorm:"many2many;"`
+	PublishedFeeds     []*Feed   `json:"published_feeds" gorm:"many2many:post_feed_publishes;constraint:OnDelete:CASCADE;"`
+	Cursor             int32     `gorm:"autoIncrement"`
+	CrawledAt          time.Time `json:"crawled_at"`
+	OriginUrl          string    `json:"origin_url"`
+	ContentGeneratedAt time.Time `json:"content_generated_at"`
+	InSharingChain     bool      `json:"in_sharing_chain"`
 
 	// TODO: convert json to array when serve graphql API and ingest from crawler
-	ImageUrls pq.StringArray `gorm:"type:TEXT[]"`
-	FileUrls  pq.StringArray `gorm:"type:TEXT[]"`
+	ImageUrls pq.StringArray `gorm:"type:TEXT[]" json:"image_urls"`
+	FileUrls  pq.StringArray `gorm:"type:TEXT[]" json:"file_urls"`
 
-	DeduplicateId   string
-	SemanticHashing string
-	Tag             string
+	DeduplicateId   string `json:"deduplicate_id"`
+	SemanticHashing string `json:"semantic_hashing"`
+	Tag             string `json:"tag"`
 }
