@@ -3,6 +3,7 @@ package collector_instances
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/Luismorlan/newsmux/collector"
@@ -72,7 +73,7 @@ func (j Jin10Crawler) UpdateContent(workingContext *working_context.CrawlerWorki
 	}
 	selection.Children().Each(func(_ int, s *goquery.Selection) {
 		if len(s.Nodes) > 0 && s.Nodes[0].Data == "br" {
-			sb.WriteString(" ")
+			sb.WriteString("\n")
 		}
 		sb.WriteString(s.Text())
 	})
@@ -160,6 +161,28 @@ func (j Jin10Crawler) UpdateSubsourceName(workingContext *working_context.Crawle
 	return nil
 }
 
+func ShouldSplitJin10Content(title string) bool {
+	NoSplitWords := []string{"金十图示", "行情", "报告"}
+	return !utils.ContainsString(NoSplitWords, title)
+}
+
+func (j Jin10Crawler) MaybeSplitTitleOutOfContent(
+	workingContext *working_context.CrawlerWorkingContext) {
+	content := workingContext.Result.Post.Content
+	re := regexp.MustCompile(`【.*】`)
+	match := re.FindStringSubmatch(content)
+	if len(match) != 1 {
+		return
+	}
+
+	if !ShouldSplitJin10Content(content) {
+		return
+	}
+	trimmedContent := strings.ReplaceAll(content, match[0], "")
+	workingContext.Result.Post.Content = trimmedContent
+	workingContext.Result.Post.Title = strings.NewReplacer("【", "", "】", "").Replace(match[0])
+}
+
 func (j Jin10Crawler) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
 	collector.InitializeCrawlerResult(workingContext)
 
@@ -167,6 +190,7 @@ func (j Jin10Crawler) GetMessage(workingContext *working_context.CrawlerWorkingC
 	if err != nil {
 		return err
 	}
+	j.MaybeSplitTitleOutOfContent(workingContext)
 
 	err = j.UpdateExternalPostId(workingContext)
 	if err != nil {
