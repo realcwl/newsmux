@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/Luismorlan/newsmux/model"
@@ -18,11 +19,7 @@ import (
 const SIMILARITY_THRESHOLD = 37
 const SIMILARITY_WINDOW_HOURS = 1
 
-var PostsSent map[string][]postMeta
-
-func init() {
-	PostsSent = make(map[string][]postMeta)
-}
+var PostsSent sync.Map
 
 type postMeta struct {
 	Id           string `json:"id"`
@@ -52,11 +49,15 @@ func isPostDuplicated(
 	lhs model.Post,
 	channelId string,
 ) bool {
-	for k, v := range PostsSent[channelId] {
+	posts, ok := PostsSent.Load(channelId)
+	if !ok {
+		return false
+	}
+	for k, v := range posts.([]postMeta) {
 		// the collector has some interval(up to 12 hours for zsxq) to collect the data
 		// we will keep the cache for one day
 		if math.Abs(time.Since(v.PostTime).Hours()) > 24 {
-			PostsSent[channelId] = append(PostsSent[channelId][:k], PostsSent[channelId][k+1:]...)
+			PostsSent.Store(channelId, append(posts.([]postMeta)[:k], posts.([]postMeta)[k+1:]...))
 		}
 
 		if lhs.SemanticHashing == "" ||
@@ -112,21 +113,22 @@ func PostShareHandler(db *gorm.DB) gin.HandlerFunc {
 		if err := PushPostViaWebhook(*post, channel.WebhookUrl); err != nil {
 			Logger.Log.Error("Fail to post via webhook", err)
 		}
-		if _, ok := PostsSent[channelId]; ok {
-			PostsSent[channelId] = append(PostsSent[channelId],
+
+		if posts, ok := PostsSent.Load(channelId); ok {
+			PostsSent.Store(channelId, append(posts.([]postMeta),
 				postMeta{
 					Id:           post.Id,
 					SemanticHash: post.SemanticHashing,
 					PostTime:     post.ContentGeneratedAt,
-				})
+				}))
 		} else {
-			PostsSent[channelId] = []postMeta{
+			PostsSent.Store(channelId, []postMeta{
 				{
 					Id:           post.Id,
 					SemanticHash: post.SemanticHashing,
 					PostTime:     post.ContentGeneratedAt,
 				},
-			}
+			})
 		}
 
 		c.Data(200, "application/json; charset=utf-8", []byte("Post sent"))
