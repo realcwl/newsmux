@@ -12,7 +12,6 @@ import (
 
 const (
 	datadogUSHost    = "http-intake.logs.datadoghq.com"
-	apiKey           = "4ff818baf9436137bfdde74914f3bdba"
 	syncFrequencySec = 30
 	syncRetry        = 3
 )
@@ -33,16 +32,17 @@ func init() {
 func InitLogger() {
 	logger = logrus.New()
 
-	hook := ddhook.NewHook(
-		datadogUSHost,
-		apiKey,
-		syncFrequencySec*time.Second,
-		syncRetry,
-		logrus.InfoLevel,
-		&logrus.JSONFormatter{},
-		ddhook.Options{},
-	)
 	if os.Getenv("NEWSMUX_ENV") == dotenv.ProdEnv {
+		apiKey := os.Getenv("DATADOG_API_KEY")
+		hook := ddhook.NewHook(
+			datadogUSHost,
+			apiKey,
+			syncFrequencySec*time.Second,
+			syncRetry,
+			logrus.InfoLevel,
+			&logrus.JSONFormatter{},
+			ddhook.Options{},
+		)
 		logger.Hooks.Add(hook)
 	}
 

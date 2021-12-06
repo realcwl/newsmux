@@ -129,7 +129,7 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 		require.NotNil(t, msg)
 
 		require.Equal(t, "7e85d9a10e1ac1dbbf9c4c14989a9c6f", msg.Post.DeduplicateId)
-		require.Equal(t, "标普：美国经济正在降温 但仍具有弹性 美国经济已经有所降温，但仍然具有弹性。将美国2021年和2022年实际GDP增速预期分别调整至5.7%和4.1%，此前在6月报告中的预期分别为6.7%和3.7%。尽管美国经济仍处于过热状态，但随着夏季结束，美国经济已经开始降温。供应中断仍是美国经济放缓的主要原因，而德尔塔变种病毒现在是另一个拖累因素。目前的GDP预测仍将是1984年以来的最高水平。预计美联储将在12月开始缩减资产购买规模，并在2022年12月加息，随后分别在2023年和2024年加息两次。", msg.Post.Content)
+		require.Equal(t, "标普：美国经济正在降温 但仍具有弹性\n美国经济已经有所降温，但仍然具有弹性。将美国2021年和2022年实际GDP增速预期分别调整至5.7%和4.1%，此前在6月报告中的预期分别为6.7%和3.7%。尽管美国经济仍处于过热状态，但随着夏季结束，美国经济已经开始降温。供应中断仍是美国经济放缓的主要原因，而德尔塔变种病毒现在是另一个拖累因素。目前的GDP预测仍将是1984年以来的最高水平。预计美联储将在12月开始缩减资产购买规模，并在2022年12月加息，随后分别在2023年和2024年加息两次。", msg.Post.Content)
 		require.Equal(t, 0, len(msg.Post.ImageUrls))
 		require.Equal(t, 0, len(msg.Post.FilesUrls))
 		require.Equal(t, "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jin10.png", msg.Post.SubSource.AvatarUrl)
@@ -316,11 +316,6 @@ func TestWeiboCollectorHandler(t *testing.T) {
 						Name:       "庄时利和",
 						Type:       protocol.PanopticSubSource_USERS,
 						ExternalId: "1728715190",
-					},
-					{
-						Name:       "子陵在听歌",
-						Type:       protocol.PanopticSubSource_USERS,
-						ExternalId: "1251560221",
 					},
 					{
 						Name:       "一水亦方",
