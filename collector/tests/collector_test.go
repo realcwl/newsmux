@@ -318,11 +318,6 @@ func TestWeiboCollectorHandler(t *testing.T) {
 						ExternalId: "1728715190",
 					},
 					{
-						Name:       "子陵在听歌",
-						Type:       protocol.PanopticSubSource_USERS,
-						ExternalId: "1251560221",
-					},
-					{
 						Name:       "一水亦方",
 						Type:       protocol.PanopticSubSource_USERS,
 						ExternalId: "2349367491",
