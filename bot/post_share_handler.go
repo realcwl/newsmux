@@ -101,7 +101,8 @@ func PostShareHandler(db *gorm.DB) gin.HandlerFunc {
 
 		payload, err := parsePostSharePayload(c.Request.Body)
 		if err != nil {
-			Logger.Log.Error("invalid post share payload", err)
+			bodybytes, _ := ioutil.ReadAll(c.Request.Body)
+			Logger.Log.Error("invalid post share payload", err, string(bodybytes))
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 			return
 		}
