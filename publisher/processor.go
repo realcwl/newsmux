@@ -273,7 +273,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 			if _, ok := channelsPushed[c.Id]; ok {
 				continue
 			}
-			go bot.TimeBoundedPushPost(context.Background(), c.Id, post.Id)
+			go bot.TimeBoundedPushPost(context.Background(), c.WebhookUrl, *post)
 			channelsPushed[c.Id] = struct{}{}
 		}
 	}
