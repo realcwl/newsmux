@@ -198,14 +198,14 @@ func (s *Scheduler) MergeSourcesFromConfigAndDb(configs *protocol.PanopticConfig
 	}
 
 	for _, sourceFromDB := range sourcesFromDB {
-		var panopticConfig *protocol.PanopticConfig
-		if err := prototext.Unmarshal([]byte(*sourceFromDB.CrawlerPanopticConfig), panopticConfig); err != nil {
+		var panopticConfig protocol.PanopticConfig
+		if err := prototext.Unmarshal([]byte(*sourceFromDB.CrawlerPanopticConfig), &panopticConfig); err != nil {
 			fmt.Printf("can't unmarshal panoptic config for source_name %s, error %+v", sourceFromDB.Name, err)
 			return
 		}
 		// only append when DB source is not in configs (Config source has higher priority)
 		if _, ok := allSourceIds[panopticConfig.TaskParams.SourceId]; !ok {
-			configs.Config = append(configs.Config, panopticConfig)
+			configs.Config = append(configs.Config, &panopticConfig)
 		}
 	}
 }
