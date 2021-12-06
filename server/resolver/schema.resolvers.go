@@ -293,11 +293,19 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 }
 
 func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error) {
+	// get creator user
 	var user model.User
-	r.DB.Where("id = ?", input.UserID).First(&user)
+	queryResult := r.DB.Where("id = ?", input.UserID).First(&user)
+	if queryResult.RowsAffected != 1 {
+		return nil, errors.New("invalid user id")
+	}
 
+	newSourceId := uuid.New().String()
+	if err := AddSourceIdToCustomizedCrawlerConfig(input.CrawlerPanopticConfig, newSourceId); err != nil {
+		return nil, err
+	}
 	source := model.Source{
-		Id:                    uuid.New().String(),
+		Id:                    newSourceId,
 		Name:                  input.Name,
 		Domain:                input.Domain,
 		CreatedAt:             time.Now(),
