@@ -19,6 +19,13 @@ func main() {
 		Name:            "test",
 		DataCollectorId: protocol.PanopticTask_COLLECTOR_CUSTOMIZED,
 		TaskParams: &protocol.TaskParams{
+			SourceId: "test",
+			SubSources: []*protocol.PanopticSubSource{
+				{
+					Name: "default",
+					Type: protocol.PanopticSubSource_ARTICLE,
+				},
+			},
 			Params: &protocol.TaskParams_CustomizedCrawlerTaskParams{
 				CustomizedCrawlerTaskParams: &protocol.CustomizedCrawlerParams{
 					CrawlUrl:                &clsUrl,

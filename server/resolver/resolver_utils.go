@@ -6,9 +6,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/prototext"
 	"gorm.io/gorm"
 
 	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
 )
@@ -255,4 +257,28 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 	db.Save(&subSource)
 
 	return &subSource, nil
+}
+
+func AddSourceIdToCustomizedCrawlerConfig(configStr *string, sourceId string) error {
+	if configStr == nil {
+		return nil
+	}
+
+	var panopticConfig protocol.PanopticConfig
+	if err := prototext.Unmarshal([]byte(*configStr), &panopticConfig); err != nil {
+		fmt.Println("Failed to unmarshal panoptic config:", err)
+		return err
+	}
+	panopticConfig.TaskParams.SourceId = sourceId
+	panopticConfig.TaskParams.SubSources = []*protocol.PanopticSubSource{
+		{
+			Name: DefaultSubSourceName,
+		},
+	}
+	newConfig, err := prototext.Marshal(&panopticConfig)
+	if err != nil {
+		return err
+	}
+	*configStr = string(newConfig)
+	return nil
 }
