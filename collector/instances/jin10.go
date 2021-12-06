@@ -73,7 +73,7 @@ func (j Jin10Crawler) UpdateContent(workingContext *working_context.CrawlerWorki
 	}
 	selection.Children().Each(func(_ int, s *goquery.Selection) {
 		if len(s.Nodes) > 0 && s.Nodes[0].Data == "br" {
-			sb.WriteString("\n")
+			sb.WriteString(" ")
 		}
 		sb.WriteString(s.Text())
 	})
