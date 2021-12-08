@@ -88,13 +88,23 @@ func GetFakeTask(taskId, sourceId, subSourceName string, subsourceType protocol.
 		TaskMetadata: &protocol.TaskMetadata{},
 	}
 }
+
+type TestCollectedFileStore struct {
+	file_store.CollectedFileStore
+}
+
+func (s *TestCollectedFileStore) FetchAndStore(url, fileName string) (string, error) {
+	return url + fileName, nil
+}
+func (s *TestCollectedFileStore) CleanUp()                        { s.CollectedFileStore.CleanUp() }
+func (s *TestCollectedFileStore) GetUrlFromKey(key string) string { return key }
+
 func TestJin10Ads(t *testing.T) {
 	// var elem colly.HTMLElement
 	var s = sink.NewStdErrSink()
 	var builder CollectorBuilder
-	imageStore, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
-	require.NoError(t, err)
-	crawler := builder.NewJin10Crawler(s, imageStore)
+	var imageStore TestCollectedFileStore
+	crawler := builder.NewJin10Crawler(s, &imageStore)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 	task := GetFakeTask(taskId, sourceId, "快讯", protocol.PanopticSubSource_FLASHNEWS)
@@ -115,9 +125,8 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 	// var elem colly.HTMLElement
 	var s = sink.NewStdErrSink()
 	var builder CollectorBuilder
-	imageStore, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
-	require.NoError(t, err)
-	crawler := builder.NewJin10Crawler(s, imageStore)
+	var imageStore TestCollectedFileStore
+	crawler := builder.NewJin10Crawler(s, &imageStore)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 	task := GetFakeTask(taskId, sourceId, "快讯", protocol.PanopticSubSource_FLASHNEWS)
@@ -150,10 +159,9 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 func TestJin10CrawlerWithImage(t *testing.T) {
 	// var elem colly.HTMLElement
 	var s = sink.NewStdErrSink()
-	imageStore, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
-	require.NoError(t, err)
+	var imageStore TestCollectedFileStore
 	var builder CollectorBuilder
-	crawler := builder.NewJin10Crawler(s, imageStore)
+	crawler := builder.NewJin10Crawler(s, &imageStore)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 
@@ -188,9 +196,8 @@ func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 	// var elem colly.HTMLElement
 	var s = sink.NewStdErrSink()
 	var builder CollectorBuilder
-	imageStore, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
-	require.NoError(t, err)
-	crawler := builder.NewJin10Crawler(s, imageStore)
+	var imageStore TestCollectedFileStore
+	crawler := builder.NewJin10Crawler(s, &imageStore)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 	// Asking for Flash news

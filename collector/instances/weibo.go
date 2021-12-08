@@ -154,7 +154,7 @@ func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.Cra
 }
 
 func (collector WeiboApiCollector) UpdateSubSourceAvatarUrl(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
-	if mBlog.User != nil || len(mBlog.User.ProfileImageURL) == 0 {
+	if mBlog.User == nil || len(mBlog.User.ProfileImageURL) == 0 {
 		return nil
 	}
 	post.SubSource.AvatarUrl = ""
