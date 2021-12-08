@@ -98,7 +98,7 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 	switch t.DataCollectorId {
 	case protocol.PanopticTask_COLLECTOR_JINSHI:
 		// please follow this patter to get collector
-		collector = builder.NewJin10Crawler(sink)
+		collector = builder.NewJin10Crawler(sink, imageStore)
 	case protocol.PanopticTask_COLLECTOR_WEIBO:
 		collector = builder.NewWeiboApiCollector(sink, imageStore)
 	case protocol.PanopticTask_COLLECTOR_ZSXQ:
@@ -114,7 +114,7 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 	case protocol.PanopticTask_COLLECTOR_JINSE:
 		collector = builder.NewJinseApiCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_CAUS_ARTICLE:
-		collector = builder.NewCaUsArticleCrawlerCollector(sink)
+		collector = builder.NewCaUsArticleCrawlerCollector(sink, imageStore)
 	case protocol.PanopticTask_COLLECTOR_WEIXIN_ARTICLE:
 		weixinImageStore, err := GetWeixinS3ImageStore(t, utils.IsProdEnv())
 		if err != nil {
@@ -126,15 +126,15 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 	case protocol.PanopticTask_COLLECTOR_KR36:
 		collector = builder.NewKe36ApiCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_WALLSTREET_ARTICLE:
-		collector = builder.NewWallstreetNewsArticleCollector(sink)
+		collector = builder.NewWallstreetNewsArticleCollector(sink, imageStore)
 	case protocol.PanopticTask_COLLECTOR_CAUS_NEWS:
-		collector = builder.NewCaUsNewsCrawlerCollector(sink)
+		collector = builder.NewCaUsNewsCrawlerCollector(sink, imageStore)
 	case protocol.PanopticTask_COLLECTOR_CAIXIN:
 		collector = builder.NewCaixinCrawler(sink)
 	case protocol.PanopticTask_COLLECTOR_GELONGHUI_NEWS:
 		collector = builder.NewGelonghuiCrawler(sink)
 	case protocol.PanopticTask_COLLECTOR_CLS_NEWS:
-		collector = builder.NewClsNewsCrawlerCollector(sink)
+		collector = builder.NewClsNewsCrawlerCollector(sink, imageStore)
 	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE:
 		collector = builder.NewCustomizedSourceCrawlerCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SUBSOURCE:

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	sink "github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -21,7 +22,8 @@ const (
 )
 
 type WallstreetArticleCollector struct {
-	Sink sink.CollectedDataSink
+	Sink       sink.CollectedDataSink
+	ImageStore file_store.CollectedFileStore
 }
 
 func (w WallstreetArticleCollector) UpdateFileUrls(workingContext *working_context.ApiCollectorWorkingContext) error {
@@ -112,7 +114,14 @@ func (w WallstreetArticleCollector) UpdateTitle(workingContext *working_context.
 
 func (w WallstreetArticleCollector) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
 	imageUrl := strings.Split(workingContext.Element.DOM.Find(`img`).AttrOr(`src`, ``), "?")[0]
-	workingContext.Result.Post.ImageUrls = []string{imageUrl}
+	key, err := w.ImageStore.FetchAndStore(imageUrl, "")
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "wallstreet_articles"}).
+			Errorln("fail to get wallstreet_articles image, err:", err, "url", imageUrl)
+		return utils.ImmediatePrintError(err)
+	}
+	s3Url := w.ImageStore.GetUrlFromKey(key)
+	workingContext.Result.Post.ImageUrls = []string{s3Url}
 	return nil
 }
 

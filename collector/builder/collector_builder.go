@@ -10,13 +10,13 @@ import (
 
 type CollectorBuilder struct{}
 
-func (CollectorBuilder) NewCaUsArticleCrawlerCollector(s sink.CollectedDataSink) CrawlerCollector {
-	return &CaUsArticleCrawler{Sink: s}
+func (CollectorBuilder) NewCaUsArticleCrawlerCollector(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore) CrawlerCollector {
+	return &CaUsArticleCrawler{Sink: s, ImageStore: imageStore}
 }
 
 // Crawler Collectors
-func (CollectorBuilder) NewJin10Crawler(s sink.CollectedDataSink) CrawlerCollector {
-	return &Jin10Crawler{Sink: s}
+func (CollectorBuilder) NewJin10Crawler(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore) CrawlerCollector {
+	return &Jin10Crawler{Sink: s, ImageStore: imageStore}
 }
 
 func (CollectorBuilder) NewZsxqApiCollector(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore, fileStore file_store.CollectedFileStore) ApiCollector {
@@ -51,12 +51,12 @@ func (CollectorBuilder) NewKe36ApiCollector(s sink.CollectedDataSink) DataCollec
 	return &Kr36ApiCollector{Sink: s}
 }
 
-func (CollectorBuilder) NewWallstreetNewsArticleCollector(s sink.CollectedDataSink) DataCollector {
-	return &WallstreetArticleCollector{Sink: s}
+func (CollectorBuilder) NewWallstreetNewsArticleCollector(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore) DataCollector {
+	return &WallstreetArticleCollector{Sink: s, ImageStore: imageStore}
 }
 
-func (CollectorBuilder) NewCaUsNewsCrawlerCollector(s sink.CollectedDataSink) DataCollector {
-	return &CaUsNewsCrawler{Sink: s}
+func (CollectorBuilder) NewCaUsNewsCrawlerCollector(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore) DataCollector {
+	return &CaUsNewsCrawler{Sink: s, ImageStore: imageStore}
 }
 
 func (CollectorBuilder) NewCaixinCrawler(s sink.CollectedDataSink) DataCollector {
@@ -67,8 +67,8 @@ func (CollectorBuilder) NewGelonghuiCrawler(s sink.CollectedDataSink) DataCollec
 	return &GelonghuiCrawler{Sink: s}
 }
 
-func (CollectorBuilder) NewClsNewsCrawlerCollector(s sink.CollectedDataSink) DataCollector {
-	return &ClsNewsCrawler{Sink: s}
+func (CollectorBuilder) NewClsNewsCrawlerCollector(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore) DataCollector {
+	return &ClsNewsCrawler{Sink: s, ImageStore: imageStore}
 }
 
 func (CollectorBuilder) NewCustomizedSourceCrawlerCollector(s sink.CollectedDataSink) DataCollector {

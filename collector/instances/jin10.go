@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -23,7 +24,8 @@ const (
 )
 
 type Jin10Crawler struct {
-	Sink sink.CollectedDataSink
+	Sink       sink.CollectedDataSink
+	ImageStore file_store.CollectedFileStore
 }
 
 func (j Jin10Crawler) UpdateFileUrls(workingContext *working_context.CrawlerWorkingContext) error {
@@ -152,7 +154,14 @@ func (c Jin10Crawler) UpdateImageUrls(workingContext *working_context.CrawlerWor
 	if len(imageUrl) == 0 {
 		return errors.New("image DOM exist but src not found")
 	}
-	workingContext.Result.Post.ImageUrls = []string{imageUrl}
+	key, err := c.ImageStore.FetchAndStore(imageUrl, "")
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "jin10"}).
+			Errorln("fail to get jin10 image, err:", err, "url", imageUrl)
+		return utils.ImmediatePrintError(err)
+	}
+	s3Url := c.ImageStore.GetUrlFromKey(key)
+	workingContext.Result.Post.ImageUrls = []string{s3Url}
 	return nil
 }
 

@@ -153,6 +153,22 @@ func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.Cra
 	return nil
 }
 
+func (collector WeiboApiCollector) UpdateSubSourceAvatarUrl(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
+	if mBlog.User != nil || len(mBlog.User.ProfileImageURL) == 0 {
+		return nil
+	}
+	post.SubSource.AvatarUrl = ""
+	key, err := collector.ImageStore.FetchAndStore(mBlog.User.ProfileImageURL, "")
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
+			Errorln("fail to get weibo user avatar image, err:", err, "url", mBlog.User.ProfileImageURL)
+		return utils.ImmediatePrintError(err)
+	}
+	s3Url := collector.ImageStore.GetUrlFromKey(key)
+	post.SubSource.AvatarUrl = s3Url
+	return nil
+}
+
 func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	generatedTime, err := time.Parse(WeiboDateFormat, mBlog.CreatedAt)
 	if err != nil {
@@ -167,6 +183,7 @@ func (w WeiboApiCollector) UpdateResultFromMblog(mBlog *MBlog, post *protocol.Cr
 		post.SubSource.ExternalId = fmt.Sprint(mBlog.User.ID)
 	}
 	w.UpdateImages(mBlog, post)
+	w.UpdateSubSourceAvatarUrl(mBlog, post)
 	// overwrite task level url by post url
 	post.OriginUrl = "https://m.weibo.cn/detail/" + mBlog.ID
 	if strings.Contains(mBlog.Text, ">全文<") {

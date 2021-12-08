@@ -92,7 +92,9 @@ func TestJin10Ads(t *testing.T) {
 	// var elem colly.HTMLElement
 	var s = sink.NewStdErrSink()
 	var builder CollectorBuilder
-	crawler := builder.NewJin10Crawler(s)
+	imageStore, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
+	require.NoError(t, err)
+	crawler := builder.NewJin10Crawler(s, imageStore)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 	task := GetFakeTask(taskId, sourceId, "快讯", protocol.PanopticSubSource_FLASHNEWS)
@@ -113,7 +115,9 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 	// var elem colly.HTMLElement
 	var s = sink.NewStdErrSink()
 	var builder CollectorBuilder
-	crawler := builder.NewJin10Crawler(s)
+	imageStore, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
+	require.NoError(t, err)
+	crawler := builder.NewJin10Crawler(s, imageStore)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 	task := GetFakeTask(taskId, sourceId, "快讯", protocol.PanopticSubSource_FLASHNEWS)
@@ -146,8 +150,10 @@ func TestJin10CrawlerWithTitle(t *testing.T) {
 func TestJin10CrawlerWithImage(t *testing.T) {
 	// var elem colly.HTMLElement
 	var s = sink.NewStdErrSink()
+	imageStore, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
+	require.NoError(t, err)
 	var builder CollectorBuilder
-	crawler := builder.NewJin10Crawler(s)
+	crawler := builder.NewJin10Crawler(s, imageStore)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 
@@ -182,7 +188,9 @@ func TestJin10CrawlerNotMatchingRequest(t *testing.T) {
 	// var elem colly.HTMLElement
 	var s = sink.NewStdErrSink()
 	var builder CollectorBuilder
-	crawler := builder.NewJin10Crawler(s)
+	imageStore, err := file_store.NewS3FileStore(file_store.TestS3Bucket)
+	require.NoError(t, err)
+	crawler := builder.NewJin10Crawler(s, imageStore)
 	taskId := "task_1"
 	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
 	// Asking for Flash news

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/clients"
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -24,7 +25,8 @@ const (
 )
 
 type CaUsArticleCrawler struct {
-	Sink sink.CollectedDataSink
+	Sink       sink.CollectedDataSink
+	ImageStore file_store.CollectedFileStore
 }
 
 func (j CaUsArticleCrawler) UpdateFileUrls(workingContext *working_context.CrawlerWorkingContext) error {
@@ -111,7 +113,14 @@ func (c CaUsArticleCrawler) UpdateImageUrls(workingContext *working_context.Craw
 	if len(imageUrl) == 0 {
 		return errors.New("caus article image DOM exist but src not found")
 	}
-	workingContext.Result.Post.ImageUrls = []string{imageUrl}
+	key, err := c.ImageStore.FetchAndStore(imageUrl, "")
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "caus_article"}).
+			Errorln("fail to get caus_article image, err:", err, "url:", imageUrl)
+		return utils.ImmediatePrintError(err)
+	}
+	s3Url := c.ImageStore.GetUrlFromKey(key)
+	workingContext.Result.Post.ImageUrls = []string{s3Url}
 	return nil
 }
 

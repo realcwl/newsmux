@@ -10,15 +10,19 @@ import (
 
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/clients"
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type CaUsNewsCrawler struct {
-	Sink sink.CollectedDataSink
+	Sink       sink.CollectedDataSink
+	ImageStore file_store.CollectedFileStore
 }
 
 type CaUsNewsResponseItem struct {
@@ -62,11 +66,21 @@ func (caus CaUsNewsCrawler) UpdateDedupId(post *protocol.CrawlerMessage_CrawledP
 	return nil
 }
 
-func (caus CaUsNewsCrawler) UpdateImageUrls(wc *working_context.ApiCollectorWorkingContext) {
+func (caus CaUsNewsCrawler) UpdateImageUrls(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(CaUsNewsResponseItem)
 	if len(item.MatchPics) > 0 {
-		wc.Result.Post.ImageUrls = []string{item.MatchPics[0]}
+		wc.Result.Post.ImageUrls = []string{}
+		imageUrl := item.MatchPics[0]
+		key, err := caus.ImageStore.FetchAndStore(imageUrl, "")
+		if err != nil {
+			Logger.Log.WithFields(logrus.Fields{"source": "caus_news"}).
+				Errorln("fail to get caus_news image, err:", err, "url", imageUrl)
+			return utils.ImmediatePrintError(err)
+		}
+		s3Url := caus.ImageStore.GetUrlFromKey(key)
+		wc.Result.Post.ImageUrls = append(wc.Result.Post.ImageUrls, s3Url)
 	}
+	return nil
 }
 
 func (caus CaUsNewsCrawler) UpdateResult(wc *working_context.ApiCollectorWorkingContext) error {

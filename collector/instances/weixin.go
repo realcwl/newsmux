@@ -101,7 +101,7 @@ func (w WeixinArticleRssCollector) UpdateResultFromArticle(
 	post.ContentGeneratedAt = timestamppb.New(generatedTime)
 	// avatar url
 	post.SubSource.Name = workingContext.SubSource.Name
-	post.SubSource.AvatarUrl = res.Image.URL
+	post.SubSource.AvatarUrl = res.Image.URL // can be accessed in CORS mode
 	post.SubSource.ExternalId = workingContext.SubSource.ExternalId
 	post.OriginUrl = article.Link
 	post.Title = article.Title
