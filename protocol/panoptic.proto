@@ -59,7 +59,7 @@ message TaskParams {
     WallstreetNewsTaskParams wallstreet_news_task_params = 23; 
     WisburgParams wisburg_task_params = 24;
     CaUsNewsTaskParams caus_news_task_params = 25;
-    // customized crawler is from user
+    // customized crawler is created by user
     CustomizedCrawlerParams customized_crawler_task_params = 26;
   }
 }
@@ -224,12 +224,12 @@ message CaUsNewsTaskParams {
 }
 
 message CustomizedCrawlerParams {
-  optional string crawl_url = 1;
-  optional string base_selector = 2; // base selector is the section of each post to generate
+  string crawl_url = 1; // url to crawl, e.g. https://www.cls.cn/telegraph
+  string base_selector = 2; // base selector should return a list of DOM elements where each one corresponds to a single post
   optional string title_relative_selector= 3; // relative selector to the base selector
   optional string content_relative_selector = 4;
   optional string external_id_relative_selector = 5;
-  optional string time_relative_selector = 6;
+  optional string time_relative_selector = 6; // if not specified, use the cralwed time as content generated time
   optional string image_relative_selector = 7;
   optional string subsource_relative_selector = 8; // how to deal with subsource spec
   optional string origin_url_relative_selector = 9; // by default is the url 
