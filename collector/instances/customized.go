@@ -131,19 +131,11 @@ func (j CustomizedCrawler) GetMessage(workingContext *working_context.CrawlerWor
 }
 
 func (j CustomizedCrawler) GetBaseSelector(task *protocol.PanopticTask) (string, error) {
-	baseQuery := task.TaskParams.GetCustomizedCrawlerTaskParams().BaseSelector
-	if baseQuery == nil {
-		return "", errors.New("baseQuery is nil")
-	}
-	return *baseQuery, nil
+	return task.TaskParams.GetCustomizedCrawlerTaskParams().BaseSelector, nil
 }
 
 func (j CustomizedCrawler) GetCrawlUrl(task *protocol.PanopticTask) (string, error) {
-	crawlUrl := task.TaskParams.GetCustomizedCrawlerTaskParams().CrawlUrl
-	if crawlUrl == nil {
-		return "", errors.New("CrawlUrl is nil")
-	}
-	return *crawlUrl, nil
+	return task.TaskParams.GetCustomizedCrawlerTaskParams().CrawlUrl, nil
 }
 
 func (j CustomizedCrawler) CollectAndPublish(task *protocol.PanopticTask) {
