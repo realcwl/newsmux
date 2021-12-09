@@ -43,8 +43,8 @@ func (CollectorBuilder) NewWeixinRssCollector(s sink.CollectedDataSink, imageSto
 	return &WeixinArticleRssCollector{Sink: s, ImageStore: imageStore}
 }
 
-func (CollectorBuilder) NewWisburgCrawler(s sink.CollectedDataSink) DataCollector {
-	return &WisburgCrawler{Sink: s}
+func (CollectorBuilder) NewWisburgCrawler(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore) DataCollector {
+	return &WisburgCrawler{Sink: s, ImageStore: imageStore}
 }
 
 func (CollectorBuilder) NewKe36ApiCollector(s sink.CollectedDataSink) DataCollector {

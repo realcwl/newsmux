@@ -81,6 +81,25 @@ func (w WeixinArticleRssCollector) UpdateDedupId(workingContext *working_context
 	return nil
 }
 
+func (w WeixinArticleRssCollector) UpdateAvatarUrl(post *protocol.CrawlerMessage_CrawledPost, res *gofeed.Feed) error {
+	avatarUrl := res.Image.URL
+	if len(avatarUrl) == 0 {
+		return nil
+	}
+	// initialize with original image url as a fallback if any error with S3
+	post.SubSource.AvatarUrl = avatarUrl
+
+	key, err := w.ImageStore.FetchAndStore(avatarUrl, "")
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "weixin"}).
+			Errorln("fail to get weixin user avatar image, err:", err, "url", avatarUrl)
+		return utils.ImmediatePrintError(err)
+	}
+	s3Url := w.ImageStore.GetUrlFromKey(key)
+	post.SubSource.AvatarUrl = s3Url
+	return nil
+}
+
 func (w WeixinArticleRssCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) string {
 	return fmt.Sprintf("https://cdn.werss.weapp.design/api/v1/feeds/%s.xml",
 		subsource.ExternalId,
@@ -101,7 +120,8 @@ func (w WeixinArticleRssCollector) UpdateResultFromArticle(
 	post.ContentGeneratedAt = timestamppb.New(generatedTime)
 	// avatar url
 	post.SubSource.Name = workingContext.SubSource.Name
-	post.SubSource.AvatarUrl = res.Image.URL // can be accessed in CORS mode
+	// post.SubSource.AvatarUrl = res.Image.URL
+	w.UpdateAvatarUrl(post, res)
 	post.SubSource.ExternalId = workingContext.SubSource.ExternalId
 	post.OriginUrl = article.Link
 	post.Title = article.Title
@@ -116,6 +136,8 @@ func (w WeixinArticleRssCollector) UpdateResultFromArticle(
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
+
+	fmt.Println("YZ test", collector.PrettyPrint(post))
 
 	return nil
 }

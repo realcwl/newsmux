@@ -114,6 +114,9 @@ func (w WallstreetArticleCollector) UpdateTitle(workingContext *working_context.
 
 func (w WallstreetArticleCollector) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
 	imageUrl := strings.Split(workingContext.Element.DOM.Find(`img`).AttrOr(`src`, ``), "?")[0]
+	// initialize with original image url as a fallback if any error with S3
+	workingContext.Result.Post.ImageUrls = []string{imageUrl}
+
 	key, err := w.ImageStore.FetchAndStore(imageUrl, "")
 	if err != nil {
 		Logger.Log.WithFields(logrus.Fields{"source": "wallstreet_articles"}).

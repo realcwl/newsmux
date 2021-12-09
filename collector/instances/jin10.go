@@ -154,6 +154,9 @@ func (c Jin10Crawler) UpdateImageUrls(workingContext *working_context.CrawlerWor
 	if len(imageUrl) == 0 {
 		return errors.New("image DOM exist but src not found")
 	}
+	// initialize with original image url as a fallback if any error with S3
+	workingContext.Result.Post.ImageUrls = []string{imageUrl}
+
 	key, err := c.ImageStore.FetchAndStore(imageUrl, "")
 	if err != nil {
 		Logger.Log.WithFields(logrus.Fields{"source": "jin10"}).

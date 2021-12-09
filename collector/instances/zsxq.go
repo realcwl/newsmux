@@ -208,14 +208,22 @@ func (collector ZsxqApiCollector) UpdateDedupId(post *protocol.CrawlerMessage_Cr
 
 func (collector ZsxqApiCollector) UpdateImages(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(ZsxqTopic)
+	// initialize with original image urls
 	wc.Result.Post.ImageUrls = []string{}
 	for _, pic := range item.Talk.Images {
-		key, err := collector.ImageStore.FetchAndStore(pic.Large.URL, fmt.Sprintf("%d.%s", pic.ImageID, pic.Type))
+		imageUrl := pic.Large.URL
+		wc.Result.Post.ImageUrls = append(wc.Result.Post.ImageUrls, imageUrl)
+	}
+
+	// replace original image url with S3
+	for idx, pic := range item.Talk.Images {
+		imageUrl := pic.Large.URL
+		key, err := collector.ImageStore.FetchAndStore(imageUrl, fmt.Sprintf("%d.%s", pic.ImageID, pic.Type))
 		if err != nil {
 			return utils.ImmediatePrintError(err)
 		}
 		s3Url := collector.ImageStore.GetUrlFromKey(key)
-		wc.Result.Post.ImageUrls = append(wc.Result.Post.ImageUrls, s3Url)
+		wc.Result.Post.ImageUrls[idx] = s3Url
 	}
 	return nil
 }

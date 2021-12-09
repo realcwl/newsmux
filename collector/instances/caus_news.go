@@ -69,8 +69,10 @@ func (caus CaUsNewsCrawler) UpdateDedupId(post *protocol.CrawlerMessage_CrawledP
 func (caus CaUsNewsCrawler) UpdateImageUrls(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(CaUsNewsResponseItem)
 	if len(item.MatchPics) > 0 {
-		wc.Result.Post.ImageUrls = []string{}
 		imageUrl := item.MatchPics[0]
+		// initialize with original image url as a fallback if any error with S3
+		wc.Result.Post.ImageUrls = []string{imageUrl}
+
 		key, err := caus.ImageStore.FetchAndStore(imageUrl, "")
 		if err != nil {
 			Logger.Log.WithFields(logrus.Fields{"source": "caus_news"}).
@@ -78,7 +80,7 @@ func (caus CaUsNewsCrawler) UpdateImageUrls(wc *working_context.ApiCollectorWork
 			return utils.ImmediatePrintError(err)
 		}
 		s3Url := caus.ImageStore.GetUrlFromKey(key)
-		wc.Result.Post.ImageUrls = append(wc.Result.Post.ImageUrls, s3Url)
+		wc.Result.Post.ImageUrls = []string{s3Url}
 	}
 	return nil
 }

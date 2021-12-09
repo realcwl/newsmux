@@ -122,7 +122,7 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		}
 		collector = builder.NewWeixinRssCollector(sink, weixinImageStore)
 	case protocol.PanopticTask_COLLECTOR_WISBURG:
-		collector = builder.NewWisburgCrawler(sink)
+		collector = builder.NewWisburgCrawler(sink, imageStore)
 	case protocol.PanopticTask_COLLECTOR_KR36:
 		collector = builder.NewKe36ApiCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_WALLSTREET_ARTICLE:

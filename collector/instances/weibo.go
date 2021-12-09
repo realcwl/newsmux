@@ -140,7 +140,13 @@ func (collector WeiboApiCollector) StoreWeiboAvatar(profileImageUrl string, post
 
 func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	post.ImageUrls = []string{}
+	// initialize with original image urls
 	for _, pic := range mBlog.Pics {
+		post.ImageUrls = append(post.ImageUrls, pic.URL) // fallback to original url
+	}
+
+	// replace each image url with S3 url
+	for idx, pic := range mBlog.Pics {
 		key, err := collector.ImageStore.FetchAndStore(pic.URL, "")
 		if err != nil {
 			Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
@@ -148,7 +154,8 @@ func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.Cra
 			return utils.ImmediatePrintError(err)
 		}
 		s3Url := collector.ImageStore.GetUrlFromKey(key)
-		post.ImageUrls = append(post.ImageUrls, s3Url)
+		// replace original with S3 url
+		post.ImageUrls[idx] = s3Url
 	}
 	return nil
 }
@@ -157,11 +164,14 @@ func (collector WeiboApiCollector) UpdateSubSourceAvatarUrl(mBlog *MBlog, post *
 	if mBlog.User == nil || len(mBlog.User.ProfileImageURL) == 0 {
 		return nil
 	}
-	post.SubSource.AvatarUrl = ""
-	key, err := collector.ImageStore.FetchAndStore(mBlog.User.ProfileImageURL, "")
+	imageUrl := mBlog.User.ProfileImageURL
+	// initialize with original image url as a fallback if any error with S3
+	post.SubSource.AvatarUrl = imageUrl
+
+	key, err := collector.ImageStore.FetchAndStore(imageUrl, "")
 	if err != nil {
 		Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
-			Errorln("fail to get weibo user avatar image, err:", err, "url", mBlog.User.ProfileImageURL)
+			Errorln("fail to get weibo user avatar image, err:", err, "url", imageUrl)
 		return utils.ImmediatePrintError(err)
 	}
 	s3Url := collector.ImageStore.GetUrlFromKey(key)
