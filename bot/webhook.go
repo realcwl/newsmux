@@ -1,8 +1,12 @@
 package bot
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -54,12 +58,18 @@ func buildContentWithShowMore(post model.Post, postLink string) string {
 	return post.Content
 }
 
-func TimeBoundedPushPostViaWebhook(ctx context.Context, webhookUrl string, post model.Post) {
+func TimeBoundedPushPost(ctx context.Context, webhookUrl string, post model.Post) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 	done := make(chan error, 1)
 	go func() {
-		done <- PushPostViaWebhook(post, webhookUrl)
+		sharePost := SharePostPayload{
+			Post:       post,
+			WebhookUrl: webhookUrl,
+		}
+		postBytes, _ := json.Marshal(sharePost)
+		_, err := http.Post(os.Getenv("BOT_SHARE_POST_URL"), "application/json", bytes.NewReader(postBytes))
+		done <- err
 	}()
 	select {
 	case err := <-done:
@@ -68,7 +78,7 @@ func TimeBoundedPushPostViaWebhook(ctx context.Context, webhookUrl string, post 
 		}
 		return
 	case <-ctx.Done():
-		Logger.Log.Errorf("push post via webhook timed out. post: %s, webhook: %s", post.Id, webhookUrl)
+		Logger.Log.Errorf("push post via webhook timed out. post: %s, webhook url: %s", post.Id, webhookUrl)
 		return
 	}
 }

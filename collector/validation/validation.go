@@ -182,7 +182,9 @@ func validateMessagePostIsSetCorrectly(msg *protocol.CrawlerMessage) error {
 
 	if (msg.Post.SharedFromCrawledPost == nil && isPostWithEmptyContent(msg.Post)) ||
 		(isPostWithEmptyContent(msg.Post) && (msg.Post.SharedFromCrawledPost == nil || isPostWithEmptyContent(msg.Post.SharedFromCrawledPost))) {
-		if !strings.Contains(msg.Post.OriginUrl, "weixin") {
+		// Weixin and Weibo permits empty Content.
+		if !strings.Contains(msg.Post.OriginUrl, "weixin") ||
+			msg.Post.SubSource.SourceId != collector.WeiboSourceId {
 			// Weixin is an exception given the fact that weixin posts can be an image and link to original article
 			return errors.New("crawled post must have Content / Image / File")
 		}
