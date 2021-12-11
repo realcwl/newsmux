@@ -14,8 +14,8 @@ func main() {
 
 	router := gin.Default()
 
-	// Add a debug route for testing
-	router.GET("/ping", func(c *gin.Context) {
+	// Add a debug route for testing and health check
+	router.GET("/webhook/ping", func(c *gin.Context) {
 		c.JSON(http.StatusAccepted, "pong")
 	})
 
