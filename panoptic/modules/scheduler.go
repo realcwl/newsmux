@@ -10,16 +10,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Luismorlan/newsmux/app_setting"
-	"github.com/Luismorlan/newsmux/model"
-	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/encoding/prototext"
 	"gorm.io/gorm"
+
+	"github.com/Luismorlan/newsmux/app_setting"
+	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 var AppSetting *app_setting.PanopticAppSetting
@@ -199,7 +200,7 @@ func (s *Scheduler) MergeSourcesFromConfigAndDb(configs *protocol.PanopticConfig
 
 	for _, sourceFromDB := range sourcesFromDB {
 		var panopticConfig protocol.PanopticConfig
-		if err := prototext.Unmarshal([]byte(*sourceFromDB.CrawlerPanopticConfig), &panopticConfig); err != nil {
+		if err := prototext.Unmarshal([]byte(*sourceFromDB.PanopticTask), &panopticConfig); err != nil {
 			fmt.Printf("can't unmarshal panoptic config for source_name %s, error %+v", sourceFromDB.Name, err)
 			return
 		}
@@ -210,19 +211,23 @@ func (s *Scheduler) MergeSourcesFromConfigAndDb(configs *protocol.PanopticConfig
 	}
 }
 
-func (s *Scheduler) MergeSubsourcesFromConfigAndDb(configs *protocol.PanopticConfigs) {
-	var weiboSource model.Source
-	queryWeiboSourceIdResult := s.DB.
-		Where("name = ?", "微博").
-		First(&weiboSource)
-	if queryWeiboSourceIdResult.RowsAffected == 0 {
-		return
+func (s *Scheduler) getCustomizedSubsourceSourceId() map[string]bool {
+	var sources []model.Source
+	s.DB.Where("name IN ?", []string{"微博", "公司博客"}).Find(&sources)
+	sourceIdsToReadSubsourceFromDB := make(map[string]bool)
+	for _, source := range sources {
+		sourceIdsToReadSubsourceFromDB[source.Id] = true
 	}
-	weiboSourceId := weiboSource.Id
+	return sourceIdsToReadSubsourceFromDB
+}
+
+func (s *Scheduler) MergeSubsourcesFromConfigAndDb(configs *protocol.PanopticConfigs) {
+	sourceIdsWithSubsourceFromDB := s.getCustomizedSubsourceSourceId()
+
 	// merge DB and config subsources for all source
 	for _, config := range configs.Config {
-		// only support weibo combine
-		if config.TaskParams.SourceId != weiboSourceId {
+		if _, ok := sourceIdsWithSubsourceFromDB[config.TaskParams.SourceId]; !ok {
+			// Add subsources only for Weibo and the one support customized subsource by user
 			continue
 		}
 		param := config.TaskParams
@@ -236,12 +241,24 @@ func (s *Scheduler) MergeSubsourcesFromConfigAndDb(configs *protocol.PanopticCon
 		}
 
 		for _, s := range subSourcesFromDB {
+			// only use subsources from DB that is not in config
 			if _, ok := existingSubSourceMap[s.Name]; !ok {
+				var customizedCrawlerParams *protocol.CustomizedCrawlerParams
+				if s.CustomizedCrawlerParams != nil {
+					var panopticConfig protocol.CustomizedCrawlerParams
+					if err := prototext.Unmarshal([]byte(*s.CustomizedCrawlerParams), &panopticConfig); err != nil {
+						Logger.Log.Error("can't unmarshal customized crawler param for subsource %s, error %+v", s.Name, err)
+						continue
+					}
+					customizedCrawlerParams = &panopticConfig
+				}
 				param.SubSources = append(param.SubSources, &protocol.PanopticSubSource{
-					Name:       s.Name,
-					Type:       protocol.PanopticSubSource_USERS, // default to users type
-					ExternalId: s.ExternalIdentifier,
-					Link:       s.OriginUrl,
+					Name:                                s.Name,
+					Type:                                protocol.PanopticSubSource_USERS, // default to users type
+					ExternalId:                          s.ExternalIdentifier,
+					Link:                                s.OriginUrl,
+					AvatarUrl:                           &s.AvatarUrl,
+					CustomizedCrawlerParamsForSubSource: customizedCrawlerParams,
 				})
 			}
 		}
