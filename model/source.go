@@ -26,15 +26,15 @@ CrawlerInfo: serialized protobuf message type PanopticConfig, this direct how cu
 */
 
 type Source struct {
-	Id           string `gorm:"primaryKey"`
-	CreatedAt    time.Time
-	DeletedAt    gorm.DeletedAt
-	CreatorID    string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Creator      User   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Name         string
-	Domain       string
-	SubSources   []SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	PanopticTask *string
+	Id             string `gorm:"primaryKey"`
+	CreatedAt      time.Time
+	DeletedAt      gorm.DeletedAt
+	CreatorID      string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Creator        User   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Name           string
+	Domain         string
+	SubSources     []SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	PanopticConfig *string
 }
 
 func (Source) IsSourceSeedStateInterface() {}
