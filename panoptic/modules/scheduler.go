@@ -200,7 +200,7 @@ func (s *Scheduler) MergeSourcesFromConfigAndDb(configs *protocol.PanopticConfig
 
 	for _, sourceFromDB := range sourcesFromDB {
 		var panopticConfig protocol.PanopticConfig
-		if err := prototext.Unmarshal([]byte(*sourceFromDB.PanopticTask), &panopticConfig); err != nil {
+		if err := prototext.Unmarshal([]byte(*sourceFromDB.PanopticConfig), &panopticConfig); err != nil {
 			fmt.Printf("can't unmarshal panoptic config for source_name %s, error %+v", sourceFromDB.Name, err)
 			return
 		}
