@@ -3,11 +3,11 @@
 # collectors, you should create a new file in this directory with the data
 # collector's name. They will be picked up automatically by collector/cmd/main.go
 jobs: {
-	job_id: "customized_crawler_job"
+	job_id: "customized_crawler_job_source_level"
 	tasks: [
 		{
-			task_id: "customized_crawler_task"
-			data_collector_id: COLLECTOR_CUSTOMIZED
+			task_id: "customized_crawler_job_source_level_task"
+			data_collector_id: COLLECTOR_USER_CUSTOMIZED_SOURCE
 			task_params: {
                 header_params: [
                     {key: "content-type", value: "application/json;charset=UTF-8"},
@@ -15,11 +15,11 @@ jobs: {
                 ]
 				source_id: "11111111"
 				sub_sources: [{
-                    name: "快讯"
-                    type: FLASHNEWS
-                    external_id:  ""
+                    name: "default"
+                    # type: FLASHNEWS
+                    # external_id:  ""
                 }]
-                customized_crawler_task_params: {
+                customized_source_crawler_task_params: {
                     crawl_url : "https://www.cls.cn/telegraph" 
                     base_selector : ".telegraph-list"
                     title_relative_selector: ".telegraph-content-box span:not(.telegraph-time-box) > strong"
@@ -32,7 +32,7 @@ jobs: {
                 }
 			}
 			task_metadata: {
-				config_name: "customized_crawler_config"
+				config_name: "customized_crawler_job_source_level_config"
 			}
 		}
 	]

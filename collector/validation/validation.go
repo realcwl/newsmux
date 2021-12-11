@@ -5,11 +5,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
-	"github.com/pkg/errors"
 )
 
 func getSourceLogoUrl(sourceId string) string {
@@ -136,8 +137,10 @@ func crossTaskMessageValidation(sharedContext *working_context.SharedContext) er
 		return errors.New("crawled message's avatar doesn't match the source's default avatar url: " + defaultUrl)
 	}
 
-	// There is no data collector id <-> source id mapping for customized collector
-	if task.DataCollectorId != protocol.PanopticTask_COLLECTOR_CUSTOMIZED && msg.Post.SubSource.SourceId != getSourceIdFromDataCollectorId(task.DataCollectorId) {
+	// There is no data collector id <-> source id mapping for customized collectors
+	if task.DataCollectorId != protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE &&
+		task.DataCollectorId != protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SUBSOURCE &&
+		msg.Post.SubSource.SourceId != getSourceIdFromDataCollectorId(task.DataCollectorId) {
 		return fmt.Errorf("crawled message's source id doesn't match the data collector id, msg: %s != task: %s",
 			msg.Post.SubSource.SourceId,
 			getSourceIdFromDataCollectorId(task.DataCollectorId),

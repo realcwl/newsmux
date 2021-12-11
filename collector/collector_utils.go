@@ -7,16 +7,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Luismorlan/newsmux/collector/file_store"
-	"github.com/Luismorlan/newsmux/collector/working_context"
-	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/Luismorlan/newsmux/collector/file_store"
+	"github.com/Luismorlan/newsmux/collector/working_context"
+	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 const (
@@ -59,7 +60,7 @@ func MarkAndLogCrawlError(task *protocol.PanopticTask, err error, moreInfo strin
 		source = "kuailansi"
 	case protocol.PanopticTask_COLLECTOR_WALLSTREET_NEWS:
 		source = "wallstreet"
-	case protocol.PanopticTask_COLLECTOR_CUSTOMIZED:
+	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE:
 		source = "customized"
 	}
 

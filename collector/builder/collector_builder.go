@@ -71,5 +71,9 @@ func (CollectorBuilder) NewClsNewsCrawlerCollector(s sink.CollectedDataSink) Dat
 }
 
 func (CollectorBuilder) NewCustomizedCrawlerCollector(s sink.CollectedDataSink) DataCollector {
-	return &CustomizedCrawler{Sink: s}
+	return &CustomizedSourceCrawler{Sink: s}
+}
+
+func (CollectorBuilder) NewCustomizedSubSourceCollector(s sink.CollectedDataSink) DataCollector {
+	return &CustomizedSubSourceCrawler{Sink: s}
 }

@@ -5,24 +5,26 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/araddon/dateparse"
+	"github.com/gocolly/colly"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/araddon/dateparse"
-	"github.com/gocolly/colly"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type CustomizedCrawler struct {
+type CustomizedSourceCrawler struct {
 	Sink sink.CollectedDataSink
 }
 
-func (j CustomizedCrawler) UpdateTitle(workingContext *working_context.CrawlerWorkingContext) error {
-	titleSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().TitleRelativeSelector
+func (j CustomizedSourceCrawler) UpdateTitle(workingContext *working_context.CrawlerWorkingContext) error {
+	titleSelector := *workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().TitleRelativeSelector
 	if len(titleSelector) == 0 {
 		return nil
 	}
@@ -30,8 +32,9 @@ func (j CustomizedCrawler) UpdateTitle(workingContext *working_context.CrawlerWo
 	return nil
 }
 
-func (j CustomizedCrawler) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
-	contentSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().ContentRelativeSelector
+func (j CustomizedSourceCrawler) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
+	contentSelector := *workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().ContentRelativeSelector
 	if len(contentSelector) == 0 {
 		return nil
 	}
@@ -39,8 +42,9 @@ func (j CustomizedCrawler) UpdateContent(workingContext *working_context.Crawler
 	return nil
 }
 
-func (j CustomizedCrawler) UpdateExternalId(workingContext *working_context.CrawlerWorkingContext) error {
-	contentSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().ExternalIdRelativeSelector
+func (j CustomizedSourceCrawler) UpdateExternalId(workingContext *working_context.CrawlerWorkingContext) error {
+	contentSelector := *workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().ExternalIdRelativeSelector
 	if len(contentSelector) == 0 {
 		return nil
 	}
@@ -48,8 +52,9 @@ func (j CustomizedCrawler) UpdateExternalId(workingContext *working_context.Craw
 	return nil
 }
 
-func (j CustomizedCrawler) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
-	contentSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().ExternalIdRelativeSelector
+func (j CustomizedSourceCrawler) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
+	contentSelector := *workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().ExternalIdRelativeSelector
 	if len(contentSelector) == 0 {
 		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
 		return nil
@@ -66,7 +71,7 @@ func (j CustomizedCrawler) UpdateGeneratedTime(workingContext *working_context.C
 }
 
 // Dedup id in customized crawler is fixed logic, user don't have UI to modify it
-func (j CustomizedCrawler) UpdateDedupId(workingContext *working_context.CrawlerWorkingContext) error {
+func (j CustomizedSourceCrawler) UpdateDedupId(workingContext *working_context.CrawlerWorkingContext) error {
 	md5, err := utils.TextToMd5Hash(workingContext.Result.Post.Content)
 	if err != nil {
 		return err
@@ -75,8 +80,9 @@ func (j CustomizedCrawler) UpdateDedupId(workingContext *working_context.Crawler
 	return nil
 }
 
-func (j CustomizedCrawler) UpdateSubsource(workingContext *working_context.CrawlerWorkingContext) error {
-	subSourceSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().SubsourceRelativeSelector
+func (j CustomizedSourceCrawler) UpdateSubsource(workingContext *working_context.CrawlerWorkingContext) error {
+	subSourceSelector := *workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().SubsourceRelativeSelector
 	if len(subSourceSelector) == 0 {
 		workingContext.Result.Post.SubSource.Name = workingContext.Task.TaskParams.SubSources[0].Name
 	} else {
@@ -91,9 +97,10 @@ func (j CustomizedCrawler) UpdateSubsource(workingContext *working_context.Crawl
 	return nil
 }
 
-func (j CustomizedCrawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
+func (j CustomizedSourceCrawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
 	workingContext.Result.Post.ImageUrls = []string{}
-	imageSelector := *workingContext.Task.TaskParams.GetCustomizedCrawlerTaskParams().ImageRelativeSelector
+	imageSelector := *workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().ImageRelativeSelector
 	selection := workingContext.Element.DOM.Find(imageSelector)
 	for i := 0; i < selection.Length(); i++ {
 		img := selection.Eq(i)
@@ -108,7 +115,7 @@ func (j CustomizedCrawler) UpdateImageUrls(workingContext *working_context.Crawl
 	return nil
 }
 
-func (j CustomizedCrawler) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
+func (j CustomizedSourceCrawler) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
 	collector.InitializeCrawlerResult(workingContext)
 
 	updaters := []func(workingContext *working_context.CrawlerWorkingContext) error{
@@ -130,15 +137,15 @@ func (j CustomizedCrawler) GetMessage(workingContext *working_context.CrawlerWor
 	return nil
 }
 
-func (j CustomizedCrawler) GetBaseSelector(task *protocol.PanopticTask) (string, error) {
-	return task.TaskParams.GetCustomizedCrawlerTaskParams().BaseSelector, nil
+func (j CustomizedSourceCrawler) GetBaseSelector(task *protocol.PanopticTask) (string, error) {
+	return task.TaskParams.GetCustomizedSourceCrawlerTaskParams().BaseSelector, nil
 }
 
-func (j CustomizedCrawler) GetCrawlUrl(task *protocol.PanopticTask) (string, error) {
-	return task.TaskParams.GetCustomizedCrawlerTaskParams().CrawlUrl, nil
+func (j CustomizedSourceCrawler) GetCrawlUrl(task *protocol.PanopticTask) (string, error) {
+	return task.TaskParams.GetCustomizedSourceCrawlerTaskParams().CrawlUrl, nil
 }
 
-func (j CustomizedCrawler) CollectAndPublish(task *protocol.PanopticTask) {
+func (j CustomizedSourceCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 	metadata := task.TaskMetadata
 
 	startUrl, err := j.GetCrawlUrl(task)

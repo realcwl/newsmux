@@ -1,0 +1,59 @@
+# This file should contain all Customized job variations, each of different 
+# job_id, please do not add non-Customized jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "customized_crawler_job_subsource_level"
+	tasks: [
+		{
+			task_id: "customized_crawler_job_subsource_level_task"
+			data_collector_id: COLLECTOR_USER_CUSTOMIZED_SUBSOURCE
+			task_params: {
+                header_params: [
+                    {key: "content-type", value: "application/json;charset=UTF-8"},
+                    {key: "user-agent", value: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"}
+                ]
+				source_id: "11111111"
+				sub_sources: [{
+                    name: "Cloudflare博客"
+                    type: FLASHNEWS
+                    external_id:  ""
+                    customized_crawler_params_for_sub_source: {
+                        crawl_url : "https://www.cls.cn/telegraph" 
+                        base_selector : ".telegraph-list"
+                        title_relative_selector: ".telegraph-content-box span:not(.telegraph-time-box) > strong"
+                        content_relative_selector : ".telegraph-content-box span:not(.telegraph-time-box)"
+                        external_id_relative_selector : ""
+                        time_relative_selector : ""
+                        image_relative_selector : ".telegraph-images-box > img"
+                        subsource_relative_selector : ""
+                        origin_url_relative_selector : ""
+                    }
+                    avatar_url: "https://newsfeed-logo.s3.us-west-1.amazonaws.com/test.png"
+                },
+                {
+                    name: "AWS博客"
+                    type: FLASHNEWS
+                    external_id:  ""
+                    customized_crawler_params_for_sub_source: {
+                        crawl_url : "https://www.cls.cn/telegraph" 
+                        base_selector : ".telegraph-list"
+                        title_relative_selector: ".telegraph-content-box span:not(.telegraph-time-box) > strong"
+                        content_relative_selector : ".telegraph-content-box span:not(.telegraph-time-box)"
+                        external_id_relative_selector : ""
+                        time_relative_selector : ""
+                        image_relative_selector : ".telegraph-images-box > img"
+                        subsource_relative_selector : ""
+                        origin_url_relative_selector : ""
+                    }
+                    avatar_url: "https://newsfeed-logo.s3.us-west-1.amazonaws.com/test.png"
+                }
+            ]
+			}
+			task_metadata: {
+				config_name: "customized_crawler_job_subsource_level_config"
+			}
+		}
+	]
+	debug: true
+}
