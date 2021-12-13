@@ -36,9 +36,11 @@ phases:
       - printf '[{"name":"publisher","imageUri":"%s"}]' $REPOSITORY_URL:$IMAGE_TAG > imagedef-publisher.json
       - printf '[{"name":"panoptic","imageUri":"%s"}]' $REPOSITORY_URL:$IMAGE_TAG > imagedef-panoptic.json
       - printf '[{"name":"slackbot","imageUri":"%s"}]' $REPOSITORY_URL:$IMAGE_TAG > imagedef-slackbot.json
+      - printf '[{"name":"webhook","imageUri":"%s"}]' $REPOSITORY_WEBHOOK_URL:$IMAGE_TAG > imagedef-webhook.json
 artifacts:
   files:
     - imagedef.json
     - imagedef-publisher.json
     - imagedef-panoptic.json
     - imagedef-slackbot.json
+    - imagedef-webhook.json
