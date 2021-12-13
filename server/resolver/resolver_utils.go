@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/Luismorlan/newsmux/model"
-	"github.com/Luismorlan/newsmux/utils"
-	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+
+	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/utils"
+	. "github.com/Luismorlan/newsmux/utils/log"
 )
 
 const (
