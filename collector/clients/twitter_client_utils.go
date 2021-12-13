@@ -24,36 +24,118 @@ const (
 	REFERENCE_TYPE_REPLIED_TO = "replied_to"
 )
 
-// Response used for getting tweeter response. See https://web.postman.co/workspace/Twitter-API-Test~71d3eb28-55ff-4d43-8972-8f2bef7109a2/request/18412083-4f0f66df-11f8-4672-bb8b-7d3e6982b649
-type GetUserTweetsResponse struct {
-	Data     []GetUserTweetsResponseData `json:"data"`
-	Includes struct {
-		Media []struct {
-			MediaKey string `json:"media_key"`
-			Type     string `json:"type"`
-			URL      string `json:"url"`
-		} `json:"media"`
-		Tweets []struct {
-			ID   string `json:"id"`
-			Text string `json:"text"`
-		} `json:"tweets"`
-	} `json:"includes"`
-	Meta struct {
-		OldestID    string `json:"oldest_id"`
-		NewestID    string `json:"newest_id"`
-		ResultCount int    `json:"result_count"`
-		NextToken   string `json:"next_token"`
-	} `json:"meta"`
+type Entity struct {
+	Hashtags     []interface{} `json:"hashtags"`
+	Symbols      []interface{} `json:"symbols"`
+	UserMentions []struct {
+		ScreenName string `json:"screen_name"`
+		Name       string `json:"name"`
+		ID         int    `json:"id"`
+		IDStr      string `json:"id_str"`
+		Indices    []int  `json:"indices"`
+	} `json:"user_mentions"`
+	Urls  []interface{} `json:"urls"`
+	Media []struct {
+		ID            int64  `json:"id"`
+		IDStr         string `json:"id_str"`
+		Indices       []int  `json:"indices"`
+		MediaURL      string `json:"media_url"`
+		MediaURLHTTPS string `json:"media_url_https"`
+		URL           string `json:"url"`
+		DisplayURL    string `json:"display_url"`
+		ExpandedURL   string `json:"expanded_url"`
+		Type          string `json:"type"`
+		Sizes         struct {
+			Thumb struct {
+				W      int    `json:"w"`
+				H      int    `json:"h"`
+				Resize string `json:"resize"`
+			} `json:"thumb"`
+			Large struct {
+				W      int    `json:"w"`
+				H      int    `json:"h"`
+				Resize string `json:"resize"`
+			} `json:"large"`
+			Small struct {
+				W      int    `json:"w"`
+				H      int    `json:"h"`
+				Resize string `json:"resize"`
+			} `json:"small"`
+			Medium struct {
+				W      int    `json:"w"`
+				H      int    `json:"h"`
+				Resize string `json:"resize"`
+			} `json:"medium"`
+		} `json:"sizes"`
+	} `json:"media"`
 }
 
-type GetUserTweetsResponseData struct {
-	ID          string `json:"id"`
-	Text        string `json:"text"`
-	Attachments struct {
-		MediaKeys []string `json:"media_keys"`
-	} `json:"attachments,omitempty"`
-	ReferencedTweets []struct {
-		Type string `json:"type"`
-		ID   string `json:"id"`
-	} `json:"referenced_tweets,omitempty"`
+type User struct {
+	ID          int         `json:"id"`
+	IDStr       string      `json:"id_str"`
+	Name        string      `json:"name"`
+	ScreenName  string      `json:"screen_name"`
+	Location    string      `json:"location"`
+	Description string      `json:"description"`
+	URL         interface{} `json:"url"`
+	Entities    struct {
+		Description struct {
+			Urls []interface{} `json:"urls"`
+		} `json:"description"`
+	} `json:"entities"`
+	Protected                      bool   `json:"protected"`
+	FollowersCount                 int    `json:"followers_count"`
+	FriendsCount                   int    `json:"friends_count"`
+	ListedCount                    int    `json:"listed_count"`
+	CreatedAt                      string `json:"created_at"`
+	FavouritesCount                int    `json:"favourites_count"`
+	GeoEnabled                     bool   `json:"geo_enabled"`
+	Verified                       bool   `json:"verified"`
+	StatusesCount                  int    `json:"statuses_count"`
+	ContributorsEnabled            bool   `json:"contributors_enabled"`
+	IsTranslator                   bool   `json:"is_translator"`
+	IsTranslationEnabled           bool   `json:"is_translation_enabled"`
+	ProfileBackgroundColor         string `json:"profile_background_color"`
+	ProfileBackgroundImageURL      string `json:"profile_background_image_url"`
+	ProfileBackgroundImageURLHTTPS string `json:"profile_background_image_url_https"`
+	ProfileBackgroundTile          bool   `json:"profile_background_tile"`
+	ProfileImageURL                string `json:"profile_image_url"`
+	ProfileImageURLHTTPS           string `json:"profile_image_url_https"`
+	ProfileBannerURL               string `json:"profile_banner_url"`
+	ProfileLinkColor               string `json:"profile_link_color"`
+	ProfileSidebarBorderColor      string `json:"profile_sidebar_border_color"`
+	ProfileSidebarFillColor        string `json:"profile_sidebar_fill_color"`
+	ProfileTextColor               string `json:"profile_text_color"`
+	ProfileUseBackgroundImage      bool   `json:"profile_use_background_image"`
+	HasExtendedProfile             bool   `json:"has_extended_profile"`
+	DefaultProfile                 bool   `json:"default_profile"`
+	DefaultProfileImage            bool   `json:"default_profile_image"`
+	TranslatorType                 string `json:"translator_type"`
 }
+
+type UserTimelineResponse struct {
+	CreatedAt            string `json:"created_at"`
+	ID                   int64  `json:"id"`
+	IDStr                string `json:"id_str"`
+	Text                 string `json:"text"`
+	Truncated            bool   `json:"truncated"`
+	Entities             Entity `json:"entities,omitempty"`
+	Source               string `json:"source"`
+	InReplyToStatusID    int64  `json:"in_reply_to_status_id"`
+	InReplyToStatusIDStr string `json:"in_reply_to_status_id_str"`
+	InReplyToUserID      int    `json:"in_reply_to_user_id"`
+	InReplyToUserIDStr   string `json:"in_reply_to_user_id_str"`
+	InReplyToScreenName  string `json:"in_reply_to_screen_name"`
+	User                 struct {
+	} `json:"user"`
+	IsQuoteStatus     bool   `json:"is_quote_status"`
+	RetweetCount      int    `json:"retweet_count"`
+	FavoriteCount     int    `json:"favorite_count"`
+	Favorited         bool   `json:"favorited"`
+	Retweeted         bool   `json:"retweeted"`
+	Lang              string `json:"lang"`
+	ExtendedEntities  Entity `json:"extended_entities,omitempty"`
+	PossiblySensitive bool   `json:"possibly_sensitive,omitempty"`
+}
+
+type UserTimelineResponses []UserTimelineResponse

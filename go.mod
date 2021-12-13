@@ -39,7 +39,7 @@ require (
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
 	github.com/mmcdole/gofeed v1.1.3
-	github.com/n0madic/twitter-scraper v0.0.0-20211207081801-e9df7a49736e // indirect
+	github.com/n0madic/twitter-scraper v0.0.0-20211207081801-e9df7a49736e
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/ugorji/go v1.2.6 // indirect
 	github.com/vektah/gqlparser/v2 v2.2.0
 	golang.org/x/exp v0.0.0-20211029182501-9b944d235b9d // indirect
-	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
+	golang.org/x/net v0.0.0-20211209124913-491a49abca63
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1
 	gonum.org/v1/gonum v0.9.3
 	google.golang.org/grpc v1.35.0

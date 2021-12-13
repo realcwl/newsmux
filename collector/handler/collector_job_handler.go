@@ -35,7 +35,7 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 
 	// TODO(chenweilunster): Move this to AWS parameter store.
 	InitializeCollectorSettings(&CollectorSettings{
-		TWITTER_BEARER_TOKEN: `AAAAAAAAAAAAAAAAAAAAACCpVwEAAAAAl%2FC6%2BLSzPihZfen5kPyKl3ail70%3DbxBgWa27yAg3CcBEJTzLdgUWo11ULmxqczHWJDRg7SkzDsCMWp`,
+		TWITTER_BEARER_TOKEN: `AAAAAAAAAAAAAAAAAAAAAI46WwEAAAAAHdqCo1X%2By3Po8%2FFKkOOukJyMrgA%3DXW1W4nfH8cnAFQv193Dp3kf7bt0hyfiY21d0TToeNpzu51z9yp`,
 	})
 
 	var (
