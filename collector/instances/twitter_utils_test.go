@@ -2,10 +2,8 @@ package collector_instances
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
-	"github.com/Luismorlan/newsmux/collector"
 	twitterscraper "github.com/n0madic/twitter-scraper"
 	"github.com/stretchr/testify/assert"
 )
@@ -235,12 +233,11 @@ func TestConvertTweetTreeToCrawledPost_ReplyChainWithQuote(t *testing.T) {
 	tweet := &twitterscraper.Tweet{}
 	err := json.Unmarshal([]byte(replyWithAndQuote), tweet)
 	assert.Nil(t, err)
-	fmt.Println(collector.PrettyPrint(tweet))
 	res, err := ConvertTweetTreeToCrawledPost(tweet, scraper)
 	assert.Nil(t, err)
 	assert.Equal(t, res.Content, "test")
-	
 	assert.Equal(t, res.ReplyTo.Content, "2")
 	assert.Equal(t, res.ReplyTo.ReplyTo.Content, "1")
 	assert.Nil(t, res.ReplyTo.ReplyTo.ReplyTo)
+	assert.Equal(t, res.SharedFromCrawledPost.Content, "quote_1 https://twitter.com/RogerDickerman/status/1467204501899784195")
 }

@@ -41,14 +41,31 @@ func RemoveTwitterLink(content string) string {
 	return strings.TrimSpace(strings.ReplaceAll(linkRemoved, "  ", " "))
 }
 
-func GetTwitterContent(tweet *twitterscraper.Tweet) string {
+// For most cases, twitter content is just the text field. In cases where links
+// are inserted into a single tweet, we join the links together with the text.
+// In the case
+func GetTwitterContent(tweet *twitterscraper.Tweet, isQuoted bool) string {
 	// Retweet should not have actual content
 	if tweet.IsRetweet {
 		return ""
 	}
-	linkRemoved := RemoveTwitterLink(tweet.Text)
-	linkRemoved += "\n" + strings.Join(tweet.URLs, "\n")
-	return linkRemoved
+
+	baseText := RemoveTwitterLink(tweet.Text)
+
+	// Append urls that are not part of the quoted tweet.
+	for _, URL := range tweet.URLs {
+		if URL == tweet.QuotedStatus.PermanentURL {
+			continue
+		}
+		baseText += "\n" + URL
+	}
+
+	if !isQuoted || !tweet.IsQuoted {
+		return baseText
+	}
+	// In the case that this is a quote post, we mimic how Twitter deals with this
+	// case: https://twitter.com/RnrCapital/status/1467217405193568260
+	return baseText + " " + tweet.QuotedStatus.PermanentURL
 }
 
 func GetTwitterDedupId(tweet *twitterscraper.Tweet) string {
@@ -67,19 +84,19 @@ func GetTwitterImageUrls(tweet *twitterscraper.Tweet) []string {
 // (quote/retweet), stored as the SharedFromCrawledPost field. This function
 // will not convert reply thread, which will be dealt with in another function.
 func ConvertTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper) (*protocol.CrawlerMessage_CrawledPost, error) {
-	post, err := ConvertSingleTweetToCrawledPost(tweet, scraper)
+	post, err := ConvertSingleTweetToCrawledPost(tweet, scraper, false)
 	if err != nil {
 		return nil, err
 	}
 
 	var sharedPost *protocol.CrawlerMessage_CrawledPost
 	if tweet.IsRetweet {
-		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.RetweetedStatus, scraper)
+		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.RetweetedStatus, scraper, false)
 		if err != nil {
 			return nil, err
 		}
 	} else if tweet.IsQuoted {
-		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.QuotedStatus, scraper)
+		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.QuotedStatus, scraper, true)
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +107,7 @@ func ConvertTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscra
 
 // Convert from Tweet object to CralwedMessage without constructing the inner
 // shared post.
-func ConvertSingleTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper) (*protocol.CrawlerMessage_CrawledPost, error) {
+func ConvertSingleTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper, isQuoted bool) (*protocol.CrawlerMessage_CrawledPost, error) {
 	profile, err := GetUserProfile(tweet.Username, scraper)
 	if err != nil {
 		Logger.Log.Errorln("fail to get profile for user", tweet.Username)
@@ -98,7 +115,7 @@ func ConvertSingleTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitt
 	}
 
 	post := &protocol.CrawlerMessage_CrawledPost{
-		Content:            GetTwitterContent(tweet),
+		Content:            GetTwitterContent(tweet, isQuoted),
 		DeduplicateId:      GetTwitterDedupId(tweet),
 		ImageUrls:          GetTwitterImageUrls(tweet),
 		ContentGeneratedAt: GetTwitterCreationTime(tweet),
