@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -32,13 +33,17 @@ func main() {
 	origin := protocol.CrawlerMessage{
 		Post: &protocol.CrawlerMessage_CrawledPost{
 			SubSource: &protocol.CrawledSubSource{
-				Id: "ebe51059-6c1c-4dd5-ad66-4d377c306b82",
+				Name:     "快讯",
+				Id:       "df56b718-696e-4f58-b5e5-c8de00aedd68",
+				SourceId: "a882eb0d-0bde-401a-b708-a7ce352b7392",
 			},
-			Title:     "阿富汗官员：塔利班已占领北部城市马扎里沙里夫，安全部队向乌兹别克斯坦边境方向逃跑。",
-			Content:   "【江苏中小学今秋开学后推行“5加2”课后服务】江苏省四部门要求，今年秋学期开学后，确保全省所有义务教育学校和有需要的学生全覆盖。推行课后服务“5+2”模式，学校每周5天（周一至周五）都要开展课后服务，每天至少提供2小时的课后服务，课后服务结束时间原则上不早于当地正常下班时间。有条件的初中，周一至周五可设晚自习（一般安排2小时以内，原则上不晚于20：30结束）。课后服务必须突出育人导向，提供丰富课程，学校不得利用课后服务时间讲授新课。（央视",
-			ImageUrls: []string{"http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg", "http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg"},
-			FilesUrls: []string{"http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg", "http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg"},
-			OriginUrl: "aaa.com",
+			Title:         "阿富汗官员：塔利班已占领北部城市马扎里沙里夫，安全部队向乌兹别克斯坦边境方向逃跑。",
+			Content:       "【江苏中小学今秋开学后推行“5加2”课后服务】江苏省四部门要求，今年秋学期开学后，确保全省所有义务教育学校和有需要的学生全覆盖。推行课后服务“5+2”模式，学校每周5天（周一至周五）都要开展课后服务，每天至少提供2小时的课后服务，课后服务结束时间原则上不早于当地正常下班时间。有条件的初中，周一至周五可设晚自习（一般安排2小时以内，原则上不晚于20：30结束）。课后服务必须突出育人导向，提供丰富课程，学校不得利用课后服务时间讲授新课。（央视",
+			ImageUrls:     []string{"http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg", "http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg"},
+			FilesUrls:     []string{"http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg", "http://54.176.72.76:8080/api/weiboimage/0a4bdbb3eff672f6ef5f811f13cf65ab.jpg"},
+			OriginUrl:     "aaa.com",
+			DeduplicateId: uuid.New().String(),
+			Tags:          []string{"tag1", "tag2"},
 		},
 		CrawledAt:      &timestamppb.Timestamp{},
 		CrawlerIp:      "123",

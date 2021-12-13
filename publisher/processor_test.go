@@ -7,6 +7,7 @@ import (
 
 	"github.com/99designs/gqlgen/client"
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/Luismorlan/newsmux/deduplicator"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
@@ -71,6 +72,7 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 			Content:            "hello world!",
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
+			Tags:               []string{"电动车", "港股"},
 			OriginUrl:          "aaa",
 			ContentGeneratedAt: &timestamppb.Timestamp{},
 		},
@@ -85,7 +87,7 @@ func TestDecodeCrawlerMessage(t *testing.T) {
 	})
 
 	// Inject test dependent reader
-	processor := NewPublisherMessageProcessor(reader, db)
+	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 
 	msgs, _ := reader.ReceiveMessages(1)
 	assert.Equal(t, len(msgs), 1)
@@ -138,6 +140,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 			Content:            "老王做空以太坊",
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
+			Tags:               []string{"Tesla", "中概股"},
 			OriginUrl:          "aaa",
 			ContentGeneratedAt: testTimeStamp,
 		},
@@ -158,6 +161,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 			Content:            "老王做空以太坊_2",
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
+			Tags:               []string{"电动车", "港股"},
 			OriginUrl:          "aaa",
 			ContentGeneratedAt: testTimeStamp,
 		},
@@ -181,7 +185,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
-		processor := NewPublisherMessageProcessor(reader, db)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
@@ -193,6 +197,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		require.Equal(t, feedId2, post.PublishedFeeds[1].Id)
 		require.Equal(t, testTimeStamp.Seconds, post.ContentGeneratedAt.Unix())
 		require.Equal(t, testTimeStamp.Seconds, post.CrawledAt.Unix())
+		require.Equal(t, "Tesla,中概股", post.Tag)
 	})
 
 	t.Run("Test Publish Post to Feed based on source", func(t *testing.T) {
@@ -203,7 +208,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
-		processor := NewPublisherMessageProcessor(reader, db)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
@@ -216,6 +221,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		require.Equal(t, "1", post.ImageUrls[0])
 		require.Equal(t, 2, len(post.FileUrls))
 		require.Equal(t, "aaa", post.OriginUrl)
+		require.Equal(t, "电动车,港股", post.Tag)
 	})
 
 	t.Run("Test Post deduplication", func(t *testing.T) {
@@ -226,7 +232,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing Again, there should be no new post
-		processor := NewPublisherMessageProcessor(reader, db)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.NoError(t, err)
 
@@ -242,7 +248,7 @@ func TestProcessCrawlerMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
-		processor := NewPublisherMessageProcessor(reader, db)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
@@ -276,6 +282,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 			Content:            "老王干得好",
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
+			Tags:               []string{"电动车", "港股"},
 			OriginUrl:          "aaa",
 			ContentGeneratedAt: &timestamppb.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
@@ -292,6 +299,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 				Content:            "老王做空以太坊详情",
 				ImageUrls:          []string{"1", "4"},
 				FilesUrls:          []string{"2", "3"},
+				Tags:               []string{"Tesla", "中概股"},
 				OriginUrl:          "bbb",
 				ContentGeneratedAt: &timestamppb.Timestamp{},
 			},
@@ -301,6 +309,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		CrawlerVersion: "vde",
 		IsTest:         false,
 	}
+
 	t.Run("Test publish post with retweet sharing", func(t *testing.T) {
 		// msgToTwoFeeds is from subsource 1 which in 2 feeds
 		reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
@@ -309,7 +318,7 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		msgs, _ := reader.ReceiveMessages(1)
 
 		// Processing
-		processor := NewPublisherMessageProcessor(reader, db)
+		processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 		_, err := processor.ProcessOneCralwerMessage(msgs[0])
 		require.Nil(t, err)
 
@@ -321,11 +330,13 @@ func TestProcessCrawlerRetweetMessage(t *testing.T) {
 		require.Equal(t, msgToOneFeed.Post.Content, post.Content)
 		require.Equal(t, 1, len(post.PublishedFeeds))
 		require.Equal(t, feedId, post.PublishedFeeds[0].Id)
+		require.Equal(t, "电动车,港股", post.Tag)
 
 		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.Title, post.SharedFromPost.Title)
 		require.Equal(t, msgToOneFeed.Post.SharedFromCrawledPost.Content, post.SharedFromPost.Content)
 		require.Equal(t, true, post.SharedFromPost.InSharingChain)
 		require.Equal(t, 0, len(post.SharedFromPost.PublishedFeeds))
+		require.Equal(t, "Tesla,中概股", post.SharedFromPost.Tag)
 
 		// Check isFromSharedPost mark is set correctly
 		var subScourceOrigin model.SubSource
@@ -364,6 +375,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 			Content:            "老王干得好",
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
+			Tags:               []string{"电动车", "港股"},
 			OriginUrl:          "aaa",
 			ContentGeneratedAt: &timestamppb.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
@@ -380,6 +392,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 				Content:            "老王做空以太坊详情",
 				ImageUrls:          []string{"1", "4"},
 				FilesUrls:          []string{"2", "3"},
+				Tags:               []string{"Tesla", "中概股"},
 				OriginUrl:          "bbb",
 				ContentGeneratedAt: &timestamppb.Timestamp{},
 			},
@@ -393,7 +406,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 		&msgOne,
 	})
 	msgs, _ := reader.ReceiveMessages(1)
-	processor := NewPublisherMessageProcessor(reader, db)
+	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 	_, err := processor.ProcessOneCralwerMessage(msgs[0])
 	require.Nil(t, err)
 	var subScourceOne model.SubSource
@@ -418,6 +431,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 			Content:            "老王干得好_new_msg",
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
+			Tags:               []string{"电动车", "港股"},
 			OriginUrl:          "aaa",
 			ContentGeneratedAt: &timestamppb.Timestamp{},
 			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
@@ -434,6 +448,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 				Content:            "老王做空以太坊详情_new_msg",
 				ImageUrls:          []string{"1", "4"},
 				FilesUrls:          []string{"2", "3"},
+				Tags:               []string{"Tesla", "中概股"},
 				OriginUrl:          "bbb",
 				ContentGeneratedAt: &timestamppb.Timestamp{},
 			},
@@ -447,7 +462,7 @@ func TestRetweetMessageProcessSubsourceCreation(t *testing.T) {
 		&msgTwo,
 	})
 	msgs, _ = reader.ReceiveMessages(1)
-	processor = NewPublisherMessageProcessor(reader, db)
+	processor = NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 	_, err = processor.ProcessOneCralwerMessage(msgs[0])
 	require.Nil(t, err)
 	processor.DB.Preload(clause.Associations).Where("name=?", "test_subsource_1").First(&subScourceOne)
@@ -488,6 +503,7 @@ func TestMessagePublishToManyFeeds(t *testing.T) {
 			Content:            "老王做空以太坊",
 			ImageUrls:          []string{"1", "4"},
 			FilesUrls:          []string{"2", "3"},
+			Tags:               []string{"电动车", "港股"},
 			OriginUrl:          "aaa",
 			ContentGeneratedAt: &timestamppb.Timestamp{},
 		},
@@ -500,7 +516,7 @@ func TestMessagePublishToManyFeeds(t *testing.T) {
 		&msgOne,
 	})
 	msgs, _ := reader.ReceiveMessages(1)
-	processor := NewPublisherMessageProcessor(reader, db)
+	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
 	_, err := processor.ProcessOneCralwerMessage(msgs[0])
 	require.NoError(t, err)
 	var post model.Post

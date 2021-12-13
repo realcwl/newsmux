@@ -3,6 +3,7 @@ package collector_instances
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/Luismorlan/newsmux/collector"
@@ -45,9 +46,15 @@ func (j Jin10Crawler) UpdateNewsType(workingContext *working_context.CrawlerWork
 
 // check if we should skip the message - ads for example
 func (j Jin10Crawler) ShouldSkipMessage(workingContext *working_context.CrawlerWorkingContext, content string) bool {
-	if strings.Contains(content, "金十") && strings.Contains(content, "VIP") {
-		return true
+	selection := workingContext.Element.DOM.Find(".jin-flash-item")
+	// filter ads in importatn news
+	if selection.HasClass("is-important") {
+		lastDiv := selection.Find(".right-content > div ")
+		if len(lastDiv.Children().Nodes) == 1 && lastDiv.Children().Nodes[0].Data == "b" {
+			return true
+		}
 	}
+
 	if workingContext.Task.TaskParams.GetJinshiTaskParams() != nil {
 		for _, key := range workingContext.Task.TaskParams.GetJinshiTaskParams().SkipKeyWords {
 			if strings.Contains(content, key) {
@@ -154,6 +161,28 @@ func (j Jin10Crawler) UpdateSubsourceName(workingContext *working_context.Crawle
 	return nil
 }
 
+func ShouldSplitJin10Content(title string) bool {
+	NoSplitWords := []string{"金十图示", "行情", "报告"}
+	return !utils.ContainsString(NoSplitWords, title)
+}
+
+func (j Jin10Crawler) MaybeSplitTitleOutOfContent(
+	workingContext *working_context.CrawlerWorkingContext) {
+	content := workingContext.Result.Post.Content
+	re := regexp.MustCompile(`【.*】`)
+	match := re.FindStringSubmatch(content)
+	if len(match) != 1 {
+		return
+	}
+
+	if !ShouldSplitJin10Content(content) {
+		return
+	}
+	trimmedContent := strings.ReplaceAll(content, match[0], "")
+	workingContext.Result.Post.Content = trimmedContent
+	workingContext.Result.Post.Title = strings.NewReplacer("【", "", "】", "").Replace(match[0])
+}
+
 func (j Jin10Crawler) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
 	collector.InitializeCrawlerResult(workingContext)
 
@@ -161,6 +190,7 @@ func (j Jin10Crawler) GetMessage(workingContext *working_context.CrawlerWorkingC
 	if err != nil {
 		return err
 	}
+	j.MaybeSplitTitleOutOfContent(workingContext)
 
 	err = j.UpdateExternalPostId(workingContext)
 	if err != nil {
@@ -227,9 +257,7 @@ func (j Jin10Crawler) CollectAndPublish(task *protocol.PanopticTask) {
 		if workingContext.Result == nil {
 			return
 		}
-		if !workingContext.IntentionallySkipped {
-			sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
-		}
+		sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
 	})
 
 	// Set error handler

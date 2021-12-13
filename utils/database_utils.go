@@ -80,6 +80,14 @@ func CreateTempDB(t *testing.T) (*gorm.DB, string) {
 	DatabaseSetupAndMigration(newDB)
 	t.Cleanup(func() {
 		dropTempDB(newDB, dbName)
+
+		// Also proactively clean up the DB connections instead of deferring to GC.
+		// Otherwise, we might exceed the DB max connection limit in test and
+		// causing some tests to fail.
+		conn, _ := db.DB()
+		conn.Close()
+		conn, _ = newDB.DB()
+		conn.Close()
 	})
 
 	return newDB, dbName
@@ -123,6 +131,32 @@ func dropTempDB(curDB *gorm.DB, dbName string) {
 
 func getDB(connectionString string) (db *gorm.DB, err error) {
 	return gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+}
+
+func BotDBSetupAndMigration(db *gorm.DB) {
+	err := db.SetupJoinTable(&model.Channel{}, "SubscribedFeeds", &model.ChannelFeedSubscription{})
+	if err != nil {
+		panic("failed to connect database when build many2many relationship with Channels and Feeds")
+	}
+
+	err = db.SetupJoinTable(&model.Feed{}, "SubscribedChannels", &model.ChannelFeedSubscription{})
+	if err != nil {
+		panic("failed to connect datebase when build many2many relationship with Feeds and Channels")
+	}
+
+	err = db.SetupJoinTable(&model.User{}, "SubscribedFeeds", &model.UserFeedSubscription{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	db.AutoMigrate(&model.Channel{})
+}
+
+func PublisherDBSetup(db *gorm.DB) {
+	err := db.SetupJoinTable(&model.Feed{}, "SubscribedChannels", &model.ChannelFeedSubscription{})
+	if err != nil {
+		panic("failed to connect datebase")
+	}
 }
 
 func DatabaseSetupAndMigration(db *gorm.DB) {

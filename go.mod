@@ -42,6 +42,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/sirupsen/logrus v1.8.1
+	github.com/slack-go/slack v0.9.5
 	github.com/stretchr/testify v1.7.0
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	github.com/ugorji/go v1.2.6 // indirect
@@ -50,6 +51,7 @@ require (
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1
 	gonum.org/v1/gonum v0.9.3
+	google.golang.org/grpc v1.35.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.33.0
 	gopkg.in/yaml.v2 v2.4.0

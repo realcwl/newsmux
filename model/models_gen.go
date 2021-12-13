@@ -17,6 +17,10 @@ type UserSeedStateInterface interface {
 	IsUserSeedStateInterface()
 }
 
+type AddWeiboSubSourceInput struct {
+	Name string `json:"name"`
+}
+
 type DeleteFeedInput struct {
 	UserID string `json:"userId"`
 	FeedID string `json:"feedId"`

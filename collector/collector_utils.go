@@ -31,6 +31,8 @@ const (
 	Kr36SourceId              = "c0ae802e-3c12-4144-86ca-ab0f8fe629ce"
 	CaixinSourceId            = "cc2a61b1-721f-4529-8afc-6da686f23b36"
 	WallstreetArticleSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
+	GelonghuiSourceId         = "3627b507-d28d-4627-8afd-a6168e6b10d3"
+	ClsNewsSourceId           = "9ae67eea-4839-11ec-81d3-0242ac130003"
 )
 
 // Hard code subsource type to name
@@ -90,6 +92,10 @@ func GetSourceLogoUrl(sourceId string) string {
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/36ke.png"
 	case CaixinSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/caixin.png"
+	case GelonghuiSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/gelonghui.png"
+	case ClsNewsSourceId:
+		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/cls.png"
 	default:
 		return ""
 	}
@@ -124,7 +130,6 @@ func InitializeApiCollectorResult(workingContext *working_context.ApiCollectorWo
 	// like weibo
 	workingContext.Result.Post.SubSource.AvatarUrl = GetSourceLogoUrl(workingContext.Task.TaskParams.SourceId)
 	workingContext.Result.Post.SubSource.SourceId = workingContext.Task.TaskParams.SourceId
-	workingContext.Result.Post.OriginUrl = workingContext.ApiUrl
 
 	workingContext.Result.CrawlerIp = workingContext.Task.TaskMetadata.IpAddr
 }

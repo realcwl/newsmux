@@ -87,6 +87,26 @@ func GetFakeTask(taskId, sourceId, subSourceName string, subsourceType protocol.
 		TaskMetadata: &protocol.TaskMetadata{},
 	}
 }
+func TestJin10Ads(t *testing.T) {
+	// var elem colly.HTMLElement
+	var s = sink.NewStdErrSink()
+	var builder CollectorBuilder
+	crawler := builder.NewJin10Crawler(s)
+	taskId := "task_1"
+	sourceId := "a882eb0d-0bde-401a-b708-a7ce352b7392"
+	task := GetFakeTask(taskId, sourceId, "快讯", protocol.PanopticSubSource_FLASHNEWS)
+
+	t.Run("[get message from dom element][flash] html with title and <br/>", func(t *testing.T) {
+		htmlWithTitle := `<div data-v-c7711130="" data-v-1bfa56cb="" id="flash20211105105528759100" class="jin-flash-item-container is-normal"><!----><div data-v-c7711130="" class="jin-flash-item flash is-important"><div data-v-2b138c9f="" data-v-c7711130="" class="detail-btn"><div data-v-2b138c9f="" class="detail-btn_container"><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span><span data-v-2b138c9f=""></span></div></div><!----><div data-v-c7711130="" class="item-time">10:55:28</div><div data-v-c7711130="" class="item-right is-common"><div data-v-c7711130="" class="right-top"><!----><div data-v-c7711130="" class="right-content"><div data-v-c7711130=""><b>【双11·击穿底价】新用户开通88折，最高加赠41天，相当于享85折优惠！老用户续费更低至6.2元/日！非农数据公布在即，成为VIP，立即查收交易策略＞＞</b></div></div><!----><!----><div data-v-1696ba0d="" data-v-c7711130="" class="flash-remark"><!----><a data-v-1696ba0d="" href="https://www.jin10.com/activities/vip_promotion/double-eleven/index.html" target="_blank" class="remark-item"><i data-v-1696ba0d="" class="jin-icon iconfont icon-zhujielianjie"></i><span data-v-1696ba0d="" class="remark-item-title">相关链接 &gt;&gt;</span></a><!----><!----></div></div></div><div data-v-47f123d2="" data-v-c7711130="" class="flash-item-share" style="display: none;"><a data-v-47f123d2="" href="javascript:void('openShare')" class="share-btn"><i data-v-47f123d2="" class="jin-icon iconfont icon-fenxiang"></i><span data-v-47f123d2="">分享</span></a><a data-v-47f123d2="" href="https://flash.jin10.com/detail/20211105105528759100" target="_blank"><i data-v-47f123d2="" class="jin-icon iconfont icon-xiangqing"></i><span data-v-47f123d2="">详情</span></a><a data-v-47f123d2="" href="javascript:void('copyFlash')"><i data-v-47f123d2="" class="jin-icon iconfont icon-fuzhi"></i><span data-v-47f123d2="">复制</span></a><!----></div></div></div>`
+		elem := GetMockHtmlElem(htmlWithTitle, "flash20211105105528759100")
+		ctx := &working_context.CrawlerWorkingContext{
+			SharedContext: working_context.SharedContext{Task: &task, IntentionallySkipped: false},
+			Element:       elem, OriginUrl: "a.com"}
+		err := crawler.GetMessage(ctx)
+		require.NoError(t, err)
+		require.True(t, ctx.IntentionallySkipped)
+	})
+}
 
 func TestJin10CrawlerWithTitle(t *testing.T) {
 	// var elem colly.HTMLElement
@@ -296,11 +316,6 @@ func TestWeiboCollectorHandler(t *testing.T) {
 						Name:       "庄时利和",
 						Type:       protocol.PanopticSubSource_USERS,
 						ExternalId: "1728715190",
-					},
-					{
-						Name:       "子陵在听歌",
-						Type:       protocol.PanopticSubSource_USERS,
-						ExternalId: "1251560221",
 					},
 					{
 						Name:       "一水亦方",

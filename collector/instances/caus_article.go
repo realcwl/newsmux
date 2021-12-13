@@ -102,9 +102,13 @@ func (j CaUsArticleCrawler) UpdateDedupId(workingContext *working_context.Crawle
 }
 
 func (c CaUsArticleCrawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
-	imageUrl := workingContext.Element.DOM.Find(".content_right > a > div > div > img").AttrOr("src", "")
+	imgElem := workingContext.Element.DOM.Find(".content_right > a > div > div > img")
+	if len(imgElem.Nodes) == 0 {
+		return nil
+	}
+	imageUrl := imgElem.AttrOr("src", "")
 	if len(imageUrl) == 0 {
-		return errors.New("image DOM exist but src not found")
+		return errors.New("caus article image DOM exist but src not found")
 	}
 	workingContext.Result.Post.ImageUrls = []string{imageUrl}
 	return nil
@@ -191,9 +195,7 @@ func (j CaUsArticleCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		if workingContext.Result == nil {
 			return
 		}
-		if !workingContext.IntentionallySkipped {
-			sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
-		}
+		sink.PushResultToSinkAndRecordInTaskMetadata(j.Sink, workingContext)
 	})
 
 	// Set error handler
