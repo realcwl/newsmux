@@ -8,6 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
+	"gorm.io/gorm"
+
 	"github.com/Luismorlan/newsmux/bot"
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/model"
@@ -16,9 +20,6 @@ import (
 	"github.com/Luismorlan/newsmux/server/resolver"
 	. "github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/google/uuid"
-	"google.golang.org/protobuf/proto"
-	"gorm.io/gorm"
 )
 
 const SemanticHashingLength = 128
@@ -280,8 +281,8 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 
 	// Write to DB, post creation and publish is in a transaction
 	err = processor.DB.Transaction(func(tx *gorm.DB) error {
-		processor.DB.Create(&post)
-		err := processor.DB.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
+		tx.Create(&post)
+		err := tx.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
 		return err
 	})
 	if err != nil {
