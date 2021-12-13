@@ -94,7 +94,7 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	// Upsert DB
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		// Update all columns, except primary keys and subscribers to new value, on conflict
-		queryResult = r.DB.Clauses(clause.OnConflict{
+		queryResult = tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
 			UpdateAll: false,
 			DoUpdates: clause.AssignmentColumns([]string{"name", "updated_at", "creator_id", "filter_data_expression", "visibility"}),
@@ -106,15 +106,15 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 
 		// Update subsources
 		var subSources []model.SubSource
-		r.DB.Where("id IN ?", input.SubSourceIds).Find(&subSources)
-		if e := r.DB.Model(&feed).Association("SubSources").Replace(subSources); e != nil {
+		tx.Where("id IN ?", input.SubSourceIds).Find(&subSources)
+		if e := tx.Model(&feed).Association("SubSources").Replace(subSources); e != nil {
 			return e
 		}
 
 		// If user upsert the feed's visibility to be PRIVATE, delete all
 		// subscription other than the user himself.
 		if feed.Visibility == model.VisibilityPrivate {
-			if err := r.DB.Model(&model.UserFeedSubscription{}).
+			if err := tx.Model(&model.UserFeedSubscription{}).
 				Where("user_id != ? AND feed_id = ?", feed.Creator.Id, feed.Id).
 				Delete(model.UserFeedSubscription{}).Error; err != nil {
 				return err
