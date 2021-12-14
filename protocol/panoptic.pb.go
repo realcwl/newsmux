@@ -7,11 +7,12 @@
 package protocol
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
+
+	timestamp "google.golang.org/protobuf/ptypes/timestamp"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -669,8 +670,8 @@ type TaskMetadata struct {
 	// name of the config that triggers this task.
 	ConfigName string `protobuf:"bytes,1,opt,name=config_name,json=configName,proto3" json:"config_name,omitempty"`
 	// job_start/end_time describes the execution span of this task.
-	TaskStartTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=task_start_time,json=taskStartTime,proto3" json:"task_start_time,omitempty"`
-	TaskEndTime   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=task_end_time,json=taskEndTime,proto3" json:"task_end_time,omitempty"`
+	TaskStartTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=task_start_time,json=taskStartTime,proto3" json:"task_start_time,omitempty"`
+	TaskEndTime   *timestamp.Timestamp `protobuf:"bytes,3,opt,name=task_end_time,json=taskEndTime,proto3" json:"task_end_time,omitempty"`
 	// How many CrawlerMessage this task collected.
 	TotalMessageCollected int32 `protobuf:"varint,4,opt,name=total_message_collected,json=totalMessageCollected,proto3" json:"total_message_collected,omitempty"`
 	// How many CrawlerMessage this task failed to collect.
@@ -721,14 +722,14 @@ func (x *TaskMetadata) GetConfigName() string {
 	return ""
 }
 
-func (x *TaskMetadata) GetTaskStartTime() *timestamppb.Timestamp {
+func (x *TaskMetadata) GetTaskStartTime() *timestamp.Timestamp {
 	if x != nil {
 		return x.TaskStartTime
 	}
 	return nil
 }
 
-func (x *TaskMetadata) GetTaskEndTime() *timestamppb.Timestamp {
+func (x *TaskMetadata) GetTaskEndTime() *timestamp.Timestamp {
 	if x != nil {
 		return x.TaskEndTime
 	}
@@ -1670,7 +1671,7 @@ var file_panoptic_proto_goTypes = []interface{}{
 	(*WisburgParams)(nil),                // 15: protocol.WisburgParams
 	(*CaUsNewsTaskParams)(nil),           // 16: protocol.CaUsNewsTaskParams
 	(*CustomizedCrawlerParams)(nil),      // 17: protocol.CustomizedCrawlerParams
-	(*timestamppb.Timestamp)(nil),        // 18: google.protobuf.Timestamp
+	(*timestamp.Timestamp)(nil),          // 18: google.protobuf.Timestamp
 }
 var file_panoptic_proto_depIdxs = []int32{
 	9,  // 0: protocol.PanopticJob.tasks:type_name -> protocol.PanopticTask

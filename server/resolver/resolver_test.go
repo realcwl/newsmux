@@ -7,15 +7,15 @@ import (
 
 	"github.com/99designs/gqlgen/client"
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/stretchr/testify/require"
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
+
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/encoding/prototext"
-	"gorm.io/datatypes"
-	"gorm.io/gorm"
 )
 
 func TestMain(m *testing.M) {
@@ -682,49 +682,27 @@ func TestUserState(t *testing.T) {
 	utils.TestQueryUserState(t, userId, []string{feedIdOne, feedIdTwo}, client)
 }
 
-func TestAddSourceIdToCustomizedCrawlerConfig(t *testing.T) {
-	clsUrl := "https://www.cls.cn/telegraph"
-	clsBaseSelector := ".telegraph-list"
-	clsTitleRelativeSelector := ".telegraph-content-box span:not(.telegraph-time-box) > strong"
-	clsContentRelativeSelector := ".telegraph-content-box span:not(.telegraph-time-box)"
-	clsImageRelativeSelector := ".telegraph-images-box > img"
-
-	config := protocol.PanopticConfig{
-		Name:            "test",
-		DataCollectorId: protocol.PanopticTask_COLLECTOR_CUSTOMIZED,
-		TaskParams: &protocol.TaskParams{
-			Params: &protocol.TaskParams_CustomizedCrawlerTaskParams{
-				CustomizedCrawlerTaskParams: &protocol.CustomizedCrawlerParams{
-					CrawlUrl:                &clsUrl,
-					BaseSelector:            &clsBaseSelector,
-					TitleRelativeSelector:   &clsTitleRelativeSelector,
-					ContentRelativeSelector: &clsContentRelativeSelector,
-					ImageRelativeSelector:   &clsImageRelativeSelector,
-				},
-			},
-		},
-		TaskSchedule: &protocol.TaskSchedule{
-			StartImmediatly: true,
-			Schedule: &protocol.TaskSchedule_Routinely{
-				Routinely: &protocol.Routinely{
-					EveryMilliseconds: 1000000,
-				},
-			},
+func TestConstructCustomizedPanopticConfig(t *testing.T) {
+	var input model.NewSourceInput
+	input.Name = "test_source_name"
+	startImmediately := false
+	imageRelativeSelector := "div > .img"
+	input.CustomizedCrawlerPanopticConfigForm = &model.CustomizedCrawlerPanopticConfigForm{
+		StartImmediately: &startImmediately,
+		CustomizedCrawlerParams: &model.CustomizedCrawlerParams{
+			BaseSelector:          "base_selector",
+			CrawlURL:              "url",
+			ImageRelativeSelector: &imageRelativeSelector,
 		},
 	}
-
-	bytes, err := prototext.Marshal(&config)
+	config, err := ConstructCustomizedPanopticConfig(input, "test_source_id")
 	require.NoError(t, err)
-
-	originStr := string(bytes)
-	err = AddSourceIdToCustomizedCrawlerConfig(&originStr, "test_source_id")
-	require.NoError(t, err)
-
-	var extendedConfig protocol.PanopticConfig
-	err = prototext.Unmarshal([]byte(originStr), &extendedConfig)
-	require.NoError(t, err)
-
-	require.Equal(t, "test_source_id", extendedConfig.TaskParams.SourceId)
-	require.Equal(t, 1, len(extendedConfig.TaskParams.SubSources))
-	require.Equal(t, extendedConfig.TaskParams.SubSources[0].Name, DefaultSubSourceName)
+	require.Equal(t, "test_source_id", config.TaskParams.SourceId)
+	require.Equal(t, "test_source_name_config", config.Name)
+	require.Equal(t, false, config.TaskSchedule.StartImmediatly)
+	require.Equal(t, int64(5*60*1000), config.TaskSchedule.GetRoutinely().EveryMilliseconds)
+	require.Equal(t, "base_selector", config.TaskParams.GetCustomizedSourceCrawlerTaskParams().BaseSelector)
+	require.Equal(t, "url", config.TaskParams.GetCustomizedSourceCrawlerTaskParams().CrawlUrl)
+	require.Equal(t, "div > .img", *config.TaskParams.GetCustomizedSourceCrawlerTaskParams().ImageRelativeSelector)
+	require.Equal(t, protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE, config.DataCollectorId)
 }

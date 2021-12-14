@@ -15,6 +15,7 @@ import (
 
 	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/working_context"
+	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -278,4 +279,96 @@ func OffloadImageSourceFromHtml(sourceHtml string, imageStore file_store.Collect
 	})
 
 	return doc.Html()
+}
+
+func CustomizedCrawlerExtractPlainText(selector *string, elem *colly.HTMLElement, defaultValue string) string {
+	if selector == nil {
+		return defaultValue
+	}
+	return elem.DOM.Find(*selector).Text()
+}
+
+func CustomizedCrawlerExtractAttribute(selector *string, elem *colly.HTMLElement, defaultValue string, attribute string) string {
+	if selector == nil {
+		return defaultValue
+	}
+	selection := elem.DOM.Find(*selector)
+	return selection.AttrOr(attribute, defaultValue)
+}
+
+func CustomizedCrawlerExtractMultiAttribute(selector *string, elem *colly.HTMLElement, attribute string) []string {
+	if selector == nil {
+		return []string{}
+	}
+	res := []string{}
+	selection := elem.DOM.Find(*selector)
+	for i := 0; i < selection.Length(); i++ {
+		img := selection.Eq(i)
+		targetAttr := img.AttrOr(attribute, "")
+		res = append(res, targetAttr)
+	}
+	return res
+}
+
+func TryCustomizedCrawler(input *model.CustomizedCrawlerParams) ([]*model.CustomizedCrawlerTestResponse, error) {
+	res := []*model.CustomizedCrawlerTestResponse{}
+	var err error
+	c := colly.NewCollector()
+	// each crawled card(news) will go to this
+	// for each page loaded, there are multiple calls into this func
+	c.OnHTML(input.BaseSelector, func(elem *colly.HTMLElement) {
+		var post model.CustomizedCrawlerTestResponse
+		title := CustomizedCrawlerExtractPlainText(input.TitleRelativeSelector, elem, "")
+		content := CustomizedCrawlerExtractPlainText(input.ContentRelativeSelector, elem, "")
+		externalId := CustomizedCrawlerExtractPlainText(input.ExternalIDRelativeSelector, elem, "")
+		time := CustomizedCrawlerExtractPlainText(input.TimeRelativeSelector, elem, "")
+		subSource := CustomizedCrawlerExtractPlainText(input.SubsourceRelativeSelector, elem, "")
+		originUrl := CustomizedCrawlerExtractPlainText(input.OriginURLRelativeSelector, elem, "")
+
+		images := CustomizedCrawlerExtractMultiAttribute(input.ImageRelativeSelector, elem, "src")
+
+		post.Title = &title
+		post.Content = &content
+		post.ExternalID = &externalId
+		post.Time = &time
+		post.Images = images
+		post.Subsource = &subSource
+		post.OriginURL = &originUrl
+
+		rawHtml, _ := elem.DOM.Html()
+		post.BaseHTML = &rawHtml
+
+		res = append(res, &post)
+	})
+
+	// Set error handler
+	c.OnError(func(r *colly.Response, e error) {
+		err = e
+	})
+
+	c.OnRequest(func(r *colly.Request) {
+		basicHeaders := make(map[string]string)
+		basicHeaders["content-type"] = "application/json;charset=UTF-8"
+		basicHeaders["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
+		for k, v := range basicHeaders {
+			r.Headers.Set(k, v)
+		}
+	})
+
+	c.Visit(input.CrawlURL)
+
+	return res, err
+}
+
+func GetDefautlCrawlerHeader() []*protocol.KeyValuePair {
+	return []*protocol.KeyValuePair{
+		{
+			Key:   "content-type",
+			Value: "application/json;charset=UTF-8",
+		},
+		{
+			Key:   "user-agent",
+			Value: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36",
+		},
+	}
 }

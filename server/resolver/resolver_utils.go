@@ -231,15 +231,30 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 		Where("name = ? AND source_id = ?", input.Name, input.SourceID).
 		First(&subSource)
 	if queryResult.RowsAffected == 0 {
+		var customizedCrawlerParams *string
+		if input.CustomizedCrawlerParams != nil {
+			config, err := ConstructCustomizedCrawlerParams(*input.CustomizedCrawlerParams)
+			if err != nil {
+				return nil, err
+			}
+			bytes, err := prototext.Marshal(config)
+			if err != nil {
+				return nil, err
+			}
+			str := string(bytes)
+			customizedCrawlerParams = &str
+		}
+
 		// Create new SubSource
 		subSource = model.SubSource{
-			Id:                 uuid.New().String(),
-			Name:               input.Name,
-			ExternalIdentifier: input.ExternalIdentifier,
-			SourceID:           input.SourceID,
-			AvatarUrl:          input.AvatarURL,
-			OriginUrl:          input.OriginURL,
-			IsFromSharedPost:   input.IsFromSharedPost,
+			Id:                      uuid.New().String(),
+			Name:                    input.Name,
+			ExternalIdentifier:      input.ExternalIdentifier,
+			SourceID:                input.SourceID,
+			AvatarUrl:               input.AvatarURL,
+			OriginUrl:               input.OriginURL,
+			IsFromSharedPost:        input.IsFromSharedPost,
+			CustomizedCrawlerParams: customizedCrawlerParams,
 		}
 		db.Create(&subSource)
 		return &subSource, nil
@@ -259,26 +274,100 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 	return &subSource, nil
 }
 
-func AddSourceIdToCustomizedCrawlerConfig(configStr *string, sourceId string) error {
-	if configStr == nil {
-		return nil
+// For Customized SubSource
+// Transform user provided form into CustomizedCrawlerParams in panoptic.proto
+func ConstructCustomizedCrawlerParams(input model.CustomizedCrawlerParams) (*protocol.CustomizedCrawlerParams, error) {
+	customizedCrawlerParams := &protocol.CustomizedCrawlerParams{
+		CrawlUrl:                   input.CrawlURL,
+		BaseSelector:               input.BaseSelector,
+		TitleRelativeSelector:      input.TitleRelativeSelector,
+		ContentRelativeSelector:    input.ContentRelativeSelector,
+		ExternalIdRelativeSelector: input.ExternalIDRelativeSelector,
+		TimeRelativeSelector:       input.TimeRelativeSelector,
+		ImageRelativeSelector:      input.ImageRelativeSelector,
+		SubsourceRelativeSelector:  input.SubsourceRelativeSelector,
+		OriginUrlRelativeSelector:  input.OriginURLRelativeSelector,
+	}
+	return customizedCrawlerParams, nil
+}
+
+// For Customized Source
+// Frontend will pass a form that contains all information we need for
+// a customized crawler at source level.
+// This function is used to generate PanopticTask(a source level task)
+// based on the form
+func ConstructCustomizedPanopticConfig(input model.NewSourceInput, sourceId string) (protocol.PanopticConfig, error) {
+	var panopticConfig protocol.PanopticConfig
+	if input.CustomizedCrawlerPanopticConfigForm == nil {
+		return panopticConfig, errors.New("CustomizedCrawlerPanopticConfigForm is nil")
 	}
 
-	var panopticConfig protocol.PanopticConfig
-	if err := prototext.Unmarshal([]byte(*configStr), &panopticConfig); err != nil {
-		fmt.Println("Failed to unmarshal panoptic config:", err)
-		return err
+	if input.CustomizedCrawlerPanopticConfigForm.Name != nil {
+		panopticConfig.Name = *input.CustomizedCrawlerPanopticConfigForm.Name
+	} else {
+		// use source name if no config name specified
+		panopticConfig.Name = input.Name + "_config"
 	}
-	panopticConfig.TaskParams.SourceId = sourceId
-	panopticConfig.TaskParams.SubSources = []*protocol.PanopticSubSource{
-		{
-			Name: DefaultSubSourceName,
+
+	panopticConfig.DataCollectorId = protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE
+	panopticConfig.TaskParams = &protocol.TaskParams{
+		SourceId: sourceId,
+		// default 10 max subsource in a task
+		MaxSubsourcePerTask: 10,
+	}
+	panopticConfig.TaskParams.Params = &protocol.TaskParams_CustomizedSourceCrawlerTaskParams{
+		CustomizedSourceCrawlerTaskParams: &protocol.CustomizedCrawlerParams{
+			CrawlUrl:                   input.CustomizedCrawlerPanopticConfigForm.CustomizedCrawlerParams.CrawlURL,
+			BaseSelector:               input.CustomizedCrawlerPanopticConfigForm.CustomizedCrawlerParams.BaseSelector,
+			TitleRelativeSelector:      input.CustomizedCrawlerPanopticConfigForm.CustomizedCrawlerParams.TitleRelativeSelector,
+			ContentRelativeSelector:    input.CustomizedCrawlerPanopticConfigForm.CustomizedCrawlerParams.ContentRelativeSelector,
+			ExternalIdRelativeSelector: input.CustomizedCrawlerPanopticConfigForm.CustomizedCrawlerParams.ExternalIDRelativeSelector,
+			TimeRelativeSelector:       input.CustomizedCrawlerPanopticConfigForm.CustomizedCrawlerParams.TimeRelativeSelector,
+			ImageRelativeSelector:      input.CustomizedCrawlerPanopticConfigForm.CustomizedCrawlerParams.ImageRelativeSelector,
+			SubsourceRelativeSelector:  input.CustomizedCrawlerPanopticConfigForm.CustomizedCrawlerParams.SubsourceRelativeSelector,
+			OriginUrlRelativeSelector:  input.CustomizedCrawlerPanopticConfigForm.CustomizedCrawlerParams.OriginURLRelativeSelector,
 		},
 	}
-	newConfig, err := prototext.Marshal(&panopticConfig)
-	if err != nil {
-		return err
+
+	panopticConfig.TaskSchedule = &protocol.TaskSchedule{
+		StartImmediatly: true,
+		Schedule: &protocol.TaskSchedule_Routinely{
+			Routinely: &protocol.Routinely{
+				EveryMilliseconds: int64(5 * 60 * 1000),
+			},
+		},
 	}
-	*configStr = string(newConfig)
-	return nil
+	if input.CustomizedCrawlerPanopticConfigForm.StartImmediately != nil {
+		panopticConfig.TaskSchedule.StartImmediatly = *input.CustomizedCrawlerPanopticConfigForm.StartImmediately
+	}
+
+	if input.CustomizedCrawlerPanopticConfigForm.ScheduleEveryMilliseconds != nil {
+		panopticConfig.TaskSchedule.GetRoutinely().EveryMilliseconds = int64(*input.CustomizedCrawlerPanopticConfigForm.ScheduleEveryMilliseconds)
+	}
+
+	return panopticConfig, nil
 }
+
+// func AddSourceIdToCustomizedCrawlerConfig(configStr *string, sourceId string) error {
+// 	if configStr == nil {
+// 		return nil
+// 	}
+
+//
+// 	if err := prototext.Unmarshal([]byte(*configStr), &panopticConfig); err != nil {
+// 		fmt.Println("Failed to unmarshal panoptic config:", err)
+// 		return err
+// 	}
+// 	panopticConfig.TaskParams.SourceId = sourceId
+// 	panopticConfig.TaskParams.SubSources = []*protocol.PanopticSubSource{
+// 		{
+// 			Name: DefaultSubSourceName,
+// 		},
+// 	}
+// 	newConfig, err := prototext.Marshal(&panopticConfig)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	*configStr = string(newConfig)
+// 	return nil
+// }

@@ -6,8 +6,8 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 
 	Handler "github.com/Luismorlan/newsmux/collector/handler"
 	"github.com/Luismorlan/newsmux/protocol"

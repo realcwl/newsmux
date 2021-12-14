@@ -6,4 +6,5 @@ type Source @goModel(model: "model.Source") {
   name: String!
   domain: String
   subsources: [SubSource!]!
+  panopticConfig: String
 }
