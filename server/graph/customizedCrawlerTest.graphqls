@@ -1,0 +1,10 @@
+type CustomizedCrawlerTestResponse {
+  baseHtml: String
+  title: String
+  content: String
+  externalId: String
+  time: String
+  images: [String!]
+  subsource: String
+  originUrl: String
+}

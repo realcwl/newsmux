@@ -9,13 +9,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Luismorlan/newsmux/model"
-	"github.com/Luismorlan/newsmux/server/graph/generated"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/encoding/prototext"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/server/graph/generated"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error) {
@@ -301,16 +304,26 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 	}
 
 	newSourceId := uuid.New().String()
-	if err := AddSourceIdToCustomizedCrawlerConfig(input.CrawlerPanopticConfig, newSourceId); err != nil {
-		return nil, err
+	var serializedCustomizedCrawlerConfig *string
+	if input.CustomizedCrawlerPanopticConfigForm != nil {
+		config, err := ConstructCustomizedPanopticConfig(input, newSourceId)
+		if err != nil {
+			return nil, err
+		}
+		bytes, err := prototext.Marshal(&config)
+		if err != nil {
+			return nil, err
+		}
+		str := string(bytes)
+		serializedCustomizedCrawlerConfig = &str
 	}
 	source := model.Source{
-		Id:                    newSourceId,
-		Name:                  input.Name,
-		Domain:                input.Domain,
-		CreatedAt:             time.Now(),
-		Creator:               user,
-		CrawlerPanopticConfig: input.CrawlerPanopticConfig,
+		Id:             newSourceId,
+		Name:           input.Name,
+		Domain:         input.Domain,
+		CreatedAt:      time.Now(),
+		Creator:        user,
+		PanopticConfig: serializedCustomizedCrawlerConfig,
 	}
 
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
@@ -440,6 +453,10 @@ func (r *queryResolver) Sources(ctx context.Context, input *model.SourcesInput) 
 	var sources []*model.Source
 	result := r.DB.Preload("SubSources", "is_from_shared_post = ?", input.SubSourceFromSharedPost).Find(&sources)
 	return sources, result.Error
+}
+
+func (r *queryResolver) TryCustomizedCrawler(ctx context.Context, input *model.CustomizedCrawlerParams) ([]*model.CustomizedCrawlerTestResponse, error) {
+	return collector.TryCustomizedCrawler(input)
 }
 
 func (r *subscriptionResolver) Signal(ctx context.Context, userID string) (<-chan *model.Signal, error) {

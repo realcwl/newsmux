@@ -3,8 +3,9 @@ package working_context
 import (
 	"fmt"
 
-	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/gocolly/colly"
+
+	"github.com/Luismorlan/newsmux/protocol"
 )
 
 type SharedContext struct {
@@ -56,5 +57,5 @@ type RssCollectorWorkingContext struct {
 }
 
 func (sc *SharedContext) String() string {
-	return fmt.Sprintf("==SharedContext is==\ntask: \n%s\nresult:\n%s\n", sc.Task.String(), sc.Result.String())
+	return fmt.Sprintf("SharedContext is: task: %s \n result: %s \n", sc.Task.String(), sc.Result.String())
 }

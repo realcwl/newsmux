@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/Luismorlan/newsmux/protocol"
 	"google.golang.org/protobuf/encoding/prototext"
+
+	"github.com/Luismorlan/newsmux/protocol"
 )
 
 // use this script to generate a request you can use to send in Lambda->Test
@@ -17,7 +18,7 @@ func main() {
 
 	config := protocol.PanopticConfig{
 		Name:            "test",
-		DataCollectorId: protocol.PanopticTask_COLLECTOR_CUSTOMIZED,
+		DataCollectorId: protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE,
 		TaskParams: &protocol.TaskParams{
 			SourceId: "test",
 			SubSources: []*protocol.PanopticSubSource{
@@ -26,10 +27,10 @@ func main() {
 					Type: protocol.PanopticSubSource_ARTICLE,
 				},
 			},
-			Params: &protocol.TaskParams_CustomizedCrawlerTaskParams{
-				CustomizedCrawlerTaskParams: &protocol.CustomizedCrawlerParams{
-					CrawlUrl:                &clsUrl,
-					BaseSelector:            &clsBaseSelector,
+			Params: &protocol.TaskParams_CustomizedSourceCrawlerTaskParams{
+				CustomizedSourceCrawlerTaskParams: &protocol.CustomizedCrawlerParams{
+					CrawlUrl:                clsUrl,
+					BaseSelector:            clsBaseSelector,
 					TitleRelativeSelector:   &clsTitleRelativeSelector,
 					ContentRelativeSelector: &clsContentRelativeSelector,
 					ImageRelativeSelector:   &clsImageRelativeSelector,

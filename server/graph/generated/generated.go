@@ -52,6 +52,17 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	CustomizedCrawlerTestResponse struct {
+		BaseHTML   func(childComplexity int) int
+		Content    func(childComplexity int) int
+		ExternalID func(childComplexity int) int
+		Images     func(childComplexity int) int
+		OriginURL  func(childComplexity int) int
+		Subsource  func(childComplexity int) int
+		Time       func(childComplexity int) int
+		Title      func(childComplexity int) int
+	}
+
 	Feed struct {
 		CreatedAt            func(childComplexity int) int
 		Creator              func(childComplexity int) int
@@ -111,14 +122,15 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AllVisibleFeeds func(childComplexity int) int
-		Feeds           func(childComplexity int, input *model.FeedsGetPostsInput) int
-		Post            func(childComplexity int, input *model.PostInput) int
-		Posts           func(childComplexity int) int
-		Sources         func(childComplexity int, input *model.SourcesInput) int
-		SubSources      func(childComplexity int, input *model.SubsourcesInput) int
-		UserState       func(childComplexity int, input model.UserStateInput) int
-		Users           func(childComplexity int) int
+		AllVisibleFeeds      func(childComplexity int) int
+		Feeds                func(childComplexity int, input *model.FeedsGetPostsInput) int
+		Post                 func(childComplexity int, input *model.PostInput) int
+		Posts                func(childComplexity int) int
+		Sources              func(childComplexity int, input *model.SourcesInput) int
+		SubSources           func(childComplexity int, input *model.SubsourcesInput) int
+		TryCustomizedCrawler func(childComplexity int, input *model.CustomizedCrawlerParams) int
+		UserState            func(childComplexity int, input model.UserStateInput) int
+		Users                func(childComplexity int) int
 	}
 
 	SeedState struct {
@@ -131,25 +143,27 @@ type ComplexityRoot struct {
 	}
 
 	Source struct {
-		CreatedAt  func(childComplexity int) int
-		Creator    func(childComplexity int) int
-		DeletedAt  func(childComplexity int) int
-		Domain     func(childComplexity int) int
-		Id         func(childComplexity int) int
-		Name       func(childComplexity int) int
-		SubSources func(childComplexity int) int
+		CreatedAt      func(childComplexity int) int
+		Creator        func(childComplexity int) int
+		DeletedAt      func(childComplexity int) int
+		Domain         func(childComplexity int) int
+		Id             func(childComplexity int) int
+		Name           func(childComplexity int) int
+		PanopticConfig func(childComplexity int) int
+		SubSources     func(childComplexity int) int
 	}
 
 	SubSource struct {
-		AvatarUrl          func(childComplexity int) int
-		CreatedAt          func(childComplexity int) int
-		DeletedAt          func(childComplexity int) int
-		ExternalIdentifier func(childComplexity int) int
-		Id                 func(childComplexity int) int
-		IsFromSharedPost   func(childComplexity int) int
-		Name               func(childComplexity int) int
-		OriginUrl          func(childComplexity int) int
-		Source             func(childComplexity int) int
+		AvatarUrl               func(childComplexity int) int
+		CreatedAt               func(childComplexity int) int
+		CustomizedCrawlerParams func(childComplexity int) int
+		DeletedAt               func(childComplexity int) int
+		ExternalIdentifier      func(childComplexity int) int
+		Id                      func(childComplexity int) int
+		IsFromSharedPost        func(childComplexity int) int
+		Name                    func(childComplexity int) int
+		OriginUrl               func(childComplexity int) int
+		Source                  func(childComplexity int) int
 	}
 
 	Subscription struct {
@@ -210,6 +224,7 @@ type QueryResolver interface {
 	Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error)
 	SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error)
 	Sources(ctx context.Context, input *model.SourcesInput) ([]*model.Source, error)
+	TryCustomizedCrawler(ctx context.Context, input *model.CustomizedCrawlerParams) ([]*model.CustomizedCrawlerTestResponse, error)
 }
 type SourceResolver interface {
 	DeletedAt(ctx context.Context, obj *model.Source) (*time.Time, error)
@@ -240,6 +255,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "CustomizedCrawlerTestResponse.baseHtml":
+		if e.complexity.CustomizedCrawlerTestResponse.BaseHTML == nil {
+			break
+		}
+
+		return e.complexity.CustomizedCrawlerTestResponse.BaseHTML(childComplexity), true
+
+	case "CustomizedCrawlerTestResponse.content":
+		if e.complexity.CustomizedCrawlerTestResponse.Content == nil {
+			break
+		}
+
+		return e.complexity.CustomizedCrawlerTestResponse.Content(childComplexity), true
+
+	case "CustomizedCrawlerTestResponse.externalId":
+		if e.complexity.CustomizedCrawlerTestResponse.ExternalID == nil {
+			break
+		}
+
+		return e.complexity.CustomizedCrawlerTestResponse.ExternalID(childComplexity), true
+
+	case "CustomizedCrawlerTestResponse.images":
+		if e.complexity.CustomizedCrawlerTestResponse.Images == nil {
+			break
+		}
+
+		return e.complexity.CustomizedCrawlerTestResponse.Images(childComplexity), true
+
+	case "CustomizedCrawlerTestResponse.originUrl":
+		if e.complexity.CustomizedCrawlerTestResponse.OriginURL == nil {
+			break
+		}
+
+		return e.complexity.CustomizedCrawlerTestResponse.OriginURL(childComplexity), true
+
+	case "CustomizedCrawlerTestResponse.subsource":
+		if e.complexity.CustomizedCrawlerTestResponse.Subsource == nil {
+			break
+		}
+
+		return e.complexity.CustomizedCrawlerTestResponse.Subsource(childComplexity), true
+
+	case "CustomizedCrawlerTestResponse.time":
+		if e.complexity.CustomizedCrawlerTestResponse.Time == nil {
+			break
+		}
+
+		return e.complexity.CustomizedCrawlerTestResponse.Time(childComplexity), true
+
+	case "CustomizedCrawlerTestResponse.title":
+		if e.complexity.CustomizedCrawlerTestResponse.Title == nil {
+			break
+		}
+
+		return e.complexity.CustomizedCrawlerTestResponse.Title(childComplexity), true
 
 	case "Feed.createdAt":
 		if e.complexity.Feed.CreatedAt == nil {
@@ -649,6 +720,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.SubSources(childComplexity, args["input"].(*model.SubsourcesInput)), true
 
+	case "Query.tryCustomizedCrawler":
+		if e.complexity.Query.TryCustomizedCrawler == nil {
+			break
+		}
+
+		args, err := ec.field_Query_tryCustomizedCrawler_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TryCustomizedCrawler(childComplexity, args["input"].(*model.CustomizedCrawlerParams)), true
+
 	case "Query.userState":
 		if e.complexity.Query.UserState == nil {
 			break
@@ -731,6 +814,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Source.Name(childComplexity), true
 
+	case "Source.panopticConfig":
+		if e.complexity.Source.PanopticConfig == nil {
+			break
+		}
+
+		return e.complexity.Source.PanopticConfig(childComplexity), true
+
 	case "Source.subsources":
 		if e.complexity.Source.SubSources == nil {
 			break
@@ -751,6 +841,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SubSource.CreatedAt(childComplexity), true
+
+	case "SubSource.customizedCrawlerParams":
+		if e.complexity.SubSource.CustomizedCrawlerParams == nil {
+			break
+		}
+
+		return e.complexity.SubSource.CustomizedCrawlerParams(childComplexity), true
 
 	case "SubSource.deletedAt":
 		if e.complexity.SubSource.DeletedAt == nil {
@@ -971,6 +1068,17 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
+	{Name: "graph/customizedCrawlerTest.graphqls", Input: `type CustomizedCrawlerTestResponse {
+  baseHtml: String
+  title: String
+  content: String
+  externalId: String
+  time: String
+  images: [String!]
+  subsource: String
+  originUrl: String
+}
+`, BuiltIn: false},
 	{Name: "graph/directives.graphqls", Input: `# GQL Directives
 # This part is fairly necessary and is described in the gql documentation
 # https://gqlgen.com/config/
@@ -1111,7 +1219,33 @@ input NewSourceInput {
   userId: String!
   name: String!
   domain: String!
-  crawlerPanopticConfig: String
+  customizedCrawlerPanopticConfigForm: CustomizedCrawlerPanopticConfigForm
+}
+
+# This schema has all information needed to construct a PanopticConfig in panoptic_config.proto
+# data_collector_id is predefined to be COLLECTOR_USER_CUSTOMIZED_SOURCE
+input CustomizedCrawlerPanopticConfigForm {
+  name: String # name of the config if not specified, use source name
+
+  # for TaskSchedule:
+  startImmediately: Boolean # default to true
+  scheduleEveryMilliseconds: Int # default to 5 minutes
+
+  # for CustomizedCrawlerParams
+  customizedCrawlerParams: CustomizedCrawlerParams!
+}
+
+# This schema has all information needed to construct a CustomizedCrawlerParams in panoptic.proto
+input CustomizedCrawlerParams {
+  crawlUrl: String! # url to crawl, e.g. https://www.cls.cn/telegraph
+  baseSelector: String! # base selector should return a list of DOM elements where each one corresponds to a single post
+  titleRelativeSelector: String # relative selector to the base selector
+  contentRelativeSelector: String
+  externalIdRelativeSelector: String
+  timeRelativeSelector: String #if not specified, use the cralwed time as content generated time
+  imageRelativeSelector: String
+  subsourceRelativeSelector: String #how to deal with subsource spec
+  originUrlRelativeSelector: String #by default is the url
 }
 
 # isFromSharedPost = true means the subsource is not for cralwing
@@ -1126,6 +1260,10 @@ input UpsertSubSourceInput {
   avatarUrl: String!
   originUrl: String!
   isFromSharedPost: Boolean!
+
+  # use this to customize crawler behavior, the source should have 
+  # collector_id = COLLECTOR_USER_CUSTOMIZED_SUBSOURCE in config
+  customizedCrawlerParams: CustomizedCrawlerParams
 }
 
 # Add weibo user to the database for panoptic to crawl
@@ -1207,6 +1345,8 @@ type Query {
   feeds(input: FeedsGetPostsInput): [Feed!]!
   subSources(input: SubsourcesInput): [SubSource!]!
   sources(input: SourcesInput): [Source!]
+
+  tryCustomizedCrawler(input: CustomizedCrawlerParams): [CustomizedCrawlerTestResponse!]
 }
 
 type Mutation {
@@ -1220,7 +1360,6 @@ type Mutation {
 
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
-
   addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource
 
   syncUp(input: SeedStateInput): SeedState
@@ -1229,7 +1368,7 @@ type Mutation {
 type Subscription {
   # Subscribe to signals sending from server side. Client side should handle
   # signals properly. The first time this is called will always return
-  # SEED_STATE signal.
+  # SEEDSTATE signal.
   signal(userId: String!): Signal!
 }
 
@@ -1265,6 +1404,7 @@ type Signal @goModel(model: "model.Signal") {
   name: String!
   domain: String
   subsources: [SubSource!]!
+  panopticConfig: String
 }
 `, BuiltIn: false},
 	{Name: "graph/subsource.graphqls", Input: `type SubSource @goModel(model: "model.SubSource") {
@@ -1277,6 +1417,7 @@ type Signal @goModel(model: "model.Signal") {
   avatarUrl: String!
   originUrl: String!
   isFromSharedPost: Boolean!
+  customizedCrawlerParams: String
 }
 `, BuiltIn: false},
 	{Name: "graph/user.graphqls", Input: `type User implements UserSeedStateInterface @goModel(model: "model.User") {
@@ -1532,6 +1673,21 @@ func (ec *executionContext) field_Query_subSources_args(ctx context.Context, raw
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_tryCustomizedCrawler_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.CustomizedCrawlerParams
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalOCustomizedCrawlerParams2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerParams(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_userState_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1599,6 +1755,262 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _CustomizedCrawlerTestResponse_baseHtml(ctx context.Context, field graphql.CollectedField, obj *model.CustomizedCrawlerTestResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CustomizedCrawlerTestResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BaseHTML, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomizedCrawlerTestResponse_title(ctx context.Context, field graphql.CollectedField, obj *model.CustomizedCrawlerTestResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CustomizedCrawlerTestResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomizedCrawlerTestResponse_content(ctx context.Context, field graphql.CollectedField, obj *model.CustomizedCrawlerTestResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CustomizedCrawlerTestResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Content, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomizedCrawlerTestResponse_externalId(ctx context.Context, field graphql.CollectedField, obj *model.CustomizedCrawlerTestResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CustomizedCrawlerTestResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ExternalID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomizedCrawlerTestResponse_time(ctx context.Context, field graphql.CollectedField, obj *model.CustomizedCrawlerTestResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CustomizedCrawlerTestResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Time, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomizedCrawlerTestResponse_images(ctx context.Context, field graphql.CollectedField, obj *model.CustomizedCrawlerTestResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CustomizedCrawlerTestResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Images, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomizedCrawlerTestResponse_subsource(ctx context.Context, field graphql.CollectedField, obj *model.CustomizedCrawlerTestResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CustomizedCrawlerTestResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subsource, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomizedCrawlerTestResponse_originUrl(ctx context.Context, field graphql.CollectedField, obj *model.CustomizedCrawlerTestResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CustomizedCrawlerTestResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OriginURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Feed_id(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
 	defer func() {
@@ -3438,6 +3850,45 @@ func (ec *executionContext) _Query_sources(ctx context.Context, field graphql.Co
 	return ec.marshalOSource2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSourceᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_tryCustomizedCrawler(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_tryCustomizedCrawler_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TryCustomizedCrawler(rctx, args["input"].(*model.CustomizedCrawlerParams))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.CustomizedCrawlerTestResponse)
+	fc.Result = res
+	return ec.marshalOCustomizedCrawlerTestResponse2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerTestResponseᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3850,6 +4301,38 @@ func (ec *executionContext) _Source_subsources(ctx context.Context, field graphq
 	return ec.marshalNSubSource2ᚕgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Source_panopticConfig(ctx context.Context, field graphql.CollectedField, obj *model.Source) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Source",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PanopticConfig, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _SubSource_id(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4160,6 +4643,38 @@ func (ec *executionContext) _SubSource_isFromSharedPost(ctx context.Context, fie
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SubSource_customizedCrawlerParams(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubSource",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CustomizedCrawlerParams, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Subscription_signal(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
@@ -5735,6 +6250,140 @@ func (ec *executionContext) unmarshalInputAddWeiboSubSourceInput(ctx context.Con
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCustomizedCrawlerPanopticConfigForm(ctx context.Context, obj interface{}) (model.CustomizedCrawlerPanopticConfigForm, error) {
+	var it model.CustomizedCrawlerPanopticConfigForm
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "startImmediately":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startImmediately"))
+			it.StartImmediately, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "scheduleEveryMilliseconds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scheduleEveryMilliseconds"))
+			it.ScheduleEveryMilliseconds, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "customizedCrawlerParams":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("customizedCrawlerParams"))
+			it.CustomizedCrawlerParams, err = ec.unmarshalNCustomizedCrawlerParams2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerParams(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCustomizedCrawlerParams(ctx context.Context, obj interface{}) (model.CustomizedCrawlerParams, error) {
+	var it model.CustomizedCrawlerParams
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "crawlUrl":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("crawlUrl"))
+			it.CrawlURL, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "baseSelector":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("baseSelector"))
+			it.BaseSelector, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "titleRelativeSelector":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("titleRelativeSelector"))
+			it.TitleRelativeSelector, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "contentRelativeSelector":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contentRelativeSelector"))
+			it.ContentRelativeSelector, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "externalIdRelativeSelector":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalIdRelativeSelector"))
+			it.ExternalIDRelativeSelector, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "timeRelativeSelector":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("timeRelativeSelector"))
+			it.TimeRelativeSelector, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "imageRelativeSelector":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("imageRelativeSelector"))
+			it.ImageRelativeSelector, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "subsourceRelativeSelector":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subsourceRelativeSelector"))
+			it.SubsourceRelativeSelector, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "originUrlRelativeSelector":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originUrlRelativeSelector"))
+			it.OriginURLRelativeSelector, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDeleteFeedInput(ctx context.Context, obj interface{}) (model.DeleteFeedInput, error) {
 	var it model.DeleteFeedInput
 	asMap := map[string]interface{}{}
@@ -5971,11 +6620,11 @@ func (ec *executionContext) unmarshalInputNewSourceInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "crawlerPanopticConfig":
+		case "customizedCrawlerPanopticConfigForm":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("crawlerPanopticConfig"))
-			it.CrawlerPanopticConfig, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("customizedCrawlerPanopticConfigForm"))
+			it.CustomizedCrawlerPanopticConfigForm, err = ec.unmarshalOCustomizedCrawlerPanopticConfigForm2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerPanopticConfigForm(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6267,6 +6916,14 @@ func (ec *executionContext) unmarshalInputUpsertSubSourceInput(ctx context.Conte
 			if err != nil {
 				return it, err
 			}
+		case "customizedCrawlerParams":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("customizedCrawlerParams"))
+			it.CustomizedCrawlerParams, err = ec.unmarshalOCustomizedCrawlerParams2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerParams(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -6388,6 +7045,44 @@ func (ec *executionContext) _UserSeedStateInterface(ctx context.Context, sel ast
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var customizedCrawlerTestResponseImplementors = []string{"CustomizedCrawlerTestResponse"}
+
+func (ec *executionContext) _CustomizedCrawlerTestResponse(ctx context.Context, sel ast.SelectionSet, obj *model.CustomizedCrawlerTestResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, customizedCrawlerTestResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CustomizedCrawlerTestResponse")
+		case "baseHtml":
+			out.Values[i] = ec._CustomizedCrawlerTestResponse_baseHtml(ctx, field, obj)
+		case "title":
+			out.Values[i] = ec._CustomizedCrawlerTestResponse_title(ctx, field, obj)
+		case "content":
+			out.Values[i] = ec._CustomizedCrawlerTestResponse_content(ctx, field, obj)
+		case "externalId":
+			out.Values[i] = ec._CustomizedCrawlerTestResponse_externalId(ctx, field, obj)
+		case "time":
+			out.Values[i] = ec._CustomizedCrawlerTestResponse_time(ctx, field, obj)
+		case "images":
+			out.Values[i] = ec._CustomizedCrawlerTestResponse_images(ctx, field, obj)
+		case "subsource":
+			out.Values[i] = ec._CustomizedCrawlerTestResponse_subsource(ctx, field, obj)
+		case "originUrl":
+			out.Values[i] = ec._CustomizedCrawlerTestResponse_originUrl(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
 
 var feedImplementors = []string{"Feed", "FeedSeedStateInterface"}
 
@@ -6854,6 +7549,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_sources(ctx, field)
 				return res
 			})
+		case "tryCustomizedCrawler":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_tryCustomizedCrawler(ctx, field)
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -6974,6 +7680,8 @@ func (ec *executionContext) _Source(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "panopticConfig":
+			out.Values[i] = ec._Source_panopticConfig(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7056,6 +7764,8 @@ func (ec *executionContext) _SubSource(ctx context.Context, sel ast.SelectionSet
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "customizedCrawlerParams":
+			out.Values[i] = ec._SubSource_customizedCrawlerParams(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7476,6 +8186,21 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNCustomizedCrawlerParams2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerParams(ctx context.Context, v interface{}) (*model.CustomizedCrawlerParams, error) {
+	res, err := ec.unmarshalInputCustomizedCrawlerParams(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCustomizedCrawlerTestResponse2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerTestResponse(ctx context.Context, sel ast.SelectionSet, v *model.CustomizedCrawlerTestResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._CustomizedCrawlerTestResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNDeleteFeedInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐDeleteFeedInput(ctx context.Context, v interface{}) (model.DeleteFeedInput, error) {
@@ -8362,6 +9087,69 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) unmarshalOCustomizedCrawlerPanopticConfigForm2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerPanopticConfigForm(ctx context.Context, v interface{}) (*model.CustomizedCrawlerPanopticConfigForm, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputCustomizedCrawlerPanopticConfigForm(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOCustomizedCrawlerParams2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerParams(ctx context.Context, v interface{}) (*model.CustomizedCrawlerParams, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputCustomizedCrawlerParams(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOCustomizedCrawlerTestResponse2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerTestResponseᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.CustomizedCrawlerTestResponse) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCustomizedCrawlerTestResponse2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerTestResponse(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Feed) graphql.Marshaler {

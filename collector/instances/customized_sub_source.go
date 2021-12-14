@@ -1,9 +1,7 @@
 package collector_instances
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/araddon/dateparse"
 	"github.com/gocolly/colly"
@@ -23,40 +21,22 @@ type CustomizedSubSourceCrawler struct {
 }
 
 func (crawler CustomizedSubSourceCrawler) UpdateTitle(workingContext *working_context.CrawlerWorkingContext) error {
-	titleSelector := *workingContext.SubSource.CustomizedCrawlerParamsForSubSource.TitleRelativeSelector
-	if len(titleSelector) == 0 {
-		return nil
-	}
-	workingContext.Result.Post.Title = workingContext.Element.DOM.Find(titleSelector).Text()
+	workingContext.Result.Post.Title = collector.CustomizedCrawlerExtractPlainText(workingContext.SubSource.CustomizedCrawlerParamsForSubSource.TitleRelativeSelector, workingContext.Element, "")
 	return nil
 }
 
 func (crawler CustomizedSubSourceCrawler) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
-	contentSelector := *workingContext.SubSource.CustomizedCrawlerParamsForSubSource.ContentRelativeSelector
-	if len(contentSelector) == 0 {
-		return nil
-	}
-	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(contentSelector).Text()
+	workingContext.Result.Post.Content = collector.CustomizedCrawlerExtractPlainText(workingContext.SubSource.CustomizedCrawlerParamsForSubSource.ContentRelativeSelector, workingContext.Element, "")
 	return nil
 }
 
 func (crawler CustomizedSubSourceCrawler) UpdateExternalId(workingContext *working_context.CrawlerWorkingContext) error {
-	contentSelector := *workingContext.SubSource.CustomizedCrawlerParamsForSubSource.ExternalIdRelativeSelector
-	if len(contentSelector) == 0 {
-		return nil
-	}
-	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(contentSelector).Text()
+	workingContext.Result.Post.SubSource.ExternalId = collector.CustomizedCrawlerExtractPlainText(workingContext.SubSource.CustomizedCrawlerParamsForSubSource.ExternalIdRelativeSelector, workingContext.Element, "")
 	return nil
 }
 
 func (crawler CustomizedSubSourceCrawler) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
-	contentSelector := *workingContext.SubSource.CustomizedCrawlerParamsForSubSource.ExternalIdRelativeSelector
-	if len(contentSelector) == 0 {
-		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
-		return nil
-	}
-
-	dateString := workingContext.Element.DOM.Find(contentSelector).Text()
+	dateString := collector.CustomizedCrawlerExtractPlainText(workingContext.SubSource.CustomizedCrawlerParamsForSubSource.TimeRelativeSelector, workingContext.Element, "")
 	t, err := dateparse.ParseLocal(dateString)
 	if err != nil {
 		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
@@ -89,19 +69,7 @@ func (crawler CustomizedSubSourceCrawler) UpdateSubsource(workingContext *workin
 }
 
 func (crawler CustomizedSubSourceCrawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
-	workingContext.Result.Post.ImageUrls = []string{}
-	imageSelector := *workingContext.SubSource.CustomizedCrawlerParamsForSubSource.ImageRelativeSelector
-	selection := workingContext.Element.DOM.Find(imageSelector)
-	for i := 0; i < selection.Length(); i++ {
-		img := selection.Eq(i)
-		imageUrl := img.AttrOr("src", "")
-		parts := strings.Split(imageUrl, "?")
-		imageUrl = parts[0]
-		if len(imageUrl) == 0 {
-			return errors.New("image DOM exist but src not found")
-		}
-		workingContext.Result.Post.ImageUrls = append(workingContext.Result.Post.ImageUrls, imageUrl)
-	}
+	workingContext.Result.Post.ImageUrls = collector.CustomizedCrawlerExtractMultiAttribute(workingContext.SubSource.CustomizedCrawlerParamsForSubSource.ImageRelativeSelector, workingContext.Element, "src")
 	return nil
 }
 
@@ -179,6 +147,10 @@ func (crawler CustomizedSubSourceCrawler) CollectOneSubsource(task *protocol.Pan
 	})
 
 	c.OnRequest(func(r *colly.Request) {
+		if len(task.TaskParams.HeaderParams) == 0 {
+			// to avoid http 418
+			task.TaskParams.HeaderParams = collector.GetDefautlCrawlerHeader()
+		}
 		for _, kv := range task.TaskParams.HeaderParams {
 			r.Headers.Set(kv.Key, kv.Value)
 		}
