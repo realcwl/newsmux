@@ -54,13 +54,13 @@ func GetTwitterContent(tweet *twitterscraper.Tweet, isQuoted bool) string {
 
 	// Append urls that are not part of the quoted tweet.
 	for _, URL := range tweet.URLs {
-		if URL == tweet.QuotedStatus.PermanentURL {
+		if tweet.QuotedStatus != nil && URL == tweet.QuotedStatus.PermanentURL {
 			continue
 		}
 		baseText += "\n" + URL
 	}
 
-	if !isQuoted || !tweet.IsQuoted {
+	if !isQuoted || !tweet.IsQuoted || tweet.QuotedStatus == nil {
 		return baseText
 	}
 	// In the case that this is a quote post, we mimic how Twitter deals with this
@@ -142,9 +142,10 @@ func ConvertTweetTreeToCrawledPost(
 		return nil, err
 	}
 	// Fast return if the post is a leaf in the reply chain.
-	if !root.IsReply {
+	if !root.IsReply || root.InReplyToStatus == nil {
 		return post, nil
 	}
+
 	replyTweet, err := ConvertTweetTreeToCrawledPost(root.InReplyToStatus, scraper)
 	if err != nil {
 		return nil, err
@@ -153,4 +154,50 @@ func ConvertTweetTreeToCrawledPost(
 	post.ReplyTo = replyTweet
 
 	return post, nil
+}
+
+// When user created a thread, each tweet in the thread will be returned as an
+// array. For example, when user created a thread a - b - c, the returned array
+// will be:
+// [
+//  c - b - a,
+//  b - a,
+//  a
+// ]
+// In this case, we should filter out incomplete thread, and just keep the
+// c - b - a part.
+// The input tweets *MUST* always be reverse chrononical order. This is very
+// important because we assume the later twitter should never "contain" the
+// previous tweet.
+func FilterIncompleteTweet(tweets []*twitterscraper.Tweet) []*twitterscraper.Tweet {
+	res := []*twitterscraper.Tweet{}
+	for _, tweet := range tweets {
+		if IsTweetIncluded(tweet, res) {
+			continue
+		}
+		res = append(res, tweet)
+	}
+	return res
+}
+
+func IsTweetIncluded(needle *twitterscraper.Tweet, hay []*twitterscraper.Tweet) bool {
+	sig := CalcTweetSignature(needle)
+	for _, tweet := range hay {
+		resultSig := CalcTweetSignature(tweet)
+		if strings.HasSuffix(resultSig, sig) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Return the id concatenation of all tweets in the thread.
+func CalcTweetSignature(tweet *twitterscraper.Tweet) string {
+	var sb strings.Builder
+	for tweet != nil {
+		sb.WriteString(tweet.ID)
+		tweet = tweet.InReplyToStatus
+	}
+	return sb.String()
 }

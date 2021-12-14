@@ -11,6 +11,9 @@ import (
 	twitterscraper "github.com/n0madic/twitter-scraper"
 )
 
+// Twitter's thread max lenth is 25, this number ensures that we capture 2 threads.
+const TWITTER_BATCH_SIZE = 50
+
 type TwitterApiCrawler struct {
 	Sink sink.CollectedDataSink
 
@@ -20,13 +23,13 @@ type TwitterApiCrawler struct {
 // Crawl and publish for a single Twitter user.
 func (t TwitterApiCrawler) ProcessSingleSubSource(
 	subSource *protocol.PanopticSubSource, task *protocol.PanopticTask) {
-	tweets, _, err := t.Scraper.FetchTweets(subSource.ExternalId, 20, "")
+	tweets, _, err := t.Scraper.FetchTweets(subSource.ExternalId, TWITTER_BATCH_SIZE, "")
 	if err != nil {
 		Logger.Log.Errorln("fail to collect tweeter user", subSource.ExternalId, err)
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		return
 	}
-	for _, tweet := range tweets {
+	for _, tweet := range FilterIncompleteTweet(tweets) {
 		t.ProcessSingleTweet(tweet, task)
 	}
 }
@@ -53,7 +56,6 @@ func (t TwitterApiCrawler) GetMessage(workingContext *working_context.ApiCollect
 		return err
 	}
 	workingContext.Result.Post = post
-	workingContext.Task.TaskMetadata.TotalMessageCollected++
 	return nil
 }
 

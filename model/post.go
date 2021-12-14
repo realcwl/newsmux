@@ -77,7 +77,6 @@ type Post struct {
 	OriginUrl          string    `json:"origin_url"`
 	ContentGeneratedAt time.Time `json:"content_generated_at"`
 	InSharingChain     bool      `json:"in_sharing_chain"`
-	ReplyThread        []*Post   `json:"reply_thread"`
 
 	// A post could be within a reply thread, this field stored all ancestors of
 	// this Post, in a chronological order. Under the hood this is tracked via a

@@ -33,11 +33,6 @@ func UpdateIpAddressesInTasks(ip string, job *protocol.PanopticJob) {
 func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err error) {
 	Logger.Log.Info("Collect() with request: \n", proto.MarshalTextString(job))
 
-	// TODO(chenweilunster): Move this to AWS parameter store.
-	InitializeCollectorSettings(&CollectorSettings{
-		TWITTER_BEARER_TOKEN: `AAAAAAAAAAAAAAAAAAAAAI46WwEAAAAAHdqCo1X%2By3Po8%2FFKkOOukJyMrgA%3DXW1W4nfH8cnAFQv193Dp3kf7bt0hyfiY21d0TToeNpzu51z9yp`,
-	})
-
 	var (
 		s          sink.CollectedDataSink
 		imageStore file_store.CollectedFileStore
@@ -145,7 +140,7 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SUBSOURCE:
 		collector = builder.NewCustomizedSubSourceCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_TWITTER:
-		collector = builder.NewTwitterCollector(sink, Settings.TWITTER_BEARER_TOKEN)
+		collector = builder.NewTwitterCollector(sink)
 	default:
 		return errors.New("unknown task data collector id")
 	}
