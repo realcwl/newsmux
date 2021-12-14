@@ -70,7 +70,7 @@ func (CollectorBuilder) NewClsNewsCrawlerCollector(s sink.CollectedDataSink) Dat
 	return &ClsNewsCrawler{Sink: s}
 }
 
-func (CollectorBuilder) NewCustomizedCrawlerCollector(s sink.CollectedDataSink) DataCollector {
+func (CollectorBuilder) NewCustomizedSourceCrawlerCollector(s sink.CollectedDataSink) DataCollector {
 	return &CustomizedSourceCrawler{Sink: s}
 }
 

@@ -61,7 +61,9 @@ func MarkAndLogCrawlError(task *protocol.PanopticTask, err error, moreInfo strin
 	case protocol.PanopticTask_COLLECTOR_WALLSTREET_NEWS:
 		source = "wallstreet"
 	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE:
-		source = "customized"
+		source = "customized_source"
+	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SUBSOURCE:
+		source = "customized_subsource"
 	}
 
 	task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
