@@ -59,6 +59,8 @@ message TaskParams {
     WallstreetNewsTaskParams wallstreet_news_task_params = 23; 
     WisburgParams wisburg_task_params = 24;
     CaUsNewsTaskParams caus_news_task_params = 25;
+    // This param is defined for customized source(not subsource level), if collector id === COLLECTOR_USER_CUSTOMIZED_SOURCE
+    CustomizedCrawlerParams customized_source_crawler_task_params = 26;
   }
 }
 
@@ -118,6 +120,8 @@ message PanopticTask {
     COLLECTOR_WALLSTREET_ARTICLE = 13;
     COLLECTOR_CLS_NEWS=14;
     COLLECTOR_GELONGHUI_NEWS = 15;
+    COLLECTOR_USER_CUSTOMIZED_SOURCE = 16;
+    COLLECTOR_USER_CUSTOMIZED_SUBSOURCE = 17;
     // ...
   }
 
@@ -171,6 +175,12 @@ message PanopticSubSource{
 
   // Optional. Sometimes each subsource can have different url.
   string link = 4;
+
+  // This used to define a sub source (not source level) level customized crawler.
+  // This kind of subsource is only for a predefined source - with collector id === COLLECTOR_USER_CUSTOMIZED_SUBSOURCE 
+  optional CustomizedCrawlerParams customized_crawler_params_for_sub_source = 5;
+
+  optional string avatar_url = 6;
 }
 
 // Created empty param here in case we need to pass in additional parameters to
@@ -218,4 +228,16 @@ message WisburgParams {
 message CaUsNewsTaskParams {
   int32 max_pages = 1;
   int32 lanmu_id = 2;
+}
+
+message CustomizedCrawlerParams {
+  string crawl_url = 1; // url to crawl, e.g. https://www.cls.cn/telegraph
+  string base_selector = 2; // base selector should return a list of DOM elements where each one corresponds to a single post
+  optional string title_relative_selector= 3; // relative selector to the base selector
+  optional string content_relative_selector = 4;
+  optional string external_id_relative_selector = 5;
+  optional string time_relative_selector = 6; // if not specified, use the cralwed time as content generated time
+  optional string image_relative_selector = 7;
+  optional string subsource_relative_selector = 8; // how to deal with subsource spec
+  optional string origin_url_relative_selector = 9; // by default is the url 
 }

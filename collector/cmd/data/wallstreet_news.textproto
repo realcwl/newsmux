@@ -17,15 +17,15 @@ jobs: {
 					name: "要闻"
 					type: KEYNEWS
 				}]
-        wallstreet_news_task_params: {
-          channels: [
-            "a-stock-channel", 
-            "us-stock-channel", 
-            "hk-stock-channel", 
-            "goldc-channel%2Coil-channel%2Ccommodity-channel"
-          ]
-          limit: 5
-        }
+				wallstreet_news_task_params: {
+					channels: [
+						"a-stock-channel", 
+						"us-stock-channel", 
+						"hk-stock-channel", 
+						"goldc-channel%2Coil-channel%2Ccommodity-channel"
+					]
+					limit: 5
+				}
 			}
 			task_metadata: {
 				config_name: "wallstreet_news_config"

@@ -7,16 +7,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Luismorlan/newsmux/collector/file_store"
-	"github.com/Luismorlan/newsmux/collector/working_context"
-	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/Luismorlan/newsmux/collector/file_store"
+	"github.com/Luismorlan/newsmux/collector/working_context"
+	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 const (
@@ -46,9 +47,7 @@ func SubsourceTypeToName(t protocol.PanopticSubSource_SubSourceType) string {
 	return "其他"
 }
 
-func LogHtmlParsingError(task *protocol.PanopticTask, elem *colly.HTMLElement, err error) {
-	html, _ := elem.DOM.Html()
-
+func MarkAndLogCrawlError(task *protocol.PanopticTask, err error, moreInfo string) {
 	source := "undefined"
 	switch task.DataCollectorId {
 	case protocol.PanopticTask_COLLECTOR_JINSHI:
@@ -61,11 +60,19 @@ func LogHtmlParsingError(task *protocol.PanopticTask, elem *colly.HTMLElement, e
 		source = "kuailansi"
 	case protocol.PanopticTask_COLLECTOR_WALLSTREET_NEWS:
 		source = "wallstreet"
+	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE:
+		source = "customized"
 	}
 
+	task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 	Logger.Log.WithFields(
 		logrus.Fields{"source": source},
-	).Error(fmt.Sprintf("Error in data collector. [Error] %s. [Type] %s. [Task_id] %s. [DOM Start] %s [DOM End].", err.Error(), task.DataCollectorId, task.TaskId, html))
+	).Error(fmt.Sprintf("Error in data collector. [Source] %s. [Error] %s. [Type] %s. [Task_id] %s. [More Info] %s", source, err.Error(), task.DataCollectorId, task.TaskId, moreInfo))
+}
+
+func LogHtmlParsingError(task *protocol.PanopticTask, elem *colly.HTMLElement, err error) {
+	html, _ := elem.DOM.Html()
+	MarkAndLogCrawlError(task, err, fmt.Sprintf("[DOM Start] %s [DOM End].", html))
 }
 
 func GetSourceLogoUrl(sourceId string) string {
