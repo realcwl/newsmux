@@ -1,9 +1,7 @@
 package collector_instances
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/araddon/dateparse"
 	"github.com/gocolly/colly"
@@ -23,44 +21,26 @@ type CustomizedSourceCrawler struct {
 }
 
 func (j CustomizedSourceCrawler) UpdateTitle(workingContext *working_context.CrawlerWorkingContext) error {
-	titleSelector := *workingContext.Task.TaskParams.
-		GetCustomizedSourceCrawlerTaskParams().TitleRelativeSelector
-	if len(titleSelector) == 0 {
-		return nil
-	}
-	workingContext.Result.Post.Title = workingContext.Element.DOM.Find(titleSelector).Text()
+	workingContext.Result.Post.Title = collector.CustomizedCrawlerExtractPlainText(workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().TitleRelativeSelector, workingContext.Element, "")
 	return nil
 }
 
 func (j CustomizedSourceCrawler) UpdateContent(workingContext *working_context.CrawlerWorkingContext) error {
-	contentSelector := *workingContext.Task.TaskParams.
-		GetCustomizedSourceCrawlerTaskParams().ContentRelativeSelector
-	if len(contentSelector) == 0 {
-		return nil
-	}
-	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(contentSelector).Text()
+	workingContext.Result.Post.Content = collector.CustomizedCrawlerExtractPlainText(workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().ContentRelativeSelector, workingContext.Element, "")
 	return nil
 }
 
 func (j CustomizedSourceCrawler) UpdateExternalId(workingContext *working_context.CrawlerWorkingContext) error {
-	contentSelector := *workingContext.Task.TaskParams.
-		GetCustomizedSourceCrawlerTaskParams().ExternalIdRelativeSelector
-	if len(contentSelector) == 0 {
-		return nil
-	}
-	workingContext.Result.Post.Content = workingContext.Element.DOM.Find(contentSelector).Text()
+	workingContext.Result.Post.SubSource.ExternalId = collector.CustomizedCrawlerExtractPlainText(workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().ExternalIdRelativeSelector, workingContext.Element, "")
 	return nil
 }
 
 func (j CustomizedSourceCrawler) UpdateGeneratedTime(workingContext *working_context.CrawlerWorkingContext) error {
-	contentSelector := *workingContext.Task.TaskParams.
-		GetCustomizedSourceCrawlerTaskParams().ExternalIdRelativeSelector
-	if len(contentSelector) == 0 {
-		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
-		return nil
-	}
-
-	dateString := workingContext.Element.DOM.Find(contentSelector).Text()
+	dateString := collector.CustomizedCrawlerExtractPlainText(workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().TimeRelativeSelector, workingContext.Element, "")
 	t, err := dateparse.ParseLocal(dateString)
 	if err != nil {
 		workingContext.Result.Post.ContentGeneratedAt = timestamppb.Now()
@@ -81,37 +61,19 @@ func (j CustomizedSourceCrawler) UpdateDedupId(workingContext *working_context.C
 }
 
 func (j CustomizedSourceCrawler) UpdateSubsource(workingContext *working_context.CrawlerWorkingContext) error {
-	subSourceSelector := *workingContext.Task.TaskParams.
-		GetCustomizedSourceCrawlerTaskParams().SubsourceRelativeSelector
-	if len(subSourceSelector) == 0 {
-		workingContext.Result.Post.SubSource.Name = workingContext.Task.TaskParams.SubSources[0].Name
+	if workingContext.SubSource != nil {
+		workingContext.Result.Post.SubSource.Name = workingContext.SubSource.Name
 	} else {
-		workingContext.Result.Post.SubSource.Name = workingContext.Element.DOM.Find(subSourceSelector).Text()
-		if len(workingContext.Result.Post.SubSource.Name) == 0 {
-			workingContext.Result.Post.SubSource.Name = workingContext.Task.TaskParams.SubSources[0].Name
-		}
+		return fmt.Errorf("subsource is nil")
 	}
 
-	// TODO: support subsource url, avatar
-	workingContext.Result.Post.SubSource.AvatarUrl = "https://newsfeed-logo.s3.us-west-1.amazonaws.com/test.png"
+	workingContext.Result.Post.SubSource.AvatarUrl = *workingContext.SubSource.AvatarUrl
 	return nil
 }
 
 func (j CustomizedSourceCrawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
-	workingContext.Result.Post.ImageUrls = []string{}
-	imageSelector := *workingContext.Task.TaskParams.
-		GetCustomizedSourceCrawlerTaskParams().ImageRelativeSelector
-	selection := workingContext.Element.DOM.Find(imageSelector)
-	for i := 0; i < selection.Length(); i++ {
-		img := selection.Eq(i)
-		imageUrl := img.AttrOr("src", "")
-		parts := strings.Split(imageUrl, "?")
-		imageUrl = parts[0]
-		if len(imageUrl) == 0 {
-			return errors.New("image DOM exist but src not found")
-		}
-		workingContext.Result.Post.ImageUrls = append(workingContext.Result.Post.ImageUrls, imageUrl)
-	}
+	workingContext.Result.Post.ImageUrls = collector.CustomizedCrawlerExtractMultiAttribute(workingContext.Task.TaskParams.
+		GetCustomizedSourceCrawlerTaskParams().ImageRelativeSelector, workingContext.Element, "src")
 	return nil
 }
 
@@ -160,6 +122,11 @@ func (j CustomizedSourceCrawler) CollectAndPublish(task *protocol.PanopticTask) 
 		return
 	}
 
+	if len(task.TaskParams.SubSources) != 1 {
+		collector.MarkAndLogCrawlError(task, err, "Source level customized crawler should have exact 1 subsource ")
+		return
+	}
+
 	c := colly.NewCollector()
 	// each crawled card(news) will go to this
 	// for each page loaded, there are multiple calls into this func
@@ -167,7 +134,7 @@ func (j CustomizedSourceCrawler) CollectAndPublish(task *protocol.PanopticTask) 
 		var err error
 
 		workingContext := &working_context.CrawlerWorkingContext{
-			SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, Element: elem, OriginUrl: startUrl}
+			SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false}, SubSource: task.TaskParams.SubSources[0], Element: elem, OriginUrl: startUrl}
 		if err = j.GetMessage(workingContext); err != nil {
 			metadata.TotalMessageFailed++
 			collector.LogHtmlParsingError(task, elem, err)
@@ -188,6 +155,10 @@ func (j CustomizedSourceCrawler) CollectAndPublish(task *protocol.PanopticTask) 
 	})
 
 	c.OnRequest(func(r *colly.Request) {
+		if len(task.TaskParams.HeaderParams) == 0 {
+			// to avoid http 418
+			task.TaskParams.HeaderParams = collector.GetDefautlCrawlerHeader()
+		}
 		for _, kv := range task.TaskParams.HeaderParams {
 			r.Headers.Set(kv.Key, kv.Value)
 		}

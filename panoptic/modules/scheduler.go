@@ -190,6 +190,7 @@ func (s *Scheduler) ReadConfigFromLocalOrGithub() (*protocol.PanopticConfigs, er
 	return configs, nil
 }
 
+// Read Source that is Source level customized crawler
 func (s *Scheduler) MergeSourcesFromConfigAndDb(configs *protocol.PanopticConfigs) {
 	var sourcesFromDB []model.Source
 	s.DB.Where("crawler_panoptic_config is NOT NULL AND crawler_panoptic_config != '' ").Order("name").Find(&sourcesFromDB)

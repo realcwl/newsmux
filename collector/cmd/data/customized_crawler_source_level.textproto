@@ -16,8 +16,9 @@ jobs: {
 				source_id: "11111111"
 				sub_sources: [{
                     name: "default"
-                    # type: FLASHNEWS
-                    # external_id:  ""
+                    type: FLASHNEWS
+                    external_id:  ""
+                    avatar_url: "https://newsfeed-logo.s3.us-west-1.amazonaws.com/test.png"
                 }]
                 customized_source_crawler_task_params: {
                     crawl_url : "https://www.cls.cn/telegraph" 
