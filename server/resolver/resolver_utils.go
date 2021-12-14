@@ -347,3 +347,27 @@ func ConstructCustomizedPanopticConfig(input model.NewSourceInput, sourceId stri
 
 	return panopticConfig, nil
 }
+
+// func AddSourceIdToCustomizedCrawlerConfig(configStr *string, sourceId string) error {
+// 	if configStr == nil {
+// 		return nil
+// 	}
+
+//
+// 	if err := prototext.Unmarshal([]byte(*configStr), &panopticConfig); err != nil {
+// 		fmt.Println("Failed to unmarshal panoptic config:", err)
+// 		return err
+// 	}
+// 	panopticConfig.TaskParams.SourceId = sourceId
+// 	panopticConfig.TaskParams.SubSources = []*protocol.PanopticSubSource{
+// 		{
+// 			Name: DefaultSubSourceName,
+// 		},
+// 	}
+// 	newConfig, err := prototext.Marshal(&panopticConfig)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	*configStr = string(newConfig)
+// 	return nil
+// }
