@@ -247,7 +247,7 @@ func (s *Scheduler) MergeSubsourcesFromConfigAndDb(configs *protocol.PanopticCon
 				if s.CustomizedCrawlerParams != nil {
 					var panopticConfig protocol.CustomizedCrawlerParams
 					if err := prototext.Unmarshal([]byte(*s.CustomizedCrawlerParams), &panopticConfig); err != nil {
-						Logger.Log.Error("can't unmarshal customized crawler param for subsource %s, error %+v", s.Name, err)
+						Logger.Log.Errorf("can't unmarshal customized crawler param for subsource %s, error %+v", s.Name, err)
 						continue
 					}
 					customizedCrawlerParams = &panopticConfig
