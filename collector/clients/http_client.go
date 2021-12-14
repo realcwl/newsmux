@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/Luismorlan/newsmux/protocol"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -35,20 +34,13 @@ func NewHttpClientFromTaskParams(task *protocol.PanopticTask) *HttpClient {
 	return NewHttpClient(header, cookies)
 }
 
-func (c *HttpClient) GetWithin(uri string, seconds int) (resp *http.Response, err error) {
-	client := &http.Client{Timeout: time.Duration(seconds) * time.Second}
-	return client.Get(uri)
-}
-
 func (c *HttpClient) Post(uri string, body io.Reader) (*http.Response, error) {
-
-	client := &http.Client{}
 	req, err := http.NewRequest("POST", uri, body)
 	req.Header = c.header
 	for _, cookie := range c.cookies {
 		req.AddCookie(&cookie)
 	}
-	res, err := client.Do(req)
+	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -62,14 +54,12 @@ func (c *HttpClient) Post(uri string, body io.Reader) (*http.Response, error) {
 }
 
 func (c *HttpClient) Get(uri string) (*http.Response, error) {
-
-	client := &http.Client{}
 	req, err := http.NewRequest("GET", uri, nil)
 	req.Header = c.header
 	for _, cookie := range c.cookies {
 		req.AddCookie(&cookie)
 	}
-	res, err := client.Do(req)
+	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/Luismorlan/newsmux/protocol"
 	twitterscraper "github.com/n0madic/twitter-scraper"
 	"github.com/stretchr/testify/assert"
 )
@@ -426,11 +427,14 @@ func TestConvertTweetTreeToCrawledPost_ReplyChain(t *testing.T) {
 	tweet := &twitterscraper.Tweet{}
 	err := json.Unmarshal([]byte(replyChain), tweet)
 	assert.Nil(t, err)
-	res, err := ConvertTweetTreeToCrawledPost(tweet, scraper)
+	res, err := ConvertTweetTreeToCrawledPost(tweet, scraper, &protocol.PanopticTask{TaskParams: &protocol.TaskParams{SourceId: "source_i"}})
 	assert.Nil(t, err)
 	assert.Equal(t, res.Content, "3")
+	assert.Equal(t, res.ContentGeneratedAt.Seconds, int64(1638646600+2*TimeOffsetSecond))
 	assert.Equal(t, res.ReplyTo.Content, "2")
+	assert.Equal(t, res.ReplyTo.ContentGeneratedAt.Seconds, int64(1638646594+TimeOffsetSecond))
 	assert.Equal(t, res.ReplyTo.ReplyTo.Content, "1")
+	assert.Equal(t, res.ReplyTo.ReplyTo.ContentGeneratedAt.Seconds, int64(1638646587))
 	assert.Nil(t, res.ReplyTo.ReplyTo.ReplyTo)
 }
 
@@ -439,7 +443,7 @@ func TestConvertTweetTreeToCrawledPost_ReplyChainWithQuote(t *testing.T) {
 	tweet := &twitterscraper.Tweet{}
 	err := json.Unmarshal([]byte(replyWithAndQuote), tweet)
 	assert.Nil(t, err)
-	res, err := ConvertTweetTreeToCrawledPost(tweet, scraper)
+	res, err := ConvertTweetTreeToCrawledPost(tweet, scraper, &protocol.PanopticTask{TaskParams: &protocol.TaskParams{SourceId: "source_i"}})
 	assert.Nil(t, err)
 	assert.Equal(t, res.Content, "test")
 	assert.Equal(t, res.ReplyTo.Content, "2")

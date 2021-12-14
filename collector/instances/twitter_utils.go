@@ -11,11 +11,19 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const TWITTER_SOURCE_ID = "a19df1ae-3c80-4ffc-b8e6-cefb3a6a3c27"
+const (
+	// Offset the tweet's creation time in each depth by 5 second, so that the
+	// creation time will not be the same, and thus tweets can be sorted by the
+	// creation time to determine the parentship. This is kinda hacky but save us
+	// lots of code in API Server where we don't need to explicitly record the
+	// index of a post in thread.
+	TimeOffsetSecond = 5
+)
 
 // Package level cache that stores the profile result. This is to avoid fetching
 // static profile information multiple times, which can introduce extreme
 // latency.
+// The key here is user id.
 var profileCache = make(map[string]*twitterscraper.Profile)
 
 func GetUserProfile(username string, scraper *twitterscraper.Scraper) (
@@ -72,8 +80,8 @@ func GetTwitterDedupId(tweet *twitterscraper.Tweet) string {
 	return tweet.ID
 }
 
-func GetTwitterCreationTime(tweet *twitterscraper.Tweet) *timestamppb.Timestamp {
-	return timestamppb.New(time.Unix(tweet.Timestamp, 0))
+func GetTwitterCreationTime(tweet *twitterscraper.Tweet, depth int) *timestamppb.Timestamp {
+	return timestamppb.New(time.Unix(tweet.Timestamp+int64(depth*TimeOffsetSecond), 0))
 }
 
 func GetTwitterImageUrls(tweet *twitterscraper.Tweet) []string {
@@ -83,20 +91,20 @@ func GetTwitterImageUrls(tweet *twitterscraper.Tweet) []string {
 // Convert a tweet to crawled message together with the tweet it is refering to
 // (quote/retweet), stored as the SharedFromCrawledPost field. This function
 // will not convert reply thread, which will be dealt with in another function.
-func ConvertTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper) (*protocol.CrawlerMessage_CrawledPost, error) {
-	post, err := ConvertSingleTweetToCrawledPost(tweet, scraper, false)
+func ConvertTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper, depth *int, task *protocol.PanopticTask) (*protocol.CrawlerMessage_CrawledPost, error) {
+	post, err := ConvertSingleTweetToCrawledPost(tweet, scraper, false, depth, task)
 	if err != nil {
 		return nil, err
 	}
 
 	var sharedPost *protocol.CrawlerMessage_CrawledPost
 	if tweet.IsRetweet {
-		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.RetweetedStatus, scraper, false)
+		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.RetweetedStatus, scraper, false, depth, task)
 		if err != nil {
 			return nil, err
 		}
 	} else if tweet.IsQuoted {
-		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.QuotedStatus, scraper, true)
+		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.QuotedStatus, scraper, true, depth, task)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +115,9 @@ func ConvertTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscra
 
 // Convert from Tweet object to CralwedMessage without constructing the inner
 // shared post.
-func ConvertSingleTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper, isQuoted bool) (*protocol.CrawlerMessage_CrawledPost, error) {
+func ConvertSingleTweetToCrawledPost(
+	tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper, isQuoted bool, depth *int, task *protocol.PanopticTask) (
+	*protocol.CrawlerMessage_CrawledPost, error) {
 	profile, err := GetUserProfile(tweet.Username, scraper)
 	if err != nil {
 		Logger.Log.Errorln("fail to get profile for user", tweet.Username)
@@ -118,11 +128,11 @@ func ConvertSingleTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitt
 		Content:            GetTwitterContent(tweet, isQuoted),
 		DeduplicateId:      GetTwitterDedupId(tweet),
 		ImageUrls:          GetTwitterImageUrls(tweet),
-		ContentGeneratedAt: GetTwitterCreationTime(tweet),
+		ContentGeneratedAt: GetTwitterCreationTime(tweet, *depth),
 		SubSource: &protocol.CrawledSubSource{
 			Name:       profile.Name,
 			AvatarUrl:  profile.Avatar,
-			SourceId:   TWITTER_SOURCE_ID,
+			SourceId:   task.TaskParams.SourceId,
 			ExternalId: profile.Username,
 			OriginUrl:  profile.URL,
 		},
@@ -136,23 +146,34 @@ func ConvertSingleTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitt
 // message, together with the reply chain, and quote/retweet in each layer.
 // This is the entry point for most of the tweet
 func ConvertTweetTreeToCrawledPost(
-	root *twitterscraper.Tweet, scraper *twitterscraper.Scraper) (*protocol.CrawlerMessage_CrawledPost, error) {
-	post, err := ConvertTweetToCrawledPost(root, scraper)
-	if err != nil {
-		return nil, err
-	}
+	root *twitterscraper.Tweet, scraper *twitterscraper.Scraper, task *protocol.PanopticTask) (*protocol.CrawlerMessage_CrawledPost, error) {
+	depth := 0
+	return ConvertTweetTreeToCrawledPostInternal(root, scraper, &depth, task)
+}
+
+func ConvertTweetTreeToCrawledPostInternal(
+	root *twitterscraper.Tweet, scraper *twitterscraper.Scraper, depth *int, task *protocol.PanopticTask) (*protocol.CrawlerMessage_CrawledPost, error) {
+	var replyTweet *protocol.CrawlerMessage_CrawledPost
+	var err error
+
 	// Fast return if the post is a leaf in the reply chain.
-	if !root.IsReply || root.InReplyToStatus == nil {
-		return post, nil
+	if root.IsReply && root.InReplyToStatus != nil {
+		replyTweet, err = ConvertTweetTreeToCrawledPostInternal(root.InReplyToStatus, scraper, depth, task)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	replyTweet, err := ConvertTweetTreeToCrawledPost(root.InReplyToStatus, scraper)
+	post, err := ConvertTweetToCrawledPost(root, scraper, depth, task)
 	if err != nil {
 		return nil, err
 	}
+	if replyTweet != nil {
+		post.ReplyTo = replyTweet
+	}
 
-	post.ReplyTo = replyTweet
-
+	// increase depth by 1 for backtracking
+	*depth++
 	return post, nil
 }
 
@@ -181,10 +202,10 @@ func FilterIncompleteTweet(tweets []*twitterscraper.Tweet) []*twitterscraper.Twe
 }
 
 func IsTweetIncluded(needle *twitterscraper.Tweet, hay []*twitterscraper.Tweet) bool {
-	sig := CalcTweetSignature(needle)
+	sigNeedle := CalcTweetSignature(needle)
 	for _, tweet := range hay {
-		resultSig := CalcTweetSignature(tweet)
-		if strings.HasSuffix(resultSig, sig) {
+		sigHay := CalcTweetSignature(tweet)
+		if strings.HasSuffix(sigHay, sigNeedle) {
 			return true
 		}
 	}

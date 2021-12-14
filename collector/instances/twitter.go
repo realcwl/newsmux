@@ -12,7 +12,7 @@ import (
 )
 
 // Twitter's thread max lenth is 25, this number ensures that we capture 2 threads.
-const TWITTER_BATCH_SIZE = 50
+const TwitterBatchSize = 50
 
 type TwitterApiCrawler struct {
 	Sink sink.CollectedDataSink
@@ -21,17 +21,19 @@ type TwitterApiCrawler struct {
 }
 
 // Crawl and publish for a single Twitter user.
-func (t TwitterApiCrawler) ProcessSingleSubSource(
-	subSource *protocol.PanopticSubSource, task *protocol.PanopticTask) {
-	tweets, _, err := t.Scraper.FetchTweets(subSource.ExternalId, TWITTER_BATCH_SIZE, "")
+func (t TwitterApiCrawler) CollectOneSubsource(
+	task *protocol.PanopticTask, subSource *protocol.PanopticSubSource) error {
+	tweets, _, err := t.Scraper.FetchTweets(subSource.ExternalId, TwitterBatchSize, "")
 	if err != nil {
 		Logger.Log.Errorln("fail to collect tweeter user", subSource.ExternalId, err)
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-		return
+		return err
 	}
 	for _, tweet := range FilterIncompleteTweet(tweets) {
 		t.ProcessSingleTweet(tweet, task)
 	}
+
+	return nil
 }
 
 func (t TwitterApiCrawler) ProcessSingleTweet(tweet *twitterscraper.Tweet,
@@ -51,7 +53,7 @@ func (t TwitterApiCrawler) ProcessSingleTweet(tweet *twitterscraper.Tweet,
 func (t TwitterApiCrawler) GetMessage(workingContext *working_context.ApiCollectorWorkingContext) error {
 	collector.InitializeApiCollectorResult(workingContext)
 	tweet := workingContext.ApiResponseItem.(*twitterscraper.Tweet)
-	post, err := ConvertTweetTreeToCrawledPost(tweet, t.Scraper)
+	post, err := ConvertTweetTreeToCrawledPost(tweet, t.Scraper, workingContext.Task)
 	if err != nil {
 		return err
 	}
@@ -60,9 +62,7 @@ func (t TwitterApiCrawler) GetMessage(workingContext *working_context.ApiCollect
 }
 
 func (t TwitterApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
-	for _, subSource := range task.TaskParams.SubSources {
-		t.ProcessSingleSubSource(subSource, task)
-	}
+	collector.ParallelSubsourceApiCollect(task, t)
 
 	collector.SetErrorBasedOnCounts(task, "Twitter")
 }
