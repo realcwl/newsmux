@@ -69,3 +69,11 @@ func (CollectorBuilder) NewGelonghuiCrawler(s sink.CollectedDataSink) DataCollec
 func (CollectorBuilder) NewClsNewsCrawlerCollector(s sink.CollectedDataSink) DataCollector {
 	return &ClsNewsCrawler{Sink: s}
 }
+
+func (CollectorBuilder) NewCustomizedCrawlerCollector(s sink.CollectedDataSink) DataCollector {
+	return &CustomizedSourceCrawler{Sink: s}
+}
+
+func (CollectorBuilder) NewCustomizedSubSourceCollector(s sink.CollectedDataSink) DataCollector {
+	return &CustomizedSubSourceCrawler{Sink: s}
+}

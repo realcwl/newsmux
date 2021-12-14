@@ -7,6 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mmcdole/gofeed"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
@@ -14,9 +18,6 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/mmcdole/gofeed"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func GetWeixinS3ImageStore(t *protocol.PanopticTask, isProd bool) (*file_store.S3FileStore, error) {

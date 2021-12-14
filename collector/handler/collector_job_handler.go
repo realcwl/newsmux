@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/golang/protobuf/proto"
+
 	. "github.com/Luismorlan/newsmux/collector"
 	. "github.com/Luismorlan/newsmux/collector/builder"
 	"github.com/Luismorlan/newsmux/collector/file_store"
@@ -12,7 +14,6 @@ import (
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/golang/protobuf/proto"
 )
 
 type DataCollectJobHandler struct{}
@@ -131,6 +132,10 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector = builder.NewGelonghuiCrawler(sink)
 	case protocol.PanopticTask_COLLECTOR_CLS_NEWS:
 		collector = builder.NewClsNewsCrawlerCollector(sink)
+	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE:
+		collector = builder.NewCustomizedCrawlerCollector(sink)
+	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SUBSOURCE:
+		collector = builder.NewCustomizedSubSourceCollector(sink)
 	default:
 		return errors.New("unknown task data collector id")
 	}
