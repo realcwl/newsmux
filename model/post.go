@@ -78,6 +78,16 @@ type Post struct {
 	ContentGeneratedAt time.Time `json:"content_generated_at"`
 	InSharingChain     bool      `json:"in_sharing_chain"`
 
+	// A post could be within a reply thread, this field stored all ancestors of
+	// this Post, in a chronological order. Under the hood this is tracked via a
+	// many to many table of Post.
+	// Note that we explicitly not storing this thread in a recursive way similar
+	// to SharedFromPost, mostly because GraphQL & GORM doesn't have a way of
+	// recursive loading. This would be fine for SharedFromPost because we limit
+	// it to be only 2 layers but would make the loading for thread impossible
+	// due to the fact that we don't know how long is this thread.
+	ReplyThread []*Post `json:"reply_thread" gorm:"many2many:reply_thread;constraint:OnDelete:CASCADE;"`
+
 	// TODO: convert json to array when serve graphql API and ingest from crawler
 	ImageUrls pq.StringArray `gorm:"type:TEXT[]" json:"image_urls"`
 	FileUrls  pq.StringArray `gorm:"type:TEXT[]" json:"file_urls"`
