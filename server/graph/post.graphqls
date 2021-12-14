@@ -30,6 +30,10 @@ type Post @goModel(model: "model.Post") {
 
   semanticHashing: String
 
+  # the parent post of this thread in chronological order, together with this
+  # post they form a thread.
+  replyThread: [Post!]!
+
   # tags indicating post content
   tags: [String!]!
 }
