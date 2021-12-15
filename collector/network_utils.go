@@ -37,7 +37,7 @@ func HttpGetAndParseJsonResponse(uri string, res interface{}) error {
 		return errors.New("the passed in variable must be a pointer")
 	}
 
-	httpClient := clients.HttpClient{}
+	httpClient := clients.NewDefaultHttpClient()
 	httpResponse, err := httpClient.Get(uri)
 
 	if err != nil {

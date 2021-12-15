@@ -107,7 +107,7 @@ func (w WallstreetApiCollector) CollectOneSubsourceOnePage(
 	subsource *protocol.PanopticSubSource,
 	paginationInfo *working_context.PaginationInfo,
 ) error {
-	var client clients.HttpClient
+	client := clients.NewDefaultHttpClient()
 	url := w.ConstructUrl(task, subsource, paginationInfo)
 	resp, err := client.Get(url)
 	if err != nil {

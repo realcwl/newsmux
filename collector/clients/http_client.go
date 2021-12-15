@@ -17,6 +17,10 @@ type HttpClient struct {
 	client *http.Client
 }
 
+func NewDefaultHttpClient() *HttpClient {
+	return &HttpClient{header: http.Header{}, cookies: []http.Cookie{}, client: &http.Client{}}
+}
+
 func NewHttpClient(header http.Header, cookies []http.Cookie) *HttpClient {
 	return &HttpClient{header: header, cookies: cookies, client: &http.Client{}}
 }

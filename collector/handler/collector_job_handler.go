@@ -37,9 +37,9 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 		s          sink.CollectedDataSink
 		imageStore file_store.CollectedFileStore
 		wg         sync.WaitGroup
-		httpClient clients.HttpClient
 	)
-	ip, err := GetCurrentIpAddress(&httpClient)
+
+	ip, err := GetCurrentIpAddress(clients.NewDefaultHttpClient())
 	if err == nil {
 		UpdateIpAddressesInTasks(ip, job)
 	} else {

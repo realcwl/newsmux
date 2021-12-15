@@ -257,8 +257,8 @@ func TestJin10CollectorHandler(t *testing.T) {
 }
 
 func TestIpAddressFetch(t *testing.T) {
-	var client clients.HttpClient
-	ip, err := GetCurrentIpAddress(&client)
+	client := clients.NewDefaultHttpClient()
+	ip, err := GetCurrentIpAddress(client)
 	require.NoError(t, err)
 	fmt.Println("ip: ", ip)
 	require.Greater(t, len(ip), 0)
