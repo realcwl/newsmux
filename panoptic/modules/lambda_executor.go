@@ -80,7 +80,7 @@ func NewLambdaExecutor(ctx context.Context,
 		m:            sync.RWMutex{},
 		config:       cfg,
 		ctx:          ctx,
-		state:        panoptic.UNINITIALIZED,
+		state:        panoptic.Uninitialized,
 		lambdaClient: client,
 		pool:         []*LambdaFunction{},
 		stalePool:    sync.Map{},
@@ -194,15 +194,15 @@ func (l *LambdaExecutor) Init() error {
 
 	l.MaintainLambdaPool()
 
-	l.state = panoptic.RUNNABLE
+	l.state = panoptic.Runnable
 	return nil
 }
 
 // Create and add a new Lambda function to Lambda pool.
 func (l *LambdaExecutor) AddLambdaFunction() (string, error) {
 	funcName := utils.GetRandomDataCollectorFunctionName()
-	role := panoptic.LAMBDA_AWS_ROLE
-	imageUri := panoptic.DATA_COLLECTOR_IMAGE
+	role := panoptic.LambdaAwsRole
+	imageUri := panoptic.DataCollectorImage
 	timeout := int32(900)
 
 	res, err := l.lambdaClient.CreateFunction(l.ctx, &lambda.CreateFunctionInput{
@@ -295,7 +295,7 @@ func (l *LambdaExecutor) DeleteLambdaFunction(name string) error {
 // A blocking call which initialzie Lambda Pool
 func (l *LambdaExecutor) IntializeLambdaPool() error {
 	// Do no initialize an already initialized pool.
-	if l.state != panoptic.UNINITIALIZED {
+	if l.state != panoptic.Uninitialized {
 		return nil
 	}
 

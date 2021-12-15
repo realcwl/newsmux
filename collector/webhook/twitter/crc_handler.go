@@ -12,17 +12,17 @@ import (
 )
 
 const (
-	// TODO(chenweilunster): Move this APP_SECRET to parameter store
-	APP_SECRET     = "xjsunVSsgYSS0n4Bm7Ai9ZvorzeuT7SkRAFPscC7N9arVzliGJ"
-	CRC_TOKEN      = "crc_token"
-	RESPONSE_TOKEN = "response_token"
+	// TODO(chenweilunster): Move this AppSecret to parameter store
+	AppSecret     = "xjsunVSsgYSS0n4Bm7Ai9ZvorzeuT7SkRAFPscC7N9arVzliGJ"
+	CrcToken      = "crc_token"
+	ResponseToken = "response_token"
 )
 
-// Encode the challenge using HMAC SHA256 with incoming token and APP_SECRET
+// Encode the challenge using HMAC SHA256 with incoming token and AppSecret
 func HandleTwitterCRC(c *gin.Context) {
-	token := c.Query(CRC_TOKEN)
-	h := hmac.New(sha256.New, []byte(APP_SECRET))
+	token := c.Query(CrcToken)
+	h := hmac.New(sha256.New, []byte(AppSecret))
 	h.Write([]byte(token))
 	sha := hex.EncodeToString(h.Sum(nil))
-	c.JSON(http.StatusOK, gin.H{RESPONSE_TOKEN: sha})
+	c.JSON(http.StatusOK, gin.H{ResponseToken: sha})
 }

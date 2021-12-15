@@ -10,17 +10,18 @@ import (
 	"os"
 	"sort"
 
-	"github.com/Luismorlan/newsmux/model"
-	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"gorm.io/gorm"
+
+	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 const (
-	SUBSCRIBE_BUTTON_TEXT   = "Subscribe"
-	UNSUBSCRIBE_BUTTON_TEXT = "Unsubscribe"
+	SubscribeButtonText   = "Subscribe"
+	UnsubscribeButtonText = "Unsubscribe"
 )
 
 type CommandForm struct {
@@ -46,7 +47,7 @@ func buildUserSubscribedFeedsMessageBody(feeds []*model.Feed) slack.Message {
 			if feed.Creator.Name != "" {
 				creator = fmt.Sprintf("_%s_", feed.Creator.Name)
 			}
-			subscribeBtnText := slack.NewTextBlockObject("plain_text", SUBSCRIBE_BUTTON_TEXT, false, false)
+			subscribeBtnText := slack.NewTextBlockObject("plain_text", SubscribeButtonText, false, false)
 			subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
 			optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t %s", feed.Name, creator), false, false)
 			optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))
@@ -62,7 +63,7 @@ func buildUserSubscribedFeedsMessageBody(feeds []*model.Feed) slack.Message {
 			if feed.Creator.Name != "" {
 				creator = fmt.Sprintf("_%s_", feed.Creator.Name)
 			}
-			subscribeBtnText := slack.NewTextBlockObject("plain_text", UNSUBSCRIBE_BUTTON_TEXT, false, false)
+			subscribeBtnText := slack.NewTextBlockObject("plain_text", UnsubscribeButtonText, false, false)
 			subscribeBtnEle := slack.NewButtonBlockElement(feed.Id, feed.Name, subscribeBtnText)
 			optionText := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* \t %s", feed.Name, creator), false, false)
 			optionSection := slack.NewSectionBlock(optionText, nil, slack.NewAccessory(subscribeBtnEle))
