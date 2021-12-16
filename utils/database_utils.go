@@ -14,6 +14,7 @@ import (
 	"github.com/Luismorlan/newsmux/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 const (
@@ -130,7 +131,9 @@ func dropTempDB(curDB *gorm.DB, dbName string) {
 }
 
 func getDB(connectionString string) (db *gorm.DB, err error) {
-	return gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+	return gorm.Open(postgres.Open(connectionString), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 }
 
 func BotDBSetupAndMigration(db *gorm.DB) {

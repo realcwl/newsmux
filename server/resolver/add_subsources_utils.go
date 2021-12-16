@@ -3,6 +3,7 @@ package resolver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/google/uuid"
+	twitterscraper "github.com/n0madic/twitter-scraper"
 	"gorm.io/gorm"
 )
 
@@ -79,6 +81,51 @@ func AddWeiboSubsourceImp(db *gorm.DB, ctx context.Context, input model.AddWeibo
 	return subSource, nil
 }
 
+func AddSubSourceImp(db *gorm.DB, ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error) {
+	source := model.Source{}
+
+	if db.First(&source, "id = ?", collector.TwitterSourceId).RowsAffected == 0 {
+		return nil, fmt.Errorf("Source not found")
+	}
+
+	res := &model.SubSource{}
+	queryResult := db.
+		Where("name = ? AND source_id = ?", input.SubSourceUserName, source.Id).
+		First(res)
+
+	// If the sub source already exists, it could either mean that we already
+	// have this sub source, or that the sub source is hidden (due to isFromSharedPost).
+	// In both case we update the the sub source, so that frontend will receive
+	// a response and add the sub source to its list. Deduplication is handled in
+	// the frontend.
+	if queryResult.RowsAffected != 0 {
+		if err := db.Model(&model.SubSource{}).
+			Update("is_from_shared_post", false).Error; err != nil {
+			return nil, fmt.Errorf("failed to update SubSource: %v", err)
+		}
+		return res, nil
+	}
+
+	externalId, err := GetSubSourceExternalIdFromName(input.SubSourceUserName, input.SourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create new SubSource
+	res = &model.SubSource{
+		Id:                 uuid.New().String(),
+		Name:               input.SubSourceUserName,
+		ExternalIdentifier: externalId,
+		SourceID:           input.SourceID,
+		IsFromSharedPost:   false,
+	}
+	queryResult = db.Create(res)
+	if queryResult.RowsAffected != 1 {
+		return nil, fmt.Errorf("failed to add subsource: %+v", err)
+	}
+	return res, nil
+}
+
 func GetWeiboExternalIdFromName(name string) (string, error) {
 	var client collector.HttpClient
 	// weibo search API is weird in a way that it has type and q params encoded as url but other params not
@@ -107,4 +154,18 @@ func GetWeiboExternalIdFromName(name string) (string, error) {
 		return fmt.Sprint(res.Data.Cards[0].CardGroup[0].User.ID), nil
 	}
 	return "", fmt.Errorf("name not found: %v", name)
+}
+
+func GetTwitterExternalIdFromName(name string) (string, error) {
+	return twitterscraper.New().GetUserIDByScreenName(name)
+}
+
+func GetSubSourceExternalIdFromName(name string, sourceId string) (string, error) {
+	switch sourceId {
+	case collector.WeiboSourceId:
+		return GetWeiboExternalIdFromName(name)
+	case collector.TwitterSourceId:
+		return GetTwitterExternalIdFromName(name)
+	}
+	return "", errors.New("unsupported source")
 }
