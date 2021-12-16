@@ -84,7 +84,7 @@ func AddWeiboSubsourceImp(db *gorm.DB, ctx context.Context, input model.AddWeibo
 func AddSubSourceImp(db *gorm.DB, ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error) {
 	source := model.Source{}
 
-	if db.First(&source, "id = ?", collector.TwitterSourceId).RowsAffected == 0 {
+	if db.First(&source, "id = ?", input.SourceID).RowsAffected == 0 {
 		return nil, fmt.Errorf("Source not found")
 	}
 
