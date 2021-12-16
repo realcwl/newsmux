@@ -103,7 +103,7 @@ func AddSubSourceImp(db *gorm.DB, ctx context.Context, input model.AddSubSourceI
 	// a response and add the sub source to its list. Deduplication is handled in
 	// the frontend.
 	if queryResult.RowsAffected != 0 {
-		if err := db.Model(&model.SubSource{}).
+		if err := db.Model(existingSubSource).
 			Update("is_from_shared_post", false).Error; err != nil {
 			return nil, fmt.Errorf("failed to update SubSource: %v", err)
 		}
