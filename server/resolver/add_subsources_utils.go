@@ -83,15 +83,19 @@ func AddWeiboSubsourceImp(db *gorm.DB, ctx context.Context, input model.AddWeibo
 
 func AddSubSourceImp(db *gorm.DB, ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error) {
 	source := model.Source{}
-
 	if db.First(&source, "id = ?", input.SourceID).RowsAffected == 0 {
 		return nil, fmt.Errorf("Source not found")
 	}
 
-	res := &model.SubSource{}
+	expectedSubSource, err := GetSubSourceFromName(input)
+	if err != nil {
+		return nil, err
+	}
+
+	existingSubSource := &model.SubSource{}
 	queryResult := db.
-		Where("name = ? AND source_id = ?", input.SubSourceUserName, source.Id).
-		First(res)
+		Where("name = ? AND source_id = ?", expectedSubSource.Name, source.Id).
+		First(existingSubSource)
 
 	// If the sub source already exists, it could either mean that we already
 	// have this sub source, or that the sub source is hidden (due to isFromSharedPost).
@@ -103,27 +107,29 @@ func AddSubSourceImp(db *gorm.DB, ctx context.Context, input model.AddSubSourceI
 			Update("is_from_shared_post", false).Error; err != nil {
 			return nil, fmt.Errorf("failed to update SubSource: %v", err)
 		}
-		return res, nil
+		return existingSubSource, nil
 	}
 
-	externalId, err := GetSubSourceExternalIdFromName(input.SubSourceUserName, input.SourceID)
+	queryResult = db.Create(expectedSubSource)
+	if queryResult.RowsAffected != 1 {
+		return nil, fmt.Errorf("failed to add subsource: %+v", err)
+	}
+	return expectedSubSource, nil
+}
+
+func GetWeiboSubSourceFromName(input model.AddSubSourceInput) (*model.SubSource, error) {
+	externalId, err := GetWeiboExternalIdFromName(input.SubSourceUserName)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create new SubSource
-	res = &model.SubSource{
+	return &model.SubSource{
 		Id:                 uuid.New().String(),
 		Name:               input.SubSourceUserName,
 		ExternalIdentifier: externalId,
 		SourceID:           input.SourceID,
 		IsFromSharedPost:   false,
-	}
-	queryResult = db.Create(res)
-	if queryResult.RowsAffected != 1 {
-		return nil, fmt.Errorf("failed to add subsource: %+v", err)
-	}
-	return res, nil
+	}, nil
 }
 
 func GetWeiboExternalIdFromName(name string) (string, error) {
@@ -156,16 +162,34 @@ func GetWeiboExternalIdFromName(name string) (string, error) {
 	return "", fmt.Errorf("name not found: %v", name)
 }
 
-func GetTwitterExternalIdFromName(name string) (string, error) {
-	return twitterscraper.New().GetUserIDByScreenName(name)
+func GetTwitterSubSourceFromName(input model.AddSubSourceInput) (*model.SubSource, error) {
+	profileName, err := GetTwitterUserProfileName(input.SubSourceUserName)
+	if err != nil {
+		return nil, err
+	}
+	return &model.SubSource{
+		Id:                 uuid.New().String(),
+		Name:               profileName,
+		ExternalIdentifier: input.SubSourceUserName,
+		SourceID:           input.SourceID,
+		IsFromSharedPost:   false,
+	}, nil
 }
 
-func GetSubSourceExternalIdFromName(name string, sourceId string) (string, error) {
-	switch sourceId {
-	case collector.WeiboSourceId:
-		return GetWeiboExternalIdFromName(name)
-	case collector.TwitterSourceId:
-		return GetTwitterExternalIdFromName(name)
+func GetTwitterUserProfileName(screenName string) (string, error) {
+	profile, err := twitterscraper.New().GetProfile(screenName)
+	if err != nil {
+		return "", err
 	}
-	return "", errors.New("unsupported source")
+	return profile.Name, nil
+}
+
+func GetSubSourceFromName(input model.AddSubSourceInput) (*model.SubSource, error) {
+	switch input.SourceID {
+	case collector.WeiboSourceId:
+		return GetWeiboSubSourceFromName(input)
+	case collector.TwitterSourceId:
+		return GetTwitterSubSourceFromName(input)
+	}
+	return nil, errors.New("unsupported source")
 }
