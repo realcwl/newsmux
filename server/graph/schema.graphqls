@@ -136,12 +136,23 @@ input DeleteFeedInput {
   feedId: String!
 }
 
+input MarkPostsAsReadInput {
+  userId: String!
+  postsId: [String!]!
+}
+
+input GetPostsReadStatusInput {
+  userId: String!
+  postsId: [String!]!
+}
+
 type Query {
   allVisibleFeeds: [Feed!]
   post(input: PostInput): Post!
   posts: [Post!]
   users: [User!]
 
+  postsReadStatus(input: GetPostsReadStatusInput!): [Boolean!]!
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
@@ -221,6 +232,8 @@ type Mutation {
   deleteSubSource(input: DeleteSubSourceInput): SubSource!
 
   syncUp(input: SeedStateInput): SeedState
+
+  markPostsAsRead(input: MarkPostsAsReadInput!): Boolean!
 }
 
 type Subscription {

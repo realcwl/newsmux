@@ -9,15 +9,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
-	"gorm.io/datatypes"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
+	"github.com/google/uuid"
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error) {
@@ -368,6 +367,14 @@ func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInp
 	return ss, err
 }
 
+func (r *mutationResolver) MarkPostsAsRead(ctx context.Context, input model.MarkPostsAsReadInput) (bool, error) {
+	err := r.RedisClient.MarkPostsAsRead(input.PostsID, input.UserID)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *queryResolver) AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
 
@@ -409,6 +416,10 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	var users []*model.User
 	result := r.DB.Preload(clause.Associations).Find(&users)
 	return users, result.Error
+}
+
+func (r *queryResolver) PostsReadStatus(ctx context.Context, input model.GetPostsReadStatusInput) ([]bool, error) {
+	return r.RedisClient.GetPostsReadStatus(input.PostsID, input.UserID)
 }
 
 func (r *queryResolver) UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error) {
@@ -499,3 +510,13 @@ func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subsc
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *mutationResolver) MarkPostAsRead(ctx context.Context, input model.PostInput) (*bool, error) {
+	panic("not implemented")
+}
