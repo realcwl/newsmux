@@ -26,7 +26,6 @@ func TestAddSubSourceImp_Twitter(t *testing.T) {
 		SubSourceUserName: "elonmusk",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, subSource.Name, "Elon Musk")
-	assert.True(t, false)
-
+	assert.Equal(t, subSource.Name, "elonmusk")
+	assert.Equal(t, subSource.ExternalIdentifier, "44196397")
 }
