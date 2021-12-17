@@ -97,6 +97,7 @@ type ComplexityRoot struct {
 		InSharingChain     func(childComplexity int) int
 		OriginUrl          func(childComplexity int) int
 		PublishedFeeds     func(childComplexity int) int
+		ReplyThread        func(childComplexity int) int
 		SavedByUser        func(childComplexity int) int
 		SemanticHashing    func(childComplexity int) int
 		SharedFromPost     func(childComplexity int) int
@@ -530,6 +531,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.PublishedFeeds(childComplexity), true
+
+	case "Post.replyThread":
+		if e.complexity.Post.ReplyThread == nil {
+			break
+		}
+
+		return e.complexity.Post.ReplyThread(childComplexity), true
 
 	case "Post.savedByUser":
 		if e.complexity.Post.SavedByUser == nil {
@@ -1050,6 +1058,10 @@ type PostInFeedOutput {
   deduplicateId: String!
 
   semanticHashing: String
+
+  # the parent post of this thread in chronological order, together with this
+  # post they form a thread.
+  replyThread: [Post!]!
 
   # tags indicating post content
   tags: [String!]!
@@ -3027,6 +3039,41 @@ func (ec *executionContext) _Post_semanticHashing(ctx context.Context, field gra
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_replyThread(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ReplyThread, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Post)
+	fc.Result = res
+	return ec.marshalNPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_tags(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -6673,6 +6720,11 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "semanticHashing":
 			out.Values[i] = ec._Post_semanticHashing(ctx, field, obj)
+		case "replyThread":
+			out.Values[i] = ec._Post_replyThread(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "tags":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {

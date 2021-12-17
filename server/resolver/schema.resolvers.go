@@ -363,7 +363,16 @@ func (r *queryResolver) AllVisibleFeeds(ctx context.Context) ([]*model.Feed, err
 
 func (r *queryResolver) Post(ctx context.Context, input *model.PostInput) (*model.Post, error) {
 	var post *model.Post
-	result := r.DB.Preload("SharedFromPost.SubSource").Preload(clause.Associations).Model(&model.Post{}).Where("id=?", input.ID).First(&post)
+	result := r.DB.
+		Model(&model.Post{}).
+		Preload("SharedFromPost.SubSource").
+		Preload(clause.Associations).
+		// Maintain a chronological order of reply thread.
+		Preload("ReplyThread", func(db *gorm.DB) *gorm.DB {
+			return db.Order("posts.created_at ASC")
+		}).
+		Preload("ReplyThread.SubSource").
+		Where("id=?", input.ID).First(&post)
 	return post, result.Error
 }
 

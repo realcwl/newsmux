@@ -58,6 +58,11 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Preload("SubSource").
 			Preload("SharedFromPost").
 			Preload("SharedFromPost.SubSource").
+			// Maintain a chronological order of reply thread.
+			Preload("ReplyThread", func(db *gorm.DB) *gorm.DB {
+				return db.Order("posts.created_at ASC")
+			}).
+			Preload("ReplyThread.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor > ?", feed.Id, query.Cursor).
@@ -74,6 +79,11 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Preload("SubSource").
 			Preload("SharedFromPost").
 			Preload("SharedFromPost.SubSource").
+			// Maintain a chronological order of reply thread.
+			Preload("ReplyThread", func(db *gorm.DB) *gorm.DB {
+				return db.Order("posts.created_at ASC")
+			}).
+			Preload("ReplyThread.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor < ?", feed.Id, query.Cursor).
@@ -90,7 +100,9 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			}
 			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor,
 				" try to republish ", query.Limit-len(posts), " more posts")
+			before := len(posts)
 			rePublishPostsFromCursor(db, feed, query.Limit-len(posts), lastCursor)
+			Log.Info("republished ", len(posts)-before, " posts for feed", feed.Id)
 		}
 	}
 	return nil
@@ -122,6 +134,10 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 			Preload("SubSource").
 			Preload("SharedFromPost").
 			Preload("SharedFromPost.SubSource").
+			Preload("ReplyThread", func(db *gorm.DB) *gorm.DB {
+				return db.Order("posts.created_at ASC")
+			}).
+			Preload("ReplyThread.SubSource").
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
 			Order("content_generated_at desc").
