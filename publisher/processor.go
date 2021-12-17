@@ -67,7 +67,7 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(sqsRea
 
 	successCount := 0
 	if err != nil {
-		Log.Error("fail read crawler messages from queue : ", err)
+		Log.Logger.Error("fail read crawler messages from queue : ", err)
 		return successCount
 	}
 
@@ -75,7 +75,7 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(sqsRea
 	// Process all messages
 	for _, msg := range msgs {
 		if _, err := processor.ProcessOneCralwerMessage(msg); err != nil {
-			Log.Errorf("fail process one crawler message. err: %s , message: %s", err, *msg.Message)
+			Log.Logger.Errorf("fail process one crawler message. err: %s , message: %s", err, *msg.Message)
 			continue
 		}
 		successCount++
@@ -97,7 +97,7 @@ func (processor *CrawlerpublisherMessageProcessor) calculateSemanticHashing(deco
 		Length: SemanticHashingLength,
 	})
 	if err != nil || len(res.Binary) != SemanticHashingLength {
-		Log.Errorln("fail to calculate the semantic hashing for post: ", decodedMsg.String(), "error: ", err, "hashing: ", res.Binary)
+		Log.Logger.Errorln("fail to calculate the semantic hashing for post: ", decodedMsg.String(), "error: ", err, "hashing: ", res.Binary)
 		return "", err
 	}
 	return res.Binary, nil
@@ -308,14 +308,17 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		}
 	}
 
-	// Write to DB, post creation and publish is in a transaction
-	err = processor.DB.Transaction(func(tx *gorm.DB) error {
-		tx.Create(&post)
-		err := tx.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
-		return err
-	})
-	if err != nil {
-		return decodedMsg, err
+	// Write to DB, post creation and publish is in a transaction. If cannot write
+	// delete the message.
+	// TODO(chenweilunster): Move it to dead letter queue.
+	if err = processor.DB.Transaction(func(tx *gorm.DB) error {
+		err := tx.Create(&post).Error
+		if err != nil {
+			return err
+		}
+		return tx.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
+	}); err != nil {
+		return decodedMsg, processor.Reader.DeleteMessage(msg)
 	}
 
 	// Delete message from queue
