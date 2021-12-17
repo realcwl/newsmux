@@ -81,6 +81,8 @@ type Post struct {
 	// A post could be within a reply thread, this field stored all ancestors of
 	// this Post, in a chronological order. Under the hood this is tracked via a
 	// many to many table of Post.
+	// The first Post in ReplyThread is a post that doesn't reply to anything (
+	// root post in this thread.)
 	// Note that we explicitly not storing this thread in a recursive way similar
 	// to SharedFromPost, mostly because GraphQL & GORM doesn't have a way of
 	// recursive loading. This would be fine for SharedFromPost because we limit
