@@ -55,7 +55,7 @@ func (d *SchedulerJobDoer) Do(job *SchedulerJob) error {
 	}
 
 	msg := message.NewMessage(watermill.NewUUID(), data)
-	d.EventBus.Publish(panoptic.TOPIC_PENDING_JOB, msg)
+	d.EventBus.Publish(panoptic.TopicPendingJob, msg)
 
 	job.IncrementRunCount()
 

@@ -56,7 +56,7 @@ func JWT() gin.HandlerFunc {
 
 		if jwt == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"code": utils.ERROR_TOKEN_AUTH_FAIL,
+				"code": utils.ErrorTokenAuthFail,
 				"msg":  "empty jwt token",
 			})
 			c.Abort()
@@ -67,7 +67,7 @@ func JWT() gin.HandlerFunc {
 
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"code": utils.ERROR_TOKEN_AUTH_FAIL,
+				"code": utils.ErrorTokenAuthFail,
 				"msg":  err.Error(),
 			})
 			c.Abort()

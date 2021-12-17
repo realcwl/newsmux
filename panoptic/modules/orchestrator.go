@@ -44,14 +44,14 @@ func (o *Orchestrator) PublishFinishedJob(job *protocol.PanopticJob) error {
 		return err
 	}
 	msg := message.NewMessage(watermill.NewUUID(), data)
-	return o.EventBus.Publish(panoptic.TOPIC_EXECUTED_JOB, msg)
+	return o.EventBus.Publish(panoptic.TopicExecutedJob, msg)
 }
 
 func (o *Orchestrator) RunModule(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	messages, err := o.EventBus.Subscribe(ctx, panoptic.TOPIC_PENDING_JOB)
+	messages, err := o.EventBus.Subscribe(ctx, panoptic.TopicPendingJob)
 	if err != nil {
 		return err
 	}

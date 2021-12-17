@@ -30,7 +30,7 @@ func TestSchedulerJobDoer(t *testing.T) {
 	done := make(chan int)
 	// Receiver
 	messages, err := eventbus.Subscribe(
-		ctx, panoptic.TOPIC_PENDING_JOB)
+		ctx, panoptic.TopicPendingJob)
 	assert.Nil(t, err)
 
 	go func() {

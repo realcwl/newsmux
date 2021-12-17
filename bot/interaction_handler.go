@@ -38,7 +38,7 @@ type Action struct {
 }
 
 func (a Action) IsSubsribe() bool {
-	return a.Text.Text == SUBSCRIBE_BUTTON_TEXT
+	return a.Text.Text == SubscribeButtonText
 }
 
 func (a Action) GetFeedId() string {

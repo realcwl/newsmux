@@ -12,15 +12,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Luismorlan/newsmux/model"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"github.com/Luismorlan/newsmux/model"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 const (
-	SIMILARITY_THRESHOLD    = 37
-	SIMILARITY_WINDOW_HOURS = 1
+	SimilarityThreshold   = 37
+	SimilarityWindowHours = 1
 )
 
 var PostsSent sync.Map
@@ -51,7 +52,7 @@ func isHashingSemanticallyIdentical(h1 string, h2 string) bool {
 		}
 	}
 
-	return count <= SIMILARITY_THRESHOLD
+	return count <= SimilarityThreshold
 }
 
 func isPostDuplicated(
@@ -74,7 +75,7 @@ func isPostDuplicated(
 			return false
 		}
 
-		if (math.Abs(post.ContentGeneratedAt.Sub(v.ContentGeneratedAt).Hours())) < SIMILARITY_WINDOW_HOURS {
+		if (math.Abs(post.ContentGeneratedAt.Sub(v.ContentGeneratedAt).Hours())) < SimilarityWindowHours {
 			return isHashingSemanticallyIdentical(post.SemanticHashing, v.SemanticHash)
 		}
 	}

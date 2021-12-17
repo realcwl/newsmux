@@ -6,21 +6,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/Luismorlan/newsmux/collector"
 	sink "github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
-	JINSE_URI = "https://api.jinse.com/noah/v2/lives?limit=3"
+	JinseUrl = "https://api.jinse.com/noah/v2/lives?limit=3"
 
-	JINSE_JINXUAN = "精选"
+	JinseJinXuan = "精选"
 )
 
 type JinseApiCrawler struct {
@@ -83,7 +84,7 @@ type JinsePost struct {
 // - It's grade is greater than 4
 func (k JinseApiCrawler) GetNewsTypeForPost(post *JinsePost) protocol.PanopticSubSource_SubSourceType {
 	if post.HighlightColor != "" ||
-		post.Attribute == JINSE_JINXUAN ||
+		post.Attribute == JinseJinXuan ||
 		post.Grade > 4 {
 		return protocol.PanopticSubSource_KEYNEWS
 	}
@@ -162,7 +163,7 @@ func (k JinseApiCrawler) GetDedupId(post *JinsePost, workingContext *working_con
 
 func (k JinseApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 	res := &JinseResponse{}
-	err := collector.HttpGetAndParseJsonResponse(JINSE_URI, res)
+	err := collector.HttpGetAndParseJsonResponse(JinseUrl, res)
 	if err != nil {
 		Logger.Log.WithFields(logrus.Fields{"source": "jinse"}).Errorln("fail to get Jinse response:", err)
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
@@ -173,7 +174,7 @@ func (k JinseApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		for _, post := range list.Lives {
 			workingContext := &working_context.ApiCollectorWorkingContext{
 				SharedContext: working_context.SharedContext{Task: task, IntentionallySkipped: false},
-				ApiUrl:        JINSE_URI,
+				ApiUrl:        JinseUrl,
 			}
 
 			err := k.ProcessSinglePost(&post, workingContext)
@@ -193,5 +194,5 @@ func (k JinseApiCrawler) CollectAndPublish(task *protocol.PanopticTask) {
 		}
 	}
 
-	collector.SetErrorBasedOnCounts(task, JINSE_URI)
+	collector.SetErrorBasedOnCounts(task, JinseUrl)
 }

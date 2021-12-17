@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	STALE_TIME = 15 * time.Minute
+	StaleTime = 15 * time.Minute
 )
 
 func deleteLambdaFunctions(client *lambda.Client, ctx context.Context) int {
@@ -33,7 +33,7 @@ func deleteLambdaFunctions(client *lambda.Client, ctx context.Context) int {
 			panic(err)
 		}
 
-		if now.Sub(lastModifiedTime) > STALE_TIME {
+		if now.Sub(lastModifiedTime) > StaleTime {
 			_, err := client.DeleteFunction(ctx, &lambda.DeleteFunctionInput{
 				FunctionName: f.FunctionName,
 			})
@@ -56,7 +56,7 @@ func main() {
 	ctx := context.Background()
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(panoptic.AWS_REGION),
+		config.WithRegion(panoptic.AwsRegion),
 	)
 	if err != nil {
 		panic(err)
