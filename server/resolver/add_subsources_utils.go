@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/utils"
