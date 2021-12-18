@@ -75,6 +75,13 @@ input AddWeiboSubSourceInput {
   name: String!
 }
 
+input AddSubSourceInput {
+  # SourceId to which this subSource belongs to.
+  sourceId: String!
+  # subSourceUserName is the actual username for a given Source.
+  subSourceUserName: String!
+}
+
 input FeedRefreshInput {
   feedId: String!
   limit: Int!
@@ -163,7 +170,16 @@ type Mutation {
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
 
-  addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource
+  # Deprecated!
+  # TODO(chenweilunster): Remove this function and all its existence.
+  addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource!
+
+  # For now, addSubSource is used when frontend wants to add some more
+  # subSources for a given source (e.g. Weibo, Twitter). It should validate the
+  # input, store the normalized version, and return the error code if any.
+  # This mutation isn't intended to be used as a generic AddSubSource method for
+  # now, but it can be extended to be a generic one.
+  addSubSource(input: AddSubSourceInput!): SubSource!
 
   syncUp(input: SeedStateInput): SeedState
 }

@@ -3,6 +3,7 @@ package resolver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/google/uuid"
+	twitterscraper "github.com/n0madic/twitter-scraper"
 	"gorm.io/gorm"
 )
 
@@ -79,6 +81,57 @@ func AddWeiboSubsourceImp(db *gorm.DB, ctx context.Context, input model.AddWeibo
 	return subSource, nil
 }
 
+func AddSubSourceImp(db *gorm.DB, ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error) {
+	source := model.Source{}
+	if db.First(&source, "id = ?", input.SourceID).RowsAffected == 0 {
+		return nil, fmt.Errorf("Source not found")
+	}
+
+	expectedSubSource, err := GetSubSourceFromName(input)
+	if err != nil {
+		return nil, err
+	}
+
+	existingSubSource := &model.SubSource{}
+	queryResult := db.
+		Where("name = ? AND source_id = ?", expectedSubSource.Name, source.Id).
+		First(existingSubSource)
+
+	// If the sub source already exists, it could either mean that we already
+	// have this sub source, or that the sub source is hidden (due to isFromSharedPost).
+	// In both case we update the the sub source, so that frontend will receive
+	// a response and add the sub source to its list. Deduplication is handled in
+	// the frontend.
+	if queryResult.RowsAffected != 0 {
+		if err := db.Model(existingSubSource).
+			Update("is_from_shared_post", false).Error; err != nil {
+			return nil, fmt.Errorf("failed to update SubSource: %v", err)
+		}
+		return existingSubSource, nil
+	}
+
+	queryResult = db.Create(expectedSubSource)
+	if queryResult.RowsAffected != 1 {
+		return nil, fmt.Errorf("failed to add subsource: %+v", err)
+	}
+	return expectedSubSource, nil
+}
+
+func GetWeiboSubSourceFromName(input model.AddSubSourceInput) (*model.SubSource, error) {
+	externalId, err := GetWeiboExternalIdFromName(input.SubSourceUserName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.SubSource{
+		Id:                 uuid.New().String(),
+		Name:               input.SubSourceUserName,
+		ExternalIdentifier: externalId,
+		SourceID:           input.SourceID,
+		IsFromSharedPost:   false,
+	}, nil
+}
+
 func GetWeiboExternalIdFromName(name string) (string, error) {
 	var client collector.HttpClient
 	// weibo search API is weird in a way that it has type and q params encoded as url but other params not
@@ -107,4 +160,36 @@ func GetWeiboExternalIdFromName(name string) (string, error) {
 		return fmt.Sprint(res.Data.Cards[0].CardGroup[0].User.ID), nil
 	}
 	return "", fmt.Errorf("name not found: %v", name)
+}
+
+func GetTwitterSubSourceFromName(input model.AddSubSourceInput) (*model.SubSource, error) {
+	profileName, err := GetTwitterUserProfileName(input.SubSourceUserName)
+	if err != nil {
+		return nil, err
+	}
+	return &model.SubSource{
+		Id:                 uuid.New().String(),
+		Name:               profileName,
+		ExternalIdentifier: input.SubSourceUserName,
+		SourceID:           input.SourceID,
+		IsFromSharedPost:   false,
+	}, nil
+}
+
+func GetTwitterUserProfileName(screenName string) (string, error) {
+	profile, err := twitterscraper.New().GetProfile(screenName)
+	if err != nil {
+		return "", err
+	}
+	return profile.Name, nil
+}
+
+func GetSubSourceFromName(input model.AddSubSourceInput) (*model.SubSource, error) {
+	switch input.SourceID {
+	case collector.WeiboSourceId:
+		return GetWeiboSubSourceFromName(input)
+	case collector.TwitterSourceId:
+		return GetTwitterSubSourceFromName(input)
+	}
+	return nil, errors.New("unsupported source")
 }
