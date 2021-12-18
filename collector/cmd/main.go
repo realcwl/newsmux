@@ -6,17 +6,17 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/Luismorlan/newsmux/protocol"
-	. "github.com/Luismorlan/newsmux/utils/flag"
-	. "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/encoding/prototext"
 
 	Handler "github.com/Luismorlan/newsmux/collector/handler"
+	"github.com/Luismorlan/newsmux/protocol"
+	. "github.com/Luismorlan/newsmux/utils/flag"
+	. "github.com/Luismorlan/newsmux/utils/log"
 )
 
 const (
-	DATA_DIR = "collector/cmd/data"
+	DataDir = "collector/cmd/data"
 )
 
 var (
@@ -39,14 +39,14 @@ func ValidatePanopticJob(job *protocol.PanopticJob) {
 
 // Index all panoptic jobs in data folder, by the job id
 func ParseAndIndexPanopticJobs() map[string]*protocol.PanopticJob {
-	files, err := ioutil.ReadDir(DATA_DIR)
+	files, err := ioutil.ReadDir(DataDir)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	res := []byte{}
 	for _, file := range files {
-		in, err := ioutil.ReadFile(filepath.Join(DATA_DIR, file.Name()))
+		in, err := ioutil.ReadFile(filepath.Join(DataDir, file.Name()))
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -97,5 +97,5 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	log.Println("====== Collector Exit ======\n" + proto.MarshalTextString(job))
+	log.Println("====== Collector Exit ======")
 }

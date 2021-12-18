@@ -1,0 +1,24 @@
+# This file should contain all Twitter job variations, each of different 
+# job_id, please do not add non-Twitter jobs in this file. For all other data
+# collectors, you should create a new file in this directory with the data
+# collector's name. They will be picked up automatically by collector/cmd/main.go
+jobs: {
+	job_id: "twitter_job"
+	tasks: 
+  [{
+    task_id: "twitter_task"
+    data_collector_id: COLLECTOR_TWITTER
+    task_params: {
+      source_id: "a19df1ae-3c80-4ffc-b8e6-cefb3a6a3c27"
+      sub_sources: 
+      [
+        {name: "Rnr Capital",type: USERS, external_id: "rnrcapital"},
+        {name: "Elon Musk",type: USERS, external_id: "elonmusk"}
+      ]
+    }
+    task_metadata: {
+      config_name: "twitter_config"
+    }
+  }]
+  debug: true
+}

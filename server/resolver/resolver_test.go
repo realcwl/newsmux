@@ -218,13 +218,13 @@ func TestQueryFeeds(t *testing.T) {
 	utils.TestUserSubscribeFeedAndValidate(t, userId, feedIdTwo, db, client)
 
 	// 0 is oldest post, 6 is newest post
-	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceId, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceId, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_2", "test_content_2", subSourceId, feedIdOne, db, client)
+	idWithReply, _ := utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceId, feedIdOne, db, client)
+	id_1, _ := utils.TestCreatePostAndValidate(t, "test_title_1", "test_content_1", subSourceId, feedIdOne, db, client)
+	id_2, _ := utils.TestCreatePostAndValidate(t, "test_title_2", "test_content_2", subSourceId, feedIdOne, db, client)
 	_, midCursorFirst := utils.TestCreatePostAndValidate(t, "test_title_3", "test_content_3", subSourceId, feedIdOne, db, client)
 	utils.TestCreatePostAndValidate(t, "test_title_4", "test_content_4", subSourceId, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", subSourceId, feedIdOne, db, client)
-	utils.TestCreatePostAndValidate(t, "test_title_6", "test_content_6", subSourceId, feedIdOne, db, client)
+	id_5, _ := utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", subSourceId, feedIdOne, db, client)
+	id_6, _ := utils.TestCreatePostAndValidate(t, "test_title_6", "test_content_6", subSourceId, feedIdOne, db, client)
 
 	// 0 is oldest post, 6 is newest post
 	utils.TestCreatePostAndValidate(t, "test_title_0", "test_content_0", subSourceId, feedIdTwo, db, client)
@@ -235,11 +235,23 @@ func TestQueryFeeds(t *testing.T) {
 	utils.TestCreatePostAndValidate(t, "test_title_5", "test_content_5", subSourceId, feedIdTwo, db, client)
 	utils.TestCreatePostAndValidate(t, "test_title_6", "test_content_6", subSourceId, feedIdTwo, db, client)
 
+	// Create 2 posts belongs to post id 1 to test that we can query reply thread.
+	reply_1, _ := utils.TestCreatePostAndValidate(t, "reply_title_1", "reply_content_1", subSourceId, "", db, client)
+	reply_2, _ := utils.TestCreatePostAndValidate(t, "reply_title_2", "reply_content_2", subSourceId, "", db, client)
+	utils.AddPostToReplyChain(db, idWithReply, []string{reply_1, reply_2})
+
 	checkFeedPosts(t, userId, feedIdOne, midCursorFirst, 2, &updatedTimeOne, model.FeedRefreshDirectionNew,
-		[]string{"test_content_5", "test_content_6"}, db, client)
+		[]string{id_5, id_6}, nil, db, client)
 
 	checkFeedPosts(t, userId, feedIdOne, midCursorSecond, 2, &updatedTimeOne, model.FeedRefreshDirectionOld,
-		[]string{"test_content_2", "test_content_1"}, db, client)
+		[]string{id_5, id_6}, nil, db, client)
+
+	checkFeedPosts(t, userId, feedIdOne, midCursorFirst, 3, &updatedTimeOne, model.FeedRefreshDirectionOld,
+		[]string{idWithReply, id_1, id_2}, map[string][]string{
+			idWithReply: {
+				reply_1, reply_2,
+			},
+		}, db, client)
 
 	checkFeedTopPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, updatedTimeOne, updatedTimeTwo, db, client)
 	checkFeedBottomPostsMultipleFeeds(t, userId, feedIdOne, feedIdTwo, midCursorFirst, midCursorSecond, updatedTimeOne, updatedTimeTwo, db, client)
@@ -249,16 +261,23 @@ func TestQueryFeeds(t *testing.T) {
 
 func checkFeedPosts(
 	t *testing.T, userId string, feedId string, cursor int, limit int, updatedTime *string,
-	direction model.FeedRefreshDirection, expectedPostsIds []string, db *gorm.DB, client *client.Client) {
+	direction model.FeedRefreshDirection, expectedPostsIds []string, postThread map[string][]string, db *gorm.DB, client *client.Client) {
+
 	var resp struct {
 		Feeds []struct {
 			Id        string `json:"id"`
 			UpdatedAt string `json:"updatedAt"`
 			Posts     []struct {
-				Id      string `json:"id"`
-				Title   string `json:"title"`
-				Content string `json:"content"`
-				Cursor  int    `json:"cursor"`
+				Id          string `json:"id"`
+				Title       string `json:"title"`
+				Content     string `json:"content"`
+				Cursor      int    `json:"cursor"`
+				ReplyThread []struct {
+					Id      string `json:"id"`
+					Title   string `json:"title"`
+					Content string `json:"content"`
+					Cursor  int    `json:"cursor"`
+				} `json:"replyThread"`
 			} `json:"posts"`
 		} `json:"feeds"`
 	}
@@ -279,19 +298,21 @@ func checkFeedPosts(
 		  id
 		  updatedAt
 		  posts {
-			id
-			title
-			content
-			cursor
+				id
+				title
+				content
+				cursor
+				replyThread {
+					id
+					title
+					content
+				}
 		  }
 		}
-	  }
+	}
 	`, userId, feedId, limit, cursor, direction, updatedTimeStr)
-	fmt.Println(query)
 
 	client.MustPost(query, &resp)
-
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	require.Equal(t, 1, len(resp.Feeds))
 	require.Equal(t, feedId, resp.Feeds[0].Id)
@@ -299,9 +320,19 @@ func checkFeedPosts(
 
 	var postIds []string
 	for _, post := range resp.Feeds[0].Posts {
+		if postThread != nil {
+			if thread, ok := postThread[post.Id]; ok {
+				require.Equal(t, len(thread), len(post.ReplyThread))
+				for i := 0; i < len(thread); i++ {
+					require.Equal(t, thread[i], post.ReplyThread[i].Id)
+				}
+			}
+		}
+
 		postIds = append(postIds, post.Id)
 	}
-	utils.StringSlicesContainSameElements(postIds, expectedPostsIds)
+
+	require.True(t, utils.StringSlicesContainSameElements(postIds, expectedPostsIds))
 }
 
 func checkFeedTopPostsMultipleFeeds(
@@ -342,8 +373,6 @@ func checkFeedTopPostsMultipleFeeds(
 	  }
 	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionNew, updatedTimeOne,
 		feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionNew, updatedTimeTwo), &resp)
-
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	require.Equal(t, 2, len(resp.Feeds))
 	require.Equal(t, feedIdOne, resp.Feeds[0].Id)
@@ -395,8 +424,6 @@ func checkFeedBottomPostsMultipleFeeds(
 	  }
 	`, userId, feedIdOne, 2, cursorOne, model.FeedRefreshDirectionOld, updatedTimeOne, feedIdTwo, 2, cursorTwo, model.FeedRefreshDirectionOld, updatedTimeTwo), &resp)
 
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
-
 	require.Equal(t, 2, len(resp.Feeds))
 	require.Equal(t, feedIdOne, resp.Feeds[0].Id)
 	require.Equal(t, 2, len(resp.Feeds[0].Posts))
@@ -440,8 +467,6 @@ func checkFeedTopPostsWithoutSpecifyFeed(t *testing.T, userId string, feedIdOne 
 		}
 	  }
 	`, userId), &resp)
-
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	require.Equal(t, 2, len(resp.Feeds))
 	require.Equal(t, feedIdOne, resp.Feeds[0].Id)
@@ -499,8 +524,6 @@ func checkFeedTopPostsUpdateTimeChanged(t *testing.T, userId string, feedId stri
 		  }
 		`, userId, feedId, 7, cursor, model.FeedRefreshDirectionNew, wrongUpdatedTime), &resp)
 
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
-
 	require.Equal(t, 1, len(resp.Feeds))
 	require.Equal(t, feedId, resp.Feeds[0].Id)
 	require.Equal(t, 7, len(resp.Feeds[0].Posts))
@@ -539,7 +562,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		}
 		utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
-			[]string{postId1, postId2}, db, client)
+			[]string{postId1, postId2}, nil, db, client)
 	})
 
 	t.Run("use {upsertFeed} to change subsource, should clear posts, re-publish when query {feeds}", func(t *testing.T) {
@@ -561,7 +584,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		}
 		utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
-			[]string{postId1, postId2, postId3, postId4, postId5}, db, client)
+			[]string{postId1, postId2, postId3, postId4, postId5}, nil, db, client)
 	})
 	t.Run("update data expression for feed, should clear posts, re-publish when query {feeds}", func(t *testing.T) {
 		var feed model.Feed
@@ -582,7 +605,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 	 	}`)
 		utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
-			[]string{postId1, postId3}, db, client)
+			[]string{postId1, postId3}, nil, db, client)
 	})
 	t.Run("update data expression for feed, should clear posts, re-publish when query {feeds} OLD and NEW", func(t *testing.T) {
 		var feed model.Feed
@@ -593,7 +616,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		// publish more by querying {feeds} with NEW
 		updatedAt := utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 1, nil, model.FeedRefreshDirectionNew,
-			[]string{postId5}, db, client)
+			[]string{postId5}, nil, db, client)
 
 		// check only 1 post is published
 		var count int64
@@ -602,7 +625,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 
 		// publish more by querying {feeds} with OLD
 		checkFeedPosts(t, userId, feedIdOne, cursor5, 2, &updatedAt, model.FeedRefreshDirectionOld,
-			[]string{postId4, postId3}, db, client)
+			[]string{postId4, postId3}, nil, db, client)
 
 		// check only 3 post is published now after republishing
 		db.Model(&model.PostFeedPublish{}).Where("feed_id = ?", feedIdOne).Count(&count)
@@ -639,7 +662,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		}
 		utils.TestUpdateFeed(t, feed, db, client)
 		checkFeedPosts(t, userId, feedIdOne, 0, 999, nil, model.FeedRefreshDirectionNew,
-			[]string{postCommnetId}, db, client)
+			[]string{postCommnetId}, nil, db, client)
 	})
 }
 

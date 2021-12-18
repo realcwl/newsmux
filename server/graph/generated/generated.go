@@ -72,6 +72,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AddSubSource      func(childComplexity int, input model.AddSubSourceInput) int
 		AddWeiboSubSource func(childComplexity int, input model.AddWeiboSubSourceInput) int
 		CreatePost        func(childComplexity int, input model.NewPostInput) int
 		CreateSource      func(childComplexity int, input model.NewSourceInput) int
@@ -97,6 +98,7 @@ type ComplexityRoot struct {
 		InSharingChain     func(childComplexity int) int
 		OriginUrl          func(childComplexity int) int
 		PublishedFeeds     func(childComplexity int) int
+		ReplyThread        func(childComplexity int) int
 		SavedByUser        func(childComplexity int) int
 		SemanticHashing    func(childComplexity int) int
 		SharedFromPost     func(childComplexity int) int
@@ -191,6 +193,7 @@ type MutationResolver interface {
 	CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error)
 	UpsertSubSource(ctx context.Context, input model.UpsertSubSourceInput) (*model.SubSource, error)
 	AddWeiboSubSource(ctx context.Context, input model.AddWeiboSubSourceInput) (*model.SubSource, error)
+	AddSubSource(ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error)
 	SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error)
 }
 type PostResolver interface {
@@ -331,6 +334,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FeedSeedState.Name(childComplexity), true
+
+	case "Mutation.addSubSource":
+		if e.complexity.Mutation.AddSubSource == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addSubSource_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddSubSource(childComplexity, args["input"].(model.AddSubSourceInput)), true
 
 	case "Mutation.addWeiboSubSource":
 		if e.complexity.Mutation.AddWeiboSubSource == nil {
@@ -530,6 +545,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.PublishedFeeds(childComplexity), true
+
+	case "Post.replyThread":
+		if e.complexity.Post.ReplyThread == nil {
+			break
+		}
+
+		return e.complexity.Post.ReplyThread(childComplexity), true
 
 	case "Post.savedByUser":
 		if e.complexity.Post.SavedByUser == nil {
@@ -1051,6 +1073,10 @@ type PostInFeedOutput {
 
   semanticHashing: String
 
+  # the parent post of this thread in chronological order, together with this
+  # post they form a thread.
+  replyThread: [Post!]!
+
   # tags indicating post content
   tags: [String!]!
 }
@@ -1130,6 +1156,13 @@ input UpsertSubSourceInput {
 # Add weibo user to the database for panoptic to crawl
 input AddWeiboSubSourceInput {
   name: String!
+}
+
+input AddSubSourceInput {
+  # SourceId to which this subSource belongs to.
+  sourceId: String!
+  # subSourceUserName is the actual username for a given Source.
+  subSourceUserName: String!
 }
 
 input FeedRefreshInput {
@@ -1220,7 +1253,16 @@ type Mutation {
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
 
-  addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource
+  # Deprecated!
+  # TODO(chenweilunster): Remove this function and all its existence.
+  addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource!
+
+  # For now, addSubSource is used when frontend wants to add some more
+  # subSources for a given source (e.g. Weibo, Twitter). It should validate the
+  # input, store the normalized version, and return the error code if any.
+  # This mutation isn't intended to be used as a generic AddSubSource method for
+  # now, but it can be extended to be a generic one.
+  addSubSource(input: AddSubSourceInput!): SubSource!
 
   syncUp(input: SeedStateInput): SeedState
 }
@@ -1320,6 +1362,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_addSubSource_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AddSubSourceInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNAddSubSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐAddSubSourceInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_addWeiboSubSource_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -2374,11 +2431,56 @@ func (ec *executionContext) _Mutation_addWeiboSubSource(ctx context.Context, fie
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.SubSource)
 	fc.Result = res
-	return ec.marshalOSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
+	return ec.marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addSubSource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addSubSource_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddSubSource(rctx, args["input"].(model.AddSubSourceInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SubSource)
+	fc.Result = res
+	return ec.marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_syncUp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3027,6 +3129,41 @@ func (ec *executionContext) _Post_semanticHashing(ctx context.Context, field gra
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_replyThread(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ReplyThread, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Post)
+	fc.Result = res
+	return ec.marshalNPost2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_tags(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -5711,6 +5848,37 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAddSubSourceInput(ctx context.Context, obj interface{}) (model.AddSubSourceInput, error) {
+	var it model.AddSubSourceInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "sourceId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sourceId"))
+			it.SourceID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "subSourceUserName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subSourceUserName"))
+			it.SubSourceUserName, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputAddWeiboSubSourceInput(ctx context.Context, obj interface{}) (model.AddWeiboSubSourceInput, error) {
 	var it model.AddWeiboSubSourceInput
 	asMap := map[string]interface{}{}
@@ -6553,6 +6721,14 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addWeiboSubSource":
 			out.Values[i] = ec._Mutation_addWeiboSubSource(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addSubSource":
+			out.Values[i] = ec._Mutation_addSubSource(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "syncUp":
 			out.Values[i] = ec._Mutation_syncUp(ctx, field)
 		default:
@@ -6673,6 +6849,11 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "semanticHashing":
 			out.Values[i] = ec._Post_semanticHashing(ctx, field, obj)
+		case "replyThread":
+			out.Values[i] = ec._Post_replyThread(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "tags":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -7448,6 +7629,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) unmarshalNAddSubSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐAddSubSourceInput(ctx context.Context, v interface{}) (model.AddSubSourceInput, error) {
+	res, err := ec.unmarshalInputAddSubSourceInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
 
 func (ec *executionContext) unmarshalNAddWeiboSubSourceInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐAddWeiboSubSourceInput(ctx context.Context, v interface{}) (model.AddWeiboSubSourceInput, error) {
 	res, err := ec.unmarshalInputAddWeiboSubSourceInput(ctx, v)
@@ -8621,13 +8807,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
-}
-
-func (ec *executionContext) marshalOSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx context.Context, sel ast.SelectionSet, v *model.SubSource) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._SubSource(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOSubsourcesInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubsourcesInput(ctx context.Context, v interface{}) (*model.SubsourcesInput, error) {

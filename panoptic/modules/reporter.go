@@ -41,7 +41,7 @@ func NewReporter(config ReporterConfig, statsd *statsd.Client, e *gochannel.GoCh
 // counter by 1, and tag it with lots of other information in order for backend
 // to slice it.
 func ReportTaskResultState(task *protocol.PanopticTask, statsdClient *statsd.Client) {
-	err := statsdClient.Incr(panoptic.DDOG_TASK_STATE_COUNTER,
+	err := statsdClient.Incr(panoptic.DdogTaskStateCounter,
 		[]string{
 			task.TaskMetadata.ConfigName,
 			task.DataCollectorId.String(),
@@ -55,7 +55,7 @@ func ReportTaskResultState(task *protocol.PanopticTask, statsdClient *statsd.Cli
 
 // Report how many messages are crawled or failed for a task.
 func ReportTaskMessages(task *protocol.PanopticTask, statsdClient *statsd.Client) {
-	err := statsdClient.Count(panoptic.DDOG_TASK_SUCCESS_MESSAGE_COUNTER,
+	err := statsdClient.Count(panoptic.DdogTaskSuccessMessageCounter,
 		int64(task.TaskMetadata.TotalMessageCollected),
 		[]string{
 			task.TaskMetadata.ConfigName,
@@ -67,7 +67,7 @@ func ReportTaskMessages(task *protocol.PanopticTask, statsdClient *statsd.Client
 		Logger.Log.Infoln("cannot report total message count")
 	}
 
-	err = statsdClient.Count(panoptic.DDOG_TASK_FAILURE_MESSAGE_COUNTER,
+	err = statsdClient.Count(panoptic.DdogTaskFailureMessageCounter,
 		int64(task.TaskMetadata.TotalMessageFailed),
 		[]string{
 			task.TaskMetadata.ConfigName,
@@ -82,7 +82,7 @@ func ReportTaskMessages(task *protocol.PanopticTask, statsdClient *statsd.Client
 
 // Report how many seconds the given task took to execute.
 func ReportTaskExecutionTime(task *protocol.PanopticTask, statsdClient *statsd.Client) {
-	statsdClient.Distribution(panoptic.DDOG_TASK_EXECUTION_TIME_DISTRIBUTION,
+	statsdClient.Distribution(panoptic.DdogTaskExecutionTimeDistribution,
 		float64(task.TaskMetadata.TaskEndTime.Seconds-task.TaskMetadata.TaskStartTime.Seconds),
 		[]string{
 			task.TaskMetadata.ConfigName,
@@ -104,7 +104,7 @@ func (r *Reporter) ProcessPanopticJobs(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	messages, err := r.EventBus.Subscribe(ctx, panoptic.TOPIC_EXECUTED_JOB)
+	messages, err := r.EventBus.Subscribe(ctx, panoptic.TopicExecutedJob)
 	if err != nil {
 		return err
 	}

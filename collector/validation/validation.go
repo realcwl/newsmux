@@ -66,6 +66,8 @@ func getSourceIdFromDataCollectorId(collectorId protocol.PanopticTask_DataCollec
 		return collector.GelonghuiSourceId
 	case protocol.PanopticTask_COLLECTOR_CLS_NEWS:
 		return collector.ClsNewsSourceId
+	case protocol.PanopticTask_COLLECTOR_TWITTER:
+		return collector.TwitterSourceId
 	default:
 		return ""
 	}

@@ -181,8 +181,6 @@ func TestCreateUserAndValidate(t *testing.T, name string, userId string, db *gor
 	  }
 	  `, name, userId), &resp)
 
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
-
 	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.CreateUser.CreatedAt)
 
 	require.NotEmpty(t, resp.CreateUser.Id)
@@ -229,8 +227,6 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 		}
 	  }
 	  `, userId, name, compactEscapedjson, subSourceIdsStr, visibility)
-
-	fmt.Println(query)
 
 	// here the escape will happen, so in resp, the FilterDataExpression is already escaped
 	client.MustPost(query, &resp)
@@ -307,8 +303,6 @@ func TestUpdateFeed(t *testing.T, feed model.Feed, db *gorm.DB, client *client.C
 	  }
 	  `, feed.Id, feed.CreatorID, feed.Name, compactEscapedjson, subSourceIdsStr, feed.Visibility)
 
-	fmt.Println(query)
-
 	// here the escape will happen, so in resp, the FilterDataExpression is already escaped
 	client.MustPost(query, &resp)
 
@@ -368,7 +362,6 @@ func TestCreateSourceAndValidate(t *testing.T, userId string, name string, domai
 	  }
 	  `, userId, name, domain), &resp)
 
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.CreateSource.CreatedAt)
 
 	require.NotEmpty(t, resp.CreateSource.Id)
@@ -400,8 +393,6 @@ func TestCreateSubSourceAndValidate(t *testing.T, userId string, name string, ex
 		}
 	  }
 	  `, name, externalIdentifier, sourceId, StringifyBoolean(isFromSharedPost)), &resp)
-
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.UpsertSubSource.CreatedAt)
 
@@ -437,8 +428,6 @@ func TestUpdateSubSourceAndValidate(t *testing.T, userId string, subSource *mode
 		}
 	  }
 	  `, subSource.Name, subSource.ExternalIdentifier, subSource.SourceID, subSource.OriginUrl, subSource.AvatarUrl), &resp)
-
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.UpsertSubSource.CreatedAt)
 	require.NotEmpty(t, resp.UpsertSubSource.Id)
@@ -488,8 +477,6 @@ func TestCreatePostAndValidate(t *testing.T, title string, content string, subSo
 	  }
 	  `, title, content, subSourceId, publishFeedIds), &resp)
 
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
-
 	createTime, _ := time.Parse("2021-08-08T14:32:50-07:00", resp.CreatePost.CreatedAt)
 
 	require.NotEmpty(t, resp.CreatePost.Id)
@@ -499,6 +486,20 @@ func TestCreatePostAndValidate(t *testing.T, title string, content string, subSo
 	require.Equal(t, "", resp.CreatePost.DeletedAt)
 
 	return resp.CreatePost.Id, resp.CreatePost.Cursor
+}
+
+func AddPostToReplyChain(db *gorm.DB, post_id string, replyToIds []string) {
+	if len(replyToIds) == 0 {
+		return
+	}
+	post := &model.Post{
+		Id: post_id,
+	}
+	replyThread := []model.Post{}
+	for _, replyToId := range replyToIds {
+		replyThread = append(replyThread, model.Post{Id: replyToId})
+	}
+	db.Model(post).Association("ReplyThread").Append(replyThread)
 }
 
 // create user to feed subscription, do sanity checks
@@ -521,8 +522,6 @@ func TestUserSubscribeFeedAndValidate(t *testing.T, userId string, feedId string
 	  }
 	  `, userId, feedId), &resp)
 
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
-
 	require.Equal(t, userId, resp.Subscribe.Id)
 }
 
@@ -543,8 +542,6 @@ func TestGetSubscriberCountAndValidate(t *testing.T, feedId string, count int, d
 			}
 		}
 	`, &resp)
-
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	for _, feed := range resp.AllVisibleFeeds {
 		if feed.Id != feedId {
@@ -573,8 +570,6 @@ func TestDeleteFeedAndValidate(t *testing.T, userId string, feedId string, owner
 		}
 	  }
 	  `, userId, feedId), &resp)
-
-	fmt.Printf("\nResponse from resolver: %+v\n", resp)
 
 	if owner {
 		require.Equal(t, feedId, resp.DeleteFeed.Id)
@@ -614,7 +609,6 @@ func TestQuerySubSources(t *testing.T, isFromSharedPost bool, db *gorm.DB, clien
 	}
 	  `, StringifyBoolean(isFromSharedPost))
 
-	fmt.Println(query)
 	client.MustPost(query, &resp)
 	return resp.SubSources
 }

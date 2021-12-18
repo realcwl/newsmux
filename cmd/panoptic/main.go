@@ -39,7 +39,7 @@ func CreateAndInitLambdaExecutor(ctx context.Context) *modules.LambdaExecutor {
 	var client *lambda.Client
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(panoptic.AWS_REGION),
+		config.WithRegion(panoptic.AwsRegion),
 	)
 	if err != nil {
 		panic(err)

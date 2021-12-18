@@ -34,6 +34,7 @@ const (
 	WallstreetArticleSourceId = "66251821-ef9a-464c-bde9-8b2fd8ef2405"
 	GelonghuiSourceId         = "3627b507-d28d-4627-8afd-a6168e6b10d3"
 	ClsNewsSourceId           = "9ae67eea-4839-11ec-81d3-0242ac130003"
+	TwitterSourceId           = "a19df1ae-3c80-4ffc-b8e6-cefb3a6a3c27"
 )
 
 // Hard code subsource type to name
@@ -80,8 +81,8 @@ func GetSourceLogoUrl(sourceId string) string {
 	// Jin10
 	case Jin10SourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jin10.png"
-	// Weibo
-	case WeiboSourceId:
+	// Weibo or Twitter's subsource logo is per user.
+	case WeiboSourceId, TwitterSourceId:
 		return ""
 	case WallstreetNewsSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wallstrt.png"
@@ -158,7 +159,7 @@ func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext 
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		Logger.Log.Error(
 			"Finished crawl with 0 success msg, Task ", task.TaskId,
-			"[url]", url,
+			"[url] ", url,
 			moreContext,
 		)
 	}
