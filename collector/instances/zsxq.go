@@ -16,6 +16,7 @@ import (
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/PuerkitoBio/goquery"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	clients "github.com/Luismorlan/newsmux/collector/clients"
 )
 
 const (
@@ -114,7 +115,7 @@ func GetZsxqS3FileStore(t *protocol.PanopticTask, isProd bool) (*file_store.S3Fi
 
 func GetZsxqFileDownloadUrlTransform(task *protocol.PanopticTask) file_store.ProcessUrlBeforeFetchFuncType {
 	return func(url string) string {
-		client := NewHttpClientFromTaskParams(task)
+		client := clients.NewHttpClientFromTaskParams(task)
 		resp, err := client.Get(url)
 		if err != nil {
 			utils.ImmediatePrintError(err)
@@ -265,7 +266,7 @@ func (z ZsxqApiCollector) CollectOneSubsourceOnePage(
 	subsource *protocol.PanopticSubSource,
 	paginationInfo *working_context.PaginationInfo,
 ) error {
-	client := NewHttpClientFromTaskParams(task)
+	client := clients.NewHttpClientFromTaskParams(task)
 	url := z.ConstructUrl(task, subsource, paginationInfo)
 	resp, err := client.Get(url)
 	if err != nil {

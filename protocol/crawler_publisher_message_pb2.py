@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z0github.com/Luismorlan/newsmux/publisher/protocol',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1f\x63rawler_publisher_message.proto\x12\x08protocol\x1a\x1fgoogle/protobuf/timestamp.proto\"|\n\x10\x43rawledSubSource\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x65xternal_id\x18\x03 \x01(\t\x12\x11\n\tsource_id\x18\x04 \x01(\t\x12\x12\n\navatar_url\x18\x05 \x01(\t\x12\x12\n\norigin_url\x18\x06 \x01(\t\"\xf6\x03\n\x0e\x43rawlerMessage\x12\x32\n\x04post\x18\x01 \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPost\x12.\n\ncrawled_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncrawler_ip\x18\x03 \x01(\t\x12\x17\n\x0f\x63rawler_version\x18\x04 \x01(\t\x12\x0f\n\x07is_test\x18\x05 \x01(\x08\x1a\xc1\x02\n\x0b\x43rawledPost\x12\x16\n\x0e\x64\x65\x64uplicate_id\x18\x01 \x01(\t\x12.\n\nsub_source\x18\x02 \x01(\x0b\x32\x1a.protocol.CrawledSubSource\x12\r\n\x05title\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12\x12\n\nimage_urls\x18\x05 \x03(\t\x12\x12\n\nfiles_urls\x18\x06 \x03(\t\x12\x38\n\x14\x63ontent_generated_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\norigin_url\x18\x08 \x01(\t\x12\x46\n\x18shared_from_crawled_post\x18\t \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPost\x12\x0c\n\x04tags\x18\n \x03(\tB2Z0github.com/Luismorlan/newsmux/publisher/protocolb\x06proto3'
+  serialized_pb=b'\n\x1f\x63rawler_publisher_message.proto\x12\x08protocol\x1a\x1fgoogle/protobuf/timestamp.proto\"|\n\x10\x43rawledSubSource\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x65xternal_id\x18\x03 \x01(\t\x12\x11\n\tsource_id\x18\x04 \x01(\t\x12\x12\n\navatar_url\x18\x05 \x01(\t\x12\x12\n\norigin_url\x18\x06 \x01(\t\"\xae\x04\n\x0e\x43rawlerMessage\x12\x32\n\x04post\x18\x01 \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPost\x12.\n\ncrawled_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncrawler_ip\x18\x03 \x01(\t\x12\x17\n\x0f\x63rawler_version\x18\x04 \x01(\t\x12\x0f\n\x07is_test\x18\x05 \x01(\x08\x1a\xf9\x02\n\x0b\x43rawledPost\x12\x16\n\x0e\x64\x65\x64uplicate_id\x18\x01 \x01(\t\x12.\n\nsub_source\x18\x02 \x01(\x0b\x32\x1a.protocol.CrawledSubSource\x12\r\n\x05title\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12\x12\n\nimage_urls\x18\x05 \x03(\t\x12\x12\n\nfiles_urls\x18\x06 \x03(\t\x12\x38\n\x14\x63ontent_generated_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\norigin_url\x18\x08 \x01(\t\x12\x46\n\x18shared_from_crawled_post\x18\t \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPost\x12\x0c\n\x04tags\x18\n \x03(\t\x12\x36\n\x08reply_to\x18\x0b \x01(\x0b\x32$.protocol.CrawlerMessage.CrawledPostB2Z0github.com/Luismorlan/newsmux/publisher/protocolb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
@@ -172,6 +172,13 @@ _CRAWLERMESSAGE_CRAWLEDPOST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reply_to', full_name='protocol.CrawlerMessage.CrawledPost.reply_to', index=10,
+      number=11, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -185,7 +192,7 @@ _CRAWLERMESSAGE_CRAWLEDPOST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=386,
-  serialized_end=707,
+  serialized_end=763,
 )
 
 _CRAWLERMESSAGE = _descriptor.Descriptor(
@@ -244,12 +251,13 @@ _CRAWLERMESSAGE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=205,
-  serialized_end=707,
+  serialized_end=763,
 )
 
 _CRAWLERMESSAGE_CRAWLEDPOST.fields_by_name['sub_source'].message_type = _CRAWLEDSUBSOURCE
 _CRAWLERMESSAGE_CRAWLEDPOST.fields_by_name['content_generated_at'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
 _CRAWLERMESSAGE_CRAWLEDPOST.fields_by_name['shared_from_crawled_post'].message_type = _CRAWLERMESSAGE_CRAWLEDPOST
+_CRAWLERMESSAGE_CRAWLEDPOST.fields_by_name['reply_to'].message_type = _CRAWLERMESSAGE_CRAWLEDPOST
 _CRAWLERMESSAGE_CRAWLEDPOST.containing_type = _CRAWLERMESSAGE
 _CRAWLERMESSAGE.fields_by_name['post'].message_type = _CRAWLERMESSAGE_CRAWLEDPOST
 _CRAWLERMESSAGE.fields_by_name['crawled_at'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP

@@ -81,8 +81,8 @@ func GetSourceLogoUrl(sourceId string) string {
 	// Jin10
 	case Jin10SourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/jin10.png"
-	// Weibo
-	case WeiboSourceId:
+	// Weibo or Twitter's subsource logo is per user.
+	case WeiboSourceId, TwitterSourceId:
 		return ""
 	case WallstreetNewsSourceId:
 		return "https://newsfeed-logo.s3.us-west-1.amazonaws.com/wallstrt.png"
@@ -159,7 +159,7 @@ func SetErrorBasedOnCounts(task *protocol.PanopticTask, url string, moreContext 
 		task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
 		Logger.Log.Error(
 			"Finished crawl with 0 success msg, Task ", task.TaskId,
-			"[url]", url,
+			"[url] ", url,
 			moreContext,
 		)
 	}

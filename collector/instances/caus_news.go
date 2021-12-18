@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -101,7 +102,7 @@ func (caus CaUsNewsCrawler) CollectOneSubsourceOnePage(
 		lanmuId = int(task.TaskParams.GetCausNewsTaskParams().LanmuId)
 	}
 	bodyStr := fmt.Sprintf(`{"lanmuId": %d, "filterIds": []}`, lanmuId)
-	client := collector.NewHttpClientFromTaskParams(task)
+	client := clients.NewHttpClientFromTaskParams(task)
 	url := caus.ConstructUrl()
 	resp, err := client.Post(url, strings.NewReader(bodyStr))
 	if err != nil {

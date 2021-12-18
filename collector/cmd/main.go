@@ -97,5 +97,5 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	log.Println("====== Collector Exit ======\n" + proto.MarshalTextString(job))
+	log.Println("====== Collector Exit ======")
 }

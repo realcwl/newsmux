@@ -18,6 +18,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	clients "github.com/Luismorlan/newsmux/collector/clients"
 )
 
 const (
@@ -265,7 +266,7 @@ func ParseWisburgLexicalTime(s string) *timestamppb.Timestamp {
 
 func (w WisburgCrawler) GetResponseInJson(channelType protocol.WisburgParams_ChannelType,
 	task *protocol.PanopticTask) (string, error) {
-	httpClient := collector.NewHttpClientFromTaskParams(task)
+	httpClient := clients.NewHttpClientFromTaskParams(task)
 	res, err := httpClient.Get(w.GetStartUrl(channelType))
 	if err != nil {
 		return "", err

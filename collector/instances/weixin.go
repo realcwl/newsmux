@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/Luismorlan/newsmux/collector"
+	clients "github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
@@ -123,7 +124,7 @@ func (w WeixinArticleRssCollector) CollectOneSubsourceOnePage(
 	task *protocol.PanopticTask,
 	subsource *protocol.PanopticSubSource,
 ) error {
-	client := collector.NewHttpClientFromTaskParams(task)
+	client := clients.NewHttpClientFromTaskParams(task)
 	url := w.ConstructUrl(task, subsource)
 	resp, err := client.Get(url)
 	if err != nil {

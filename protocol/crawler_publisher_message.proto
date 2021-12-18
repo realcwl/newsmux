@@ -59,11 +59,16 @@ message CrawlerMessage {
     // example: "http://companies.caixin.com/2021-04-10/101688620.html"
     string origin_url = 8;
 
-    // post which current post is shared from. For weibo share or retweet.
+    // post which current post is shared from. For weibo share or retweet. For 
+    // twitter, this also means quote and retweet.
     CrawledPost shared_from_crawled_post = 9;
 
     // content tags associated with a post
     repeated string tags = 10;
+
+    // Reply to is a relationship expressed in Twitter, where a thread is 
+    // created by multiple posts replying to each other, connected as a thread.
+    CrawledPost reply_to = 11;
   }
 
   // The post details that this message sends

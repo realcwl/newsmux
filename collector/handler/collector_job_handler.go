@@ -8,6 +8,7 @@ import (
 
 	. "github.com/Luismorlan/newsmux/collector"
 	. "github.com/Luismorlan/newsmux/collector/builder"
+	"github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/collector/file_store"
 	. "github.com/Luismorlan/newsmux/collector/instances"
 	"github.com/Luismorlan/newsmux/collector/sink"
@@ -27,16 +28,18 @@ func UpdateIpAddressesInTasks(ip string, job *protocol.PanopticJob) {
 	}
 }
 
-// This is the entry point to data collector.
+// This is the entry point to data collector, which is executed in a separate
+// thread.
 func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err error) {
 	Logger.Log.Info("Collect() with request: \n", proto.MarshalTextString(job))
+
 	var (
 		s          sink.CollectedDataSink
 		imageStore file_store.CollectedFileStore
 		wg         sync.WaitGroup
-		httpClient HttpClient
 	)
-	ip, err := GetCurrentIpAddress(httpClient)
+
+	ip, err := GetCurrentIpAddress(clients.NewDefaultHttpClient())
 	if err == nil {
 		UpdateIpAddressesInTasks(ip, job)
 	} else {
@@ -136,6 +139,8 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 		collector = builder.NewCustomizedCrawlerCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SUBSOURCE:
 		collector = builder.NewCustomizedSubSourceCollector(sink)
+	case protocol.PanopticTask_COLLECTOR_TWITTER:
+		collector = builder.NewTwitterCollector(sink)
 	default:
 		return errors.New("unknown task data collector id")
 	}

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/google/uuid"
@@ -133,7 +134,7 @@ func GetWeiboSubSourceFromName(input model.AddSubSourceInput) (*model.SubSource,
 }
 
 func GetWeiboExternalIdFromName(name string) (string, error) {
-	var client collector.HttpClient
+	client := clients.NewDefaultHttpClient()
 	// weibo search API is weird in a way that it has type and q params encoded as url but other params not
 	url := "https://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D" + name + "&page_type=searchall"
 	resp, err := client.Get(url)
