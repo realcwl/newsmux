@@ -27,16 +27,17 @@ OriginUrl: link to user page
 IsFromSharedPost: is the subsource from shared post, if so front end will ignore when display, and crawler won't crawl for it
 */
 type SubSource struct {
-	Id                 string `gorm:"primaryKey"`
-	CreatedAt          time.Time
-	DeletedAt          gorm.DeletedAt
-	Name               string
-	ExternalIdentifier string
-	SourceID           string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	AvatarUrl          string
-	OriginUrl          string
-	Feeds              []*Feed `json:"feeds" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
-	IsFromSharedPost   bool
+	Id                      string `gorm:"primaryKey"`
+	CreatedAt               time.Time
+	DeletedAt               gorm.DeletedAt
+	Name                    string
+	ExternalIdentifier      string
+	SourceID                string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	AvatarUrl               string
+	OriginUrl               string
+	Feeds                   []*Feed `json:"feeds" gorm:"many2many:feed_subsources;constraint:OnDelete:CASCADE;"`
+	IsFromSharedPost        bool
+	CustomizedCrawlerParams *string
 }
 
 func (SubSource) IsSubSourceSeedStateInterface() {}

@@ -22,17 +22,19 @@ Name: the display name of the source for example "twitter"
 Domain: the domain of a source, for example "twitter.com"
 SubSources: sub sources in this source, for example followed twitter users are subsource of "twitter", "has-many" relation
 
+CrawlerInfo: serialized protobuf message type PanopticConfig, this direct how customized crawler works
 */
 
 type Source struct {
-	Id         string `gorm:"primaryKey"`
-	CreatedAt  time.Time
-	DeletedAt  gorm.DeletedAt
-	CreatorID  string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Creator    User   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Name       string
-	Domain     string
-	SubSources []SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Id             string `gorm:"primaryKey"`
+	CreatedAt      time.Time
+	DeletedAt      gorm.DeletedAt
+	CreatorID      string `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Creator        User   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Name           string
+	Domain         string
+	SubSources     []SubSource `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	PanopticConfig *string
 }
 
 func (Source) IsSourceSeedStateInterface() {}

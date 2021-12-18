@@ -136,7 +136,7 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 	case protocol.PanopticTask_COLLECTOR_CLS_NEWS:
 		collector = builder.NewClsNewsCrawlerCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE:
-		collector = builder.NewCustomizedCrawlerCollector(sink)
+		collector = builder.NewCustomizedSourceCrawlerCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SUBSOURCE:
 		collector = builder.NewCustomizedSubSourceCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_TWITTER:

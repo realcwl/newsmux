@@ -10,16 +10,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Luismorlan/newsmux/app_setting"
-	"github.com/Luismorlan/newsmux/model"
-	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/Luismorlan/newsmux/utils"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/encoding/prototext"
 	"gorm.io/gorm"
+
+	"github.com/Luismorlan/newsmux/app_setting"
+	"github.com/Luismorlan/newsmux/panoptic"
+	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 var AppSetting *app_setting.PanopticAppSetting
@@ -136,13 +137,14 @@ func (s *Scheduler) UpsertJobs(jobs []*SchedulerJob) {
 }
 
 // Read config either from local workspace (dev) or from Github (production)
+// In addition to the config, we read from DB and add more subsources to each source in the configs
 func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
 	configs, err := s.ReadConfigFromLocalOrGithub()
 	if err != nil {
 		return nil, "", err
 	}
 
-	s.MergeConfigAndDb(configs)
+	panoptic.MergeSubsourcesFromConfigAndDb(s.DB, configs)
 
 	digest, err := utils.TextToMd5Hash(configs.String())
 	if err != nil {
@@ -185,43 +187,6 @@ func (s *Scheduler) ReadConfigFromLocalOrGithub() (*protocol.PanopticConfigs, er
 	}
 
 	return configs, nil
-}
-
-func (s *Scheduler) MergeConfigAndDb(configs *protocol.PanopticConfigs) {
-	var weiboSource model.Source
-	queryWeiboSourceIdResult := s.DB.
-		Where("name = ?", "微博").
-		First(&weiboSource)
-	if queryWeiboSourceIdResult.RowsAffected == 0 {
-		return
-	}
-	weiboSourceId := weiboSource.Id
-	// do merge for all source
-	for _, config := range configs.Config {
-		if config.TaskParams.SourceId != weiboSourceId {
-			continue
-		}
-		param := config.TaskParams
-		var subSourcesFromDB []model.SubSource
-		s.DB.Where("source_id = ? AND is_from_shared_post = false", param.SourceId).Order("name").Find(&subSourcesFromDB)
-
-		existingSubSourceMap := map[string]bool{}
-		// subsource name is unique, using it to do lookup
-		for _, s := range param.SubSources {
-			existingSubSourceMap[s.Name] = true
-		}
-
-		for _, s := range subSourcesFromDB {
-			if _, ok := existingSubSourceMap[s.Name]; !ok {
-				param.SubSources = append(param.SubSources, &protocol.PanopticSubSource{
-					Name:       s.Name,
-					Type:       protocol.PanopticSubSource_USERS, // default to users type
-					ExternalId: s.ExternalIdentifier,
-					Link:       s.OriginUrl,
-				})
-			}
-		}
-	}
 }
 
 func (s *Scheduler) ParseAndUpsertJobs() ( /*reschedule*/ bool, error) {
