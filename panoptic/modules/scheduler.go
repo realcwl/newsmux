@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/Luismorlan/newsmux/app_setting"
-	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/panoptic"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
@@ -137,15 +137,14 @@ func (s *Scheduler) UpsertJobs(jobs []*SchedulerJob) {
 }
 
 // Read config either from local workspace (dev) or from Github (production)
+// In addition to the config, we read from DB and add more subsources to each source in the configs
 func (s *Scheduler) ReadConfig() (*protocol.PanopticConfigs, string, error) {
 	configs, err := s.ReadConfigFromLocalOrGithub()
 	if err != nil {
 		return nil, "", err
 	}
 
-	s.MergeSourcesFromConfigAndDb(configs)
-
-	s.MergeSubsourcesFromConfigAndDb(configs)
+	panoptic.MergeSubsourcesFromConfigAndDb(s.DB, configs)
 
 	digest, err := utils.TextToMd5Hash(configs.String())
 	if err != nil {
@@ -188,81 +187,6 @@ func (s *Scheduler) ReadConfigFromLocalOrGithub() (*protocol.PanopticConfigs, er
 	}
 
 	return configs, nil
-}
-
-func (s *Scheduler) MergeSourcesFromConfigAndDb(configs *protocol.PanopticConfigs) {
-	var sourcesFromDB []model.Source
-	s.DB.Where("crawler_panoptic_config is NOT NULL AND crawler_panoptic_config != '' ").Order("name").Find(&sourcesFromDB)
-	allSourceIds := make(map[string]bool)
-	for _, config := range configs.Config {
-		allSourceIds[config.TaskParams.SourceId] = true
-	}
-
-	for _, sourceFromDB := range sourcesFromDB {
-		var panopticConfig protocol.PanopticConfig
-		if err := prototext.Unmarshal([]byte(*sourceFromDB.PanopticConfig), &panopticConfig); err != nil {
-			fmt.Printf("can't unmarshal panoptic config for source_name %s, error %+v", sourceFromDB.Name, err)
-			return
-		}
-		// only append when DB source is not in configs (Config source has higher priority)
-		if _, ok := allSourceIds[panopticConfig.TaskParams.SourceId]; !ok {
-			configs.Config = append(configs.Config, &panopticConfig)
-		}
-	}
-}
-
-func (s *Scheduler) getCustomizedSubsourceSourceId() map[string]bool {
-	var sources []model.Source
-	s.DB.Where("name IN ?", []string{"微博", "公司博客"}).Find(&sources)
-	sourceIdsToReadSubsourceFromDB := make(map[string]bool)
-	for _, source := range sources {
-		sourceIdsToReadSubsourceFromDB[source.Id] = true
-	}
-	return sourceIdsToReadSubsourceFromDB
-}
-
-func (s *Scheduler) MergeSubsourcesFromConfigAndDb(configs *protocol.PanopticConfigs) {
-	sourceIdsWithSubsourceFromDB := s.getCustomizedSubsourceSourceId()
-
-	// merge DB and config subsources for all source
-	for _, config := range configs.Config {
-		if _, ok := sourceIdsWithSubsourceFromDB[config.TaskParams.SourceId]; !ok {
-			// Add subsources only for Weibo and the one support customized subsource by user
-			continue
-		}
-		param := config.TaskParams
-		var subSourcesFromDB []model.SubSource
-		s.DB.Where("source_id = ? AND is_from_shared_post = false", param.SourceId).Order("name").Find(&subSourcesFromDB)
-
-		existingSubSourceMap := map[string]bool{}
-		// subsource name is unique, using it to do lookup
-		for _, s := range param.SubSources {
-			existingSubSourceMap[s.Name] = true
-		}
-
-		for _, s := range subSourcesFromDB {
-			// only use subsources from DB that is not in config
-			if _, ok := existingSubSourceMap[s.Name]; !ok {
-				var customizedCrawlerParams *protocol.CustomizedCrawlerParams
-				if s.CustomizedCrawlerParams != nil {
-					var panopticConfig protocol.CustomizedCrawlerParams
-					if err := prototext.Unmarshal([]byte(*s.CustomizedCrawlerParams), &panopticConfig); err != nil {
-						Logger.Log.Errorf("can't unmarshal customized crawler param for subsource %s, error %+v", s.Name, err)
-						continue
-					}
-					customizedCrawlerParams = &panopticConfig
-				}
-				param.SubSources = append(param.SubSources, &protocol.PanopticSubSource{
-					Name:                                s.Name,
-					Type:                                protocol.PanopticSubSource_USERS, // default to users type
-					ExternalId:                          s.ExternalIdentifier,
-					Link:                                s.OriginUrl,
-					AvatarUrl:                           &s.AvatarUrl,
-					CustomizedCrawlerParamsForSubSource: customizedCrawlerParams,
-				})
-			}
-		}
-	}
 }
 
 func (s *Scheduler) ParseAndUpsertJobs() ( /*reschedule*/ bool, error) {
