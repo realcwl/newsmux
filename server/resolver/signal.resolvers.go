@@ -5,14 +5,16 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 )
 
 func (r *signalResolver) SignalPayload(ctx context.Context, obj *model.Signal) (*string, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.Payload == "" {
+		return nil, nil
+	}
+	return &obj.Payload, nil
 }
 
 // Signal returns generated.SignalResolver implementation.

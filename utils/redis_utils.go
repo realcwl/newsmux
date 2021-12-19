@@ -62,10 +62,10 @@ func (r RedisKeyParser) MustEncodePostKey(userId string, postId string) string {
 	return fmt.Sprintf("%s%s%s", userId, r.delimiter, postId)
 }
 
-func (r *RedisStatusStore) GetPostsReadStatus(postIds []string, userId string) ([]bool, error) {
+func (r *RedisStatusStore) GetItemsReadStatus(itemNodeIds []string, userId string) ([]bool, error) {
 	postKeys := []string{}
 
-	for _, pid := range postIds {
+	for _, pid := range itemNodeIds {
 		postKeys = append(postKeys, r.keyParser.MustEncodePostKey(userId, pid))
 	}
 
@@ -87,10 +87,10 @@ func (r *RedisStatusStore) GetPostsReadStatus(postIds []string, userId string) (
 	return status, err
 }
 
-func (r RedisStatusStore) SetItemsReadStatus(postIds []string, userId string, read bool) error {
+func (r RedisStatusStore) SetItemsReadStatus(itemNodeIds []string, userId string, read bool) error {
 	if read {
 		keyValues := []interface{}{}
-		for _, pid := range postIds {
+		for _, pid := range itemNodeIds {
 			keyValues = append(keyValues, r.keyParser.MustEncodePostKey(userId, pid))
 			keyValues = append(keyValues, RedisTrue)
 		}
@@ -98,7 +98,7 @@ func (r RedisStatusStore) SetItemsReadStatus(postIds []string, userId string, re
 	}
 
 	keyValues := []string{}
-	for _, pid := range postIds {
+	for _, pid := range itemNodeIds {
 		keyValues = append(keyValues, r.keyParser.MustEncodePostKey(userId, pid))
 	}
 	return r.inner.Del(ctx, keyValues...).Err()

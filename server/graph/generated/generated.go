@@ -223,7 +223,6 @@ type PostResolver interface {
 	FileUrls(ctx context.Context, obj *model.Post) ([]string, error)
 
 	Tags(ctx context.Context, obj *model.Post) ([]string, error)
-	IsRead(ctx context.Context, obj *model.Post) (bool, error)
 }
 type QueryResolver interface {
 	AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error)
@@ -3800,14 +3799,14 @@ func (ec *executionContext) _Post_isRead(ctx context.Context, field graphql.Coll
 		Object:     "Post",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Post().IsRead(rctx, obj)
+		return obj.IsRead, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7863,19 +7862,10 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				return res
 			})
 		case "isRead":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Post_isRead(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Post_isRead(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

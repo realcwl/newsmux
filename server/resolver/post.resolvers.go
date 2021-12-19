@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -27,10 +26,6 @@ func (r *postResolver) FileUrls(ctx context.Context, obj *model.Post) ([]string,
 
 func (r *postResolver) Tags(ctx context.Context, obj *model.Post) ([]string, error) {
 	return strings.Split(obj.Tag, ","), nil
-}
-
-func (r *postResolver) IsRead(ctx context.Context, obj *model.Post) (bool, error) {
-	panic(fmt.Errorf("not implemented"))
 }
 
 // Post returns generated.PostResolver implementation.

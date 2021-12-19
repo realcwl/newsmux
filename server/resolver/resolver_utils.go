@@ -77,18 +77,6 @@ func getFeedPostsOrRePublish(db *gorm.DB, r *utils.RedisStatusStore, feed *model
 			Order("content_generated_at desc").
 			Limit(query.Limit).
 			Find(&posts)
-		postIds := []string{}
-		for _, post := range posts {
-			postIds = append(postIds, post.Id)
-		}
-		// status, err := r.GetPostsReadStatus(postIds, userId)
-		// if err != nil {
-		// 	return errors.Wrap(err, "failure when get posts read status")
-		// }
-		// for idx := range posts {
-		// 	posts[idx].IsRead = status[idx]
-		// }
-		feed.Posts = posts
 	} else {
 		db.Model(&model.Post{}).
 			Preload("SubSource").
@@ -122,6 +110,20 @@ func getFeedPostsOrRePublish(db *gorm.DB, r *utils.RedisStatusStore, feed *model
 			Log.Info("republished ", len(posts)-before, " posts for feed", feed.Id)
 		}
 	}
+
+	// update feed read status from redis
+	postIds := []string{}
+	for _, post := range posts {
+		postIds = append(postIds, post.Id)
+	}
+	status, err := r.GetItemsReadStatus(postIds, userId)
+	if err != nil {
+		return errors.Wrap(err, "failure when get posts read status")
+	}
+	for idx := range posts {
+		posts[idx].IsRead = status[idx]
+	}
+	feed.Posts = posts
 	return nil
 }
 
