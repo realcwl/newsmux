@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"google.golang.org/protobuf/encoding/prototext"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -302,28 +301,13 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 	if queryResult.RowsAffected != 1 {
 		return nil, errors.New("invalid user id")
 	}
-
 	newSourceId := uuid.New().String()
-	var serializedCustomizedCrawlerConfig *string
-	if input.CustomizedCrawlerPanopticConfigForm != nil {
-		config, err := ConstructCustomizedPanopticConfig(input, newSourceId)
-		if err != nil {
-			return nil, err
-		}
-		bytes, err := prototext.Marshal(&config)
-		if err != nil {
-			return nil, err
-		}
-		str := string(bytes)
-		serializedCustomizedCrawlerConfig = &str
-	}
 	source := model.Source{
-		Id:             newSourceId,
-		Name:           input.Name,
-		Domain:         input.Domain,
-		CreatedAt:      time.Now(),
-		Creator:        user,
-		PanopticConfig: serializedCustomizedCrawlerConfig,
+		Id:        newSourceId,
+		Name:      input.Name,
+		Domain:    input.Domain,
+		CreatedAt: time.Now(),
+		Creator:   user,
 	}
 
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
@@ -343,6 +327,17 @@ func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSour
 
 func (r *mutationResolver) UpsertSubSource(ctx context.Context, input model.UpsertSubSourceInput) (*model.SubSource, error) {
 	return UpsertSubsourceImpl(r.DB, input)
+}
+
+func (r *mutationResolver) DeleteSubSource(ctx context.Context, input *model.DeleteSubSourceInput) (*model.SubSource, error) {
+	var subSource model.SubSource
+	queryResult := r.DB.Where("id = ?", input.SubsourceID).First(&subSource)
+	if queryResult.RowsAffected == 0 {
+		return nil, fmt.Errorf("DeleteSubSource subsource with id %s not exist", input.SubsourceID)
+	}
+	subSource.IsFromSharedPost = true
+	r.DB.Save(&subSource)
+	return &subSource, nil
 }
 
 func (r *mutationResolver) AddWeiboSubSource(ctx context.Context, input model.AddWeiboSubSourceInput) (*model.SubSource, error) {
@@ -445,7 +440,15 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInp
 
 func (r *queryResolver) SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error) {
 	var subSources []*model.SubSource
-	result := r.DB.Preload(clause.Associations).Where("is_from_shared_post = ?", input.IsFromSharedPost).Order("created_at").Find(&subSources)
+	filterCustomizedClause := ""
+	if input.IsCustomized != nil {
+		if *input.IsCustomized {
+			filterCustomizedClause = "AND customized_crawler_params IS NOT NULL"
+		} else {
+			filterCustomizedClause = "AND customized_crawler_params IS NULL"
+		}
+	}
+	result := r.DB.Preload(clause.Associations).Where("is_from_shared_post = ?"+filterCustomizedClause, input.IsFromSharedPost).Order("created_at").Find(&subSources)
 	return subSources, result.Error
 }
 

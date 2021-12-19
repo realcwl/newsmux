@@ -88,6 +88,7 @@ type ComplexityRoot struct {
 		CreateSource      func(childComplexity int, input model.NewSourceInput) int
 		CreateUser        func(childComplexity int, input model.NewUserInput) int
 		DeleteFeed        func(childComplexity int, input model.DeleteFeedInput) int
+		DeleteSubSource   func(childComplexity int, input *model.DeleteSubSourceInput) int
 		Subscribe         func(childComplexity int, input model.SubscribeInput) int
 		SyncUp            func(childComplexity int, input *model.SeedStateInput) int
 		UpsertFeed        func(childComplexity int, input model.UpsertFeedInput) int
@@ -143,14 +144,13 @@ type ComplexityRoot struct {
 	}
 
 	Source struct {
-		CreatedAt      func(childComplexity int) int
-		Creator        func(childComplexity int) int
-		DeletedAt      func(childComplexity int) int
-		Domain         func(childComplexity int) int
-		Id             func(childComplexity int) int
-		Name           func(childComplexity int) int
-		PanopticConfig func(childComplexity int) int
-		SubSources     func(childComplexity int) int
+		CreatedAt  func(childComplexity int) int
+		Creator    func(childComplexity int) int
+		DeletedAt  func(childComplexity int) int
+		Domain     func(childComplexity int) int
+		Id         func(childComplexity int) int
+		Name       func(childComplexity int) int
+		SubSources func(childComplexity int) int
 	}
 
 	SubSource struct {
@@ -204,6 +204,7 @@ type MutationResolver interface {
 	Subscribe(ctx context.Context, input model.SubscribeInput) (*model.User, error)
 	CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error)
 	UpsertSubSource(ctx context.Context, input model.UpsertSubSourceInput) (*model.SubSource, error)
+	DeleteSubSource(ctx context.Context, input *model.DeleteSubSourceInput) (*model.SubSource, error)
 	AddWeiboSubSource(ctx context.Context, input model.AddWeiboSubSourceInput) (*model.SubSource, error)
 	SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error)
 }
@@ -462,6 +463,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteFeed(childComplexity, args["input"].(model.DeleteFeedInput)), true
+
+	case "Mutation.deleteSubSource":
+		if e.complexity.Mutation.DeleteSubSource == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteSubSource_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteSubSource(childComplexity, args["input"].(*model.DeleteSubSourceInput)), true
 
 	case "Mutation.subscribe":
 		if e.complexity.Mutation.Subscribe == nil {
@@ -813,13 +826,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Source.Name(childComplexity), true
-
-	case "Source.panopticConfig":
-		if e.complexity.Source.PanopticConfig == nil {
-			break
-		}
-
-		return e.complexity.Source.PanopticConfig(childComplexity), true
 
 	case "Source.subsources":
 		if e.complexity.Source.SubSources == nil {
@@ -1181,6 +1187,7 @@ input SourcesInput {
 
 input SubsourcesInput {
   isFromSharedPost: Boolean!
+  isCustomized: Boolean
 }
 
 input PostInput {
@@ -1264,6 +1271,10 @@ input UpsertSubSourceInput {
   # use this to customize crawler behavior, the source should have 
   # collector_id = COLLECTOR_USER_CUSTOMIZED_SUBSOURCE in config
   customizedCrawlerParams: CustomizedCrawlerParams
+}
+
+input DeleteSubSourceInput {
+  subsourceId: String!
 }
 
 # Add weibo user to the database for panoptic to crawl
@@ -1360,6 +1371,7 @@ type Mutation {
 
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
+  deleteSubSource(input: DeleteSubSourceInput): SubSource!
   addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource
 
   syncUp(input: SeedStateInput): SeedState
@@ -1404,7 +1416,6 @@ type Signal @goModel(model: "model.Signal") {
   name: String!
   domain: String
   subsources: [SubSource!]!
-  panopticConfig: String
 }
 `, BuiltIn: false},
 	{Name: "graph/subsource.graphqls", Input: `type SubSource @goModel(model: "model.SubSource") {
@@ -1530,6 +1541,21 @@ func (ec *executionContext) field_Mutation_deleteFeed_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNDeleteFeedInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐDeleteFeedInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteSubSource_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.DeleteSubSourceInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalODeleteSubSourceInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐDeleteSubSourceInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2739,6 +2765,48 @@ func (ec *executionContext) _Mutation_upsertSubSource(ctx context.Context, field
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().UpsertSubSource(rctx, args["input"].(model.UpsertSubSourceInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SubSource)
+	fc.Result = res
+	return ec.marshalNSubSource2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSource(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteSubSource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteSubSource_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteSubSource(rctx, args["input"].(*model.DeleteSubSourceInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4299,38 +4367,6 @@ func (ec *executionContext) _Source_subsources(ctx context.Context, field graphq
 	res := resTmp.([]model.SubSource)
 	fc.Result = res
 	return ec.marshalNSubSource2ᚕgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSubSourceᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Source_panopticConfig(ctx context.Context, field graphql.CollectedField, obj *model.Source) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Source",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PanopticConfig, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SubSource_id(ctx context.Context, field graphql.CollectedField, obj *model.SubSource) (ret graphql.Marshaler) {
@@ -6415,6 +6451,29 @@ func (ec *executionContext) unmarshalInputDeleteFeedInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputDeleteSubSourceInput(ctx context.Context, obj interface{}) (model.DeleteSubSourceInput, error) {
+	var it model.DeleteSubSourceInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "subsourceId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subsourceId"))
+			it.SubsourceID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputFeedRefreshInput(ctx context.Context, obj interface{}) (model.FeedRefreshInput, error) {
 	var it model.FeedRefreshInput
 	asMap := map[string]interface{}{}
@@ -6787,6 +6846,14 @@ func (ec *executionContext) unmarshalInputSubsourcesInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isFromSharedPost"))
 			it.IsFromSharedPost, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "isCustomized":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isCustomized"))
+			it.IsCustomized, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7255,6 +7322,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "deleteSubSource":
+			out.Values[i] = ec._Mutation_deleteSubSource(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "addWeiboSubSource":
 			out.Values[i] = ec._Mutation_addWeiboSubSource(ctx, field)
 		case "syncUp":
@@ -7680,8 +7752,6 @@ func (ec *executionContext) _Source(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "panopticConfig":
-			out.Values[i] = ec._Source_panopticConfig(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9150,6 +9220,14 @@ func (ec *executionContext) marshalOCustomizedCrawlerTestResponse2ᚕᚖgithub�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalODeleteSubSourceInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐDeleteSubSourceInput(ctx context.Context, v interface{}) (*model.DeleteSubSourceInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputDeleteSubSourceInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOFeed2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Feed) graphql.Marshaler {

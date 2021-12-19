@@ -12,7 +12,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/Luismorlan/newsmux/model"
-	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
@@ -71,24 +70,6 @@ func TestCreateFeed(t *testing.T) {
 	})
 }
 
-func TestCreateSource(t *testing.T) {
-	db, _ := utils.CreateTempDB(t)
-
-	client := PrepareTestForGraphQLAPIs(db)
-
-	t.Run("Test Source Creation", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		sourceId := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
-		require.NotEmpty(t, sourceId)
-
-		var source model.Source
-		queryResult := db.Where("id = ?", sourceId).Preload("SubSources").First(&source)
-		require.Equal(t, int64(1), queryResult.RowsAffected)
-		require.Equal(t, 1, len(source.SubSources))
-		require.Equal(t, DefaultSubSourceName, source.SubSources[0].Name)
-	})
-}
-
 func TestUpsertSubSource(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
@@ -126,7 +107,7 @@ func TestQuerySubSource(t *testing.T) {
 		subSourceId2 := utils.TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api_2", "test_external_id_2", sourceId, true, db, client)
 		require.NotEmpty(t, subSourceId2)
 
-		subSources := utils.TestQuerySubSources(t, false, db, client)
+		subSources := utils.TestQuerySubSources(t, false, nil, db, client)
 		// There are two subsources, one is the "default" for the source, the other is test 1
 		require.Equal(t, 2, len(subSources))
 		require.Equal(t, "default", subSources[0].Name)
@@ -135,7 +116,7 @@ func TestQuerySubSource(t *testing.T) {
 		require.Equal(t, "test_external_id_1", subSources[1].ExternalIdentifier)
 		require.Equal(t, false, subSources[1].IsFromSharedPost)
 
-		subSources = utils.TestQuerySubSources(t, true, db, client)
+		subSources = utils.TestQuerySubSources(t, true, nil, db, client)
 		// There are two subsources, one is the "default" for the source, the other is test 1
 		require.Equal(t, 1, len(subSources))
 		require.Equal(t, "test_subsource_for_feeds_api_2", subSources[0].Name)
@@ -659,27 +640,43 @@ func TestUserState(t *testing.T) {
 	utils.TestQueryUserState(t, userId, []string{feedIdOne, feedIdTwo}, client)
 }
 
-func TestConstructCustomizedPanopticConfig(t *testing.T) {
-	var input model.NewSourceInput
-	input.Name = "test_source_name"
-	startImmediately := false
-	imageRelativeSelector := "div > .img"
-	input.CustomizedCrawlerPanopticConfigForm = &model.CustomizedCrawlerPanopticConfigForm{
-		StartImmediately: &startImmediately,
-		CustomizedCrawlerParams: &model.CustomizedCrawlerParams{
-			BaseSelector:          "base_selector",
-			CrawlURL:              "url",
-			ImageRelativeSelector: &imageRelativeSelector,
-		},
-	}
-	config, err := ConstructCustomizedPanopticConfig(input, "test_source_id")
-	require.NoError(t, err)
-	require.Equal(t, "test_source_id", config.TaskParams.SourceId)
-	require.Equal(t, "test_source_name_config", config.Name)
-	require.Equal(t, false, config.TaskSchedule.StartImmediatly)
-	require.Equal(t, int64(5*60*1000), config.TaskSchedule.GetRoutinely().EveryMilliseconds)
-	require.Equal(t, "base_selector", config.TaskParams.GetCustomizedSourceCrawlerTaskParams().BaseSelector)
-	require.Equal(t, "url", config.TaskParams.GetCustomizedSourceCrawlerTaskParams().CrawlUrl)
-	require.Equal(t, "div > .img", *config.TaskParams.GetCustomizedSourceCrawlerTaskParams().ImageRelativeSelector)
-	require.Equal(t, protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SOURCE, config.DataCollectorId)
+func TestDeleteSubsource(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	client := PrepareTestForGraphQLAPIs(db)
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_delete_subsource_api", "default_user_id", db, client)
+	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_delete_subsource_api", "test_domain", db, client)
+	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, false, db, client)
+	require.NotEmpty(t, subSourceId)
+
+	utils.TestDeleteSubSourceAndValidate(t, userId, subSourceId, db, client)
+
+	var subsourceAfterDelete model.SubSource
+	db.Where("id = ?", subSourceId).First(&subsourceAfterDelete)
+	require.True(t, subsourceAfterDelete.IsFromSharedPost)
+}
+
+func TestListSubsourceAfterDeletion(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	client := PrepareTestForGraphQLAPIs(db)
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_delete_subsource_api", "default_user_id", db, client)
+	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_delete_subsource_api", "test_domain", db, client)
+	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_delete_subsource_api", "test_externalid", sourceId, false, db, client)
+	require.NotEmpty(t, subSourceId)
+
+	subSources := utils.TestQuerySubSources(t, false, nil, db, client)
+	fmt.Println(subSources[0])
+	fmt.Println(subSources[1])
+	// one is default, the other is the one added
+	require.Equal(t, 2, len(subSources))
+
+	utils.TestDeleteSubSourceAndValidate(t, userId, subSourceId, db, client)
+
+	var subsourceAfterDelete model.SubSource
+	db.Where("id = ?", subSourceId).First(&subsourceAfterDelete)
+	require.True(t, subsourceAfterDelete.IsFromSharedPost)
+
+	subSources = utils.TestQuerySubSources(t, false, nil, db, client)
+	require.Equal(t, 1, len(subSources))
 }

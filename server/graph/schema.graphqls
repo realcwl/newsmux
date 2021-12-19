@@ -16,6 +16,7 @@ input SourcesInput {
 
 input SubsourcesInput {
   isFromSharedPost: Boolean!
+  isCustomized: Boolean
 }
 
 input PostInput {
@@ -99,6 +100,10 @@ input UpsertSubSourceInput {
   # use this to customize crawler behavior, the source should have 
   # collector_id = COLLECTOR_USER_CUSTOMIZED_SUBSOURCE in config
   customizedCrawlerParams: CustomizedCrawlerParams
+}
+
+input DeleteSubSourceInput {
+  subsourceId: String!
 }
 
 # Add weibo user to the database for panoptic to crawl
@@ -195,6 +200,7 @@ type Mutation {
 
   createSource(input: NewSourceInput!): Source!
   upsertSubSource(input: UpsertSubSourceInput!): SubSource!
+  deleteSubSource(input: DeleteSubSourceInput): SubSource!
   addWeiboSubSource(input: AddWeiboSubSourceInput!): SubSource
 
   syncUp(input: SeedStateInput): SeedState
