@@ -96,14 +96,14 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	// Upsert DB
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		// Update all columns, except primary keys and subscribers to new value, on conflict
-		queryResult = tx.Clauses(clause.OnConflict{
+		queryResult = tx.Debug().Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
 			UpdateAll: false,
 			DoUpdates: clause.AssignmentColumns([]string{"name", "updated_at", "creator_id", "filter_data_expression", "visibility"}),
 		}).Create(&feed)
 
 		if queryResult.RowsAffected != 1 {
-			return errors.New("can't upsert")
+			return fmt.Errorf("can't upsert %s", queryResult.Error)
 		}
 
 		// Update subsources
@@ -329,6 +329,14 @@ func (r *mutationResolver) UpsertSubSource(ctx context.Context, input model.Upse
 	return UpsertSubsourceImpl(r.DB, input)
 }
 
+func (r *mutationResolver) AddWeiboSubSource(ctx context.Context, input model.AddWeiboSubSourceInput) (*model.SubSource, error) {
+	return AddWeiboSubsourceImp(r.DB, ctx, input)
+}
+
+func (r *mutationResolver) AddSubSource(ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error) {
+	return AddSubSourceImp(r.DB, ctx, input)
+}
+
 func (r *mutationResolver) DeleteSubSource(ctx context.Context, input *model.DeleteSubSourceInput) (*model.SubSource, error) {
 	var subSource model.SubSource
 	queryResult := r.DB.Where("id = ?", input.SubsourceID).First(&subSource)
@@ -338,14 +346,6 @@ func (r *mutationResolver) DeleteSubSource(ctx context.Context, input *model.Del
 	subSource.IsFromSharedPost = true
 	r.DB.Save(&subSource)
 	return &subSource, nil
-}
-
-func (r *mutationResolver) AddWeiboSubSource(ctx context.Context, input model.AddWeiboSubSourceInput) (*model.SubSource, error) {
-	return AddWeiboSubsourceImp(r.DB, ctx, input)
-}
-
-func (r *mutationResolver) AddSubSource(ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error) {
-	return AddSubSourceImp(r.DB, ctx, input)
 }
 
 func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {

@@ -90,7 +90,8 @@ func main() {
 
 	ValidatePanopticJob(job)
 
-	log.Println("====== Panoptic Job ======\n" + proto.MarshalTextString(job))
+	bytes, _ := proto.Marshal(job)
+	log.Println("====== Panoptic Job ======\n" + string(bytes))
 
 	handler := Handler.DataCollectJobHandler{}
 	if err := handler.Collect(job); err != nil {

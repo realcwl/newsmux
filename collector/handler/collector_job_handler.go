@@ -31,7 +31,11 @@ func UpdateIpAddressesInTasks(ip string, job *protocol.PanopticJob) {
 // This is the entry point to data collector, which is executed in a separate
 // thread.
 func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err error) {
-	Logger.Log.Info("Collect() with request: \n", proto.MarshalTextString(job))
+	bytes, err := proto.Marshal(job)
+	if err != nil {
+		return err
+	}
+	Logger.Log.Info("Collect() with request: \n", string(bytes))
 
 	var (
 		s          sink.CollectedDataSink
@@ -84,7 +88,11 @@ func (handler DataCollectJobHandler) Collect(job *protocol.PanopticJob) (err err
 		}(t)
 	}
 	wg.Wait()
-	Logger.Log.Info("Collect() response: \n", proto.MarshalTextString(job))
+	bytes, err = proto.Marshal(job)
+	if err != nil {
+		return err
+	}
+	Logger.Log.Info("Collect() response: \n", string(bytes))
 	return nil
 }
 
