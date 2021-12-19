@@ -4,39 +4,69 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/go-redis/redis/v8"
 )
 
-type RedisClient struct {
-	inner *redis.Client
+type RedisStatusStore struct {
+	inner     *redis.Client
+	keyParser RedisKeyParser
 }
 
 const (
 	// Redis only has string type, there is no boolean or int, so we use "1" to represent true
-	REDIS_TRUE = "1"
+	RedisTrue = "1"
 )
 
 var ctx = context.Background()
 
-func GetRedisClient() *RedisClient {
-	return &RedisClient{
+func GetRedisStatusStore() *RedisStatusStore {
+	return &RedisStatusStore{
 		inner: redis.NewClient(&redis.Options{
 			Addr:     fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
 			Password: os.Getenv("REDIS_PASSWD"),
 			DB:       0, // use default DB
-		})}
+		}),
+		keyParser: RedisKeyParser{delimiter: "_"},
+	}
 }
 
-func PostKey(userId string, postId string) string {
-	return fmt.Sprintf("%s_%s", userId, postId)
+type RedisKeyParser struct {
+	delimiter string
 }
 
-func (r RedisClient) GetPostsReadStatus(postIds []string, userId string) ([]bool, error) {
+func (r RedisKeyParser) DecodePostKey(key string) (string, string, error) {
+	splits := strings.Split(key, r.delimiter)
+	if (len(splits)) != 2 {
+		return "", "", fmt.Errorf("invalid key: %s", key)
+	}
+	return splits[0], splits[1], nil
+}
+
+func (r RedisKeyParser) ValidateId(id string) bool {
+	return strings.Contains(id, r.delimiter)
+}
+
+func (r RedisKeyParser) EncodePostKey(userId string, postId string) (string, error) {
+	if !r.ValidateId(userId) || !r.ValidateId(postId) {
+		return "", fmt.Errorf("invalid userId or postId")
+	}
+	return fmt.Sprintf("%s%s%s", userId, r.delimiter, postId), nil
+}
+
+func (r RedisKeyParser) MustEncodePostKey(userId string, postId string) string {
+	if !r.ValidateId(userId) || !r.ValidateId(postId) {
+		panic(fmt.Errorf("invalid userId or postId"))
+	}
+	return fmt.Sprintf("%s%s%s", userId, r.delimiter, postId)
+}
+
+func (r *RedisStatusStore) GetPostsReadStatus(postIds []string, userId string) ([]bool, error) {
 	postKeys := []string{}
 
 	for _, pid := range postIds {
-		postKeys = append(postKeys, PostKey(userId, pid))
+		postKeys = append(postKeys, r.keyParser.MustEncodePostKey(userId, pid))
 	}
 
 	res, err := r.inner.MGet(ctx, postKeys...).Result()
@@ -44,17 +74,32 @@ func (r RedisClient) GetPostsReadStatus(postIds []string, userId string) ([]bool
 	for _, v := range res {
 		if v == nil {
 			status = append(status, false)
+			continue
 		}
-		status = append(status, v.(bool))
+
+		// watchout
+		if v == RedisTrue {
+			status = append(status, true)
+			continue
+		}
+		status = append(status, false)
 	}
 	return status, err
 }
 
-func (r RedisClient) MarkPostsAsRead(postIds []string, userId string) error {
-	keyValues := []interface{}{}
-	for _, pid := range postIds {
-		keyValues = append(keyValues, PostKey(userId, pid))
-		keyValues = append(keyValues, REDIS_TRUE)
+func (r RedisStatusStore) SetItemsReadStatus(postIds []string, userId string, read bool) error {
+	if read {
+		keyValues := []interface{}{}
+		for _, pid := range postIds {
+			keyValues = append(keyValues, r.keyParser.MustEncodePostKey(userId, pid))
+			keyValues = append(keyValues, RedisTrue)
+		}
+		return r.inner.MSetNX(ctx, keyValues...).Err()
 	}
-	return r.inner.MSetNX(ctx, keyValues...).Err()
+
+	keyValues := []string{}
+	for _, pid := range postIds {
+		keyValues = append(keyValues, r.keyParser.MustEncodePostKey(userId, pid))
+	}
+	return r.inner.Del(ctx, keyValues...).Err()
 }

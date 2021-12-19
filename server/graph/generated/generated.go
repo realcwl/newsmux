@@ -84,18 +84,18 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddSubSource      func(childComplexity int, input model.AddSubSourceInput) int
-		AddWeiboSubSource func(childComplexity int, input model.AddWeiboSubSourceInput) int
-		CreatePost        func(childComplexity int, input model.NewPostInput) int
-		CreateSource      func(childComplexity int, input model.NewSourceInput) int
-		CreateUser        func(childComplexity int, input model.NewUserInput) int
-		DeleteFeed        func(childComplexity int, input model.DeleteFeedInput) int
-		DeleteSubSource   func(childComplexity int, input *model.DeleteSubSourceInput) int
-		MarkPostsAsRead   func(childComplexity int, input model.MarkPostsAsReadInput) int
-		Subscribe         func(childComplexity int, input model.SubscribeInput) int
-		SyncUp            func(childComplexity int, input *model.SeedStateInput) int
-		UpsertFeed        func(childComplexity int, input model.UpsertFeedInput) int
-		UpsertSubSource   func(childComplexity int, input model.UpsertSubSourceInput) int
+		AddSubSource       func(childComplexity int, input model.AddSubSourceInput) int
+		AddWeiboSubSource  func(childComplexity int, input model.AddWeiboSubSourceInput) int
+		CreatePost         func(childComplexity int, input model.NewPostInput) int
+		CreateSource       func(childComplexity int, input model.NewSourceInput) int
+		CreateUser         func(childComplexity int, input model.NewUserInput) int
+		DeleteFeed         func(childComplexity int, input model.DeleteFeedInput) int
+		DeleteSubSource    func(childComplexity int, input *model.DeleteSubSourceInput) int
+		SetItemsReadStatus func(childComplexity int, input model.SetItemsReadStatusInput) int
+		Subscribe          func(childComplexity int, input model.SubscribeInput) int
+		SyncUp             func(childComplexity int, input *model.SeedStateInput) int
+		UpsertFeed         func(childComplexity int, input model.UpsertFeedInput) int
+		UpsertSubSource    func(childComplexity int, input model.UpsertSubSourceInput) int
 	}
 
 	Post struct {
@@ -110,6 +110,7 @@ type ComplexityRoot struct {
 		Id                 func(childComplexity int) int
 		ImageUrls          func(childComplexity int) int
 		InSharingChain     func(childComplexity int) int
+		IsRead             func(childComplexity int) int
 		OriginUrl          func(childComplexity int) int
 		PublishedFeeds     func(childComplexity int) int
 		ReplyThread        func(childComplexity int) int
@@ -131,7 +132,6 @@ type ComplexityRoot struct {
 		Feeds                func(childComplexity int, input *model.FeedsGetPostsInput) int
 		Post                 func(childComplexity int, input *model.PostInput) int
 		Posts                func(childComplexity int) int
-		PostsReadStatus      func(childComplexity int, input model.GetPostsReadStatusInput) int
 		Sources              func(childComplexity int, input *model.SourcesInput) int
 		SubSources           func(childComplexity int, input *model.SubsourcesInput) int
 		TryCustomizedCrawler func(childComplexity int, input *model.CustomizedCrawlerParams) int
@@ -214,7 +214,7 @@ type MutationResolver interface {
 	AddSubSource(ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error)
 	DeleteSubSource(ctx context.Context, input *model.DeleteSubSourceInput) (*model.SubSource, error)
 	SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error)
-	MarkPostsAsRead(ctx context.Context, input model.MarkPostsAsReadInput) (bool, error)
+	SetItemsReadStatus(ctx context.Context, input model.SetItemsReadStatusInput) (bool, error)
 }
 type PostResolver interface {
 	DeletedAt(ctx context.Context, obj *model.Post) (*time.Time, error)
@@ -223,13 +223,13 @@ type PostResolver interface {
 	FileUrls(ctx context.Context, obj *model.Post) ([]string, error)
 
 	Tags(ctx context.Context, obj *model.Post) ([]string, error)
+	IsRead(ctx context.Context, obj *model.Post) (bool, error)
 }
 type QueryResolver interface {
 	AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error)
 	Post(ctx context.Context, input *model.PostInput) (*model.Post, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 	Users(ctx context.Context) ([]*model.User, error)
-	PostsReadStatus(ctx context.Context, input model.GetPostsReadStatusInput) ([]bool, error)
 	UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error)
 	Feeds(ctx context.Context, input *model.FeedsGetPostsInput) ([]*model.Feed, error)
 	SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error)
@@ -500,17 +500,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteSubSource(childComplexity, args["input"].(*model.DeleteSubSourceInput)), true
 
-	case "Mutation.markPostsAsRead":
-		if e.complexity.Mutation.MarkPostsAsRead == nil {
+	case "Mutation.setItemsReadStatus":
+		if e.complexity.Mutation.SetItemsReadStatus == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_markPostsAsRead_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_setItemsReadStatus_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.MarkPostsAsRead(childComplexity, args["input"].(model.MarkPostsAsReadInput)), true
+		return e.complexity.Mutation.SetItemsReadStatus(childComplexity, args["input"].(model.SetItemsReadStatusInput)), true
 
 	case "Mutation.subscribe":
 		if e.complexity.Mutation.Subscribe == nil {
@@ -637,6 +637,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.InSharingChain(childComplexity), true
 
+	case "Post.isRead":
+		if e.complexity.Post.IsRead == nil {
+			break
+		}
+
+		return e.complexity.Post.IsRead(childComplexity), true
+
 	case "Post.originUrl":
 		if e.complexity.Post.OriginUrl == nil {
 			break
@@ -751,18 +758,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Posts(childComplexity), true
-
-	case "Query.postsReadStatus":
-		if e.complexity.Query.PostsReadStatus == nil {
-			break
-		}
-
-		args, err := ec.field_Query_postsReadStatus_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.PostsReadStatus(childComplexity, args["input"].(model.GetPostsReadStatusInput)), true
 
 	case "Query.sources":
 		if e.complexity.Query.Sources == nil {
@@ -1233,6 +1228,9 @@ type PostInFeedOutput {
 
   # tags indicating post content
   tags: [String!]!
+
+  # indicating if the post has been read
+  isRead: Boolean!
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `# GraphQL schema
@@ -1373,14 +1371,10 @@ input DeleteFeedInput {
   feedId: String!
 }
 
-input MarkPostsAsReadInput {
+input SetItemsReadStatusInput {
   userId: String!
-  postsId: [String!]!
-}
-
-input GetPostsReadStatusInput {
-  userId: String!
-  postsId: [String!]!
+  itemNodeIds: [String!]!
+  read: Boolean!
 }
 
 type Query {
@@ -1389,7 +1383,7 @@ type Query {
   posts: [Post!]
   users: [User!]
 
-  postsReadStatus(input: GetPostsReadStatusInput!): [Boolean!]!
+  # postsReadStatus(input: GetPostsReadStatusInput!): [Boolean!]!
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
@@ -1470,7 +1464,7 @@ type Mutation {
 
   syncUp(input: SeedStateInput): SeedState
 
-  markPostsAsRead(input: MarkPostsAsReadInput!): Boolean!
+  setItemsReadStatus(input: SetItemsReadStatusInput!): Boolean!
 }
 
 type Subscription {
@@ -1497,7 +1491,7 @@ enum SignalType {
   # Instruct client side to pull seed state. This is the first signal send to
   # client side application.
   SEED_STATE
-  READ_POST
+  SET_ITEM_READ_STATUS
 }
 
 type Signal @goModel(model: "model.Signal") {
@@ -1677,13 +1671,13 @@ func (ec *executionContext) field_Mutation_deleteSubSource_args(ctx context.Cont
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_markPostsAsRead_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_setItemsReadStatus_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.MarkPostsAsReadInput
+	var arg0 model.SetItemsReadStatusInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNMarkPostsAsReadInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐMarkPostsAsReadInput(ctx, tmp)
+		arg0, err = ec.unmarshalNSetItemsReadStatusInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSetItemsReadStatusInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1789,21 +1783,6 @@ func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs m
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalOPostInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐPostInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_postsReadStatus_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.GetPostsReadStatusInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNGetPostsReadStatusInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐGetPostsReadStatusInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3089,7 +3068,7 @@ func (ec *executionContext) _Mutation_syncUp(ctx context.Context, field graphql.
 	return ec.marshalOSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_markPostsAsRead(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_setItemsReadStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3106,7 +3085,7 @@ func (ec *executionContext) _Mutation_markPostsAsRead(ctx context.Context, field
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_markPostsAsRead_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_setItemsReadStatus_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -3114,7 +3093,7 @@ func (ec *executionContext) _Mutation_markPostsAsRead(ctx context.Context, field
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().MarkPostsAsRead(rctx, args["input"].(model.MarkPostsAsReadInput))
+		return ec.resolvers.Mutation().SetItemsReadStatus(rctx, args["input"].(model.SetItemsReadStatusInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3810,6 +3789,41 @@ func (ec *executionContext) _Post_tags(ctx context.Context, field graphql.Collec
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_isRead(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Post().IsRead(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PostInFeedOutput_post(ctx context.Context, field graphql.CollectedField, obj *model.PostInFeedOutput) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4016,48 +4030,6 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 	res := resTmp.([]*model.User)
 	fc.Result = res
 	return ec.marshalOUser2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐUserᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_postsReadStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_postsReadStatus_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().PostsReadStatus(rctx, args["input"].(model.GetPostsReadStatusInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]bool)
-	fc.Result = res
-	return ec.marshalNBoolean2ᚕboolᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_userState(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6961,68 +6933,6 @@ func (ec *executionContext) unmarshalInputFeedsGetPostsInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputGetPostsReadStatusInput(ctx context.Context, obj interface{}) (model.GetPostsReadStatusInput, error) {
-	var it model.GetPostsReadStatusInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "userId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "postsId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postsId"))
-			it.PostsID, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputMarkPostsAsReadInput(ctx context.Context, obj interface{}) (model.MarkPostsAsReadInput, error) {
-	var it model.MarkPostsAsReadInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "userId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "postsId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postsId"))
-			it.PostsID, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputNewPostInput(ctx context.Context, obj interface{}) (model.NewPostInput, error) {
 	var it model.NewPostInput
 	asMap := map[string]interface{}{}
@@ -7201,6 +7111,45 @@ func (ec *executionContext) unmarshalInputSeedStateInput(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("feedSeedState"))
 			it.FeedSeedState, err = ec.unmarshalNFeedSeedStateInput2ᚕᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐFeedSeedStateInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSetItemsReadStatusInput(ctx context.Context, obj interface{}) (model.SetItemsReadStatusInput, error) {
+	var it model.SetItemsReadStatusInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "userId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "itemNodeIds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("itemNodeIds"))
+			it.ItemNodeIds, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "read":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("read"))
+			it.Read, err = ec.unmarshalNBoolean2bool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7771,8 +7720,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "syncUp":
 			out.Values[i] = ec._Mutation_syncUp(ctx, field)
-		case "markPostsAsRead":
-			out.Values[i] = ec._Mutation_markPostsAsRead(ctx, field)
+		case "setItemsReadStatus":
+			out.Values[i] = ec._Mutation_setItemsReadStatus(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -7913,6 +7862,20 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				}
 				return res
 			})
+		case "isRead":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_isRead(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8016,20 +7979,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_users(ctx, field)
-				return res
-			})
-		case "postsReadStatus":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_postsReadStatus(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		case "userState":
@@ -8738,42 +8687,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNBoolean2ᚕboolᚄ(ctx context.Context, v interface{}) ([]bool, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]bool, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNBoolean2bool(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNBoolean2ᚕboolᚄ(ctx context.Context, sel ast.SelectionSet, v []bool) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNBoolean2bool(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) unmarshalNCustomizedCrawlerParams2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐCustomizedCrawlerParams(ctx context.Context, v interface{}) (*model.CustomizedCrawlerParams, error) {
 	res, err := ec.unmarshalInputCustomizedCrawlerParams(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
@@ -8968,11 +8881,6 @@ func (ec *executionContext) unmarshalNFeedSeedStateInput2ᚖgithubᚗcomᚋLuism
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNGetPostsReadStatusInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐGetPostsReadStatusInput(ctx context.Context, v interface{}) (model.GetPostsReadStatusInput, error) {
-	res, err := ec.unmarshalInputGetPostsReadStatusInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -9001,11 +8909,6 @@ func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNMarkPostsAsReadInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐMarkPostsAsReadInput(ctx context.Context, v interface{}) (model.MarkPostsAsReadInput, error) {
-	res, err := ec.unmarshalInputMarkPostsAsReadInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNNewPostInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewPostInput(ctx context.Context, v interface{}) (model.NewPostInput, error) {
@@ -9079,6 +8982,11 @@ func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._Post(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSetItemsReadStatusInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSetItemsReadStatusInput(ctx context.Context, v interface{}) (model.SetItemsReadStatusInput, error) {
+	res, err := ec.unmarshalInputSetItemsReadStatusInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNSignal2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignal(ctx context.Context, sel ast.SelectionSet, v model.Signal) graphql.Marshaler {

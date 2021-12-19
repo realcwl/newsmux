@@ -90,16 +90,6 @@ type FeedsGetPostsInput struct {
 	FeedRefreshInputs []*FeedRefreshInput `json:"feedRefreshInputs"`
 }
 
-type GetPostsReadStatusInput struct {
-	UserID  string   `json:"userId"`
-	PostsID []string `json:"postsId"`
-}
-
-type MarkPostsAsReadInput struct {
-	UserID  string   `json:"userId"`
-	PostsID []string `json:"postsId"`
-}
-
 type NewPostInput struct {
 	Title            string   `json:"title"`
 	Content          string   `json:"content"`
@@ -132,6 +122,12 @@ type PostInput struct {
 type SeedStateInput struct {
 	UserSeedState *UserSeedStateInput   `json:"userSeedState"`
 	FeedSeedState []*FeedSeedStateInput `json:"feedSeedState"`
+}
+
+type SetItemsReadStatusInput struct {
+	UserID      string   `json:"userId"`
+	ItemNodeIds []string `json:"itemNodeIds"`
+	Read        bool     `json:"read"`
 }
 
 type SourcesInput struct {
@@ -225,18 +221,18 @@ func (e FeedRefreshDirection) MarshalGQL(w io.Writer) {
 type SignalType string
 
 const (
-	SignalTypeSeedState SignalType = "SEED_STATE"
-	SignalTypeReadPost  SignalType = "READ_POST"
+	SignalTypeSeedState         SignalType = "SEED_STATE"
+	SignalTypeSetItemReadStatus SignalType = "SET_ITEM_READ_STATUS"
 )
 
 var AllSignalType = []SignalType{
 	SignalTypeSeedState,
-	SignalTypeReadPost,
+	SignalTypeSetItemReadStatus,
 }
 
 func (e SignalType) IsValid() bool {
 	switch e {
-	case SignalTypeSeedState, SignalTypeReadPost:
+	case SignalTypeSeedState, SignalTypeSetItemReadStatus:
 		return true
 	}
 	return false

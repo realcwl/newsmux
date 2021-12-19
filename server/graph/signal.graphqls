@@ -3,7 +3,7 @@ enum SignalType {
   # Instruct client side to pull seed state. This is the first signal send to
   # client side application.
   SEED_STATE
-  READ_POST
+  SET_ITEM_READ_STATUS
 }
 
 type Signal @goModel(model: "model.Signal") {

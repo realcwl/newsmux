@@ -367,11 +367,15 @@ func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInp
 	return ss, err
 }
 
-func (r *mutationResolver) MarkPostsAsRead(ctx context.Context, input model.MarkPostsAsReadInput) (bool, error) {
-	err := r.RedisClient.MarkPostsAsRead(input.PostsID, input.UserID)
+func (r *mutationResolver) SetItemsReadStatus(ctx context.Context, input model.SetItemsReadStatusInput) (bool, error) {
+	err := r.RedisStatusStore.SetItemsReadStatus(input.ItemNodeIds, input.UserID, input.Read)
 	if err != nil {
 		return false, err
 	}
+	go func() {
+		r.SignalChans.PushSignalToUser(&model.Signal{
+			SignalType: model.SignalTypeSetItemReadStatus}, input.UserID)
+	}()
 	return true, nil
 }
 
@@ -418,10 +422,6 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return users, result.Error
 }
 
-func (r *queryResolver) PostsReadStatus(ctx context.Context, input model.GetPostsReadStatusInput) ([]bool, error) {
-	return r.RedisClient.GetPostsReadStatus(input.PostsID, input.UserID)
-}
-
 func (r *queryResolver) UserState(ctx context.Context, input model.UserStateInput) (*model.UserState, error) {
 	var user model.User
 	res := r.DB.Model(&model.User{}).Where("id=?", input.UserID).First(&user)
@@ -461,7 +461,7 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInp
 		}
 	}
 
-	return getRefreshPosts(r, feedRefreshInputs)
+	return getRefreshPosts(r, feedRefreshInputs, input.UserID)
 }
 
 func (r *queryResolver) SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error) {
@@ -510,13 +510,3 @@ func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subsc
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *mutationResolver) MarkPostAsRead(ctx context.Context, input model.PostInput) (*bool, error) {
-	panic("not implemented")
-}

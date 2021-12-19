@@ -24,11 +24,11 @@ const (
 
 // Given a list of FeedRefreshInput, get posts for the requested feeds
 // Do it by iterating through feeds
-func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*model.Feed, error) {
+func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput, userId string) ([]*model.Feed, error) {
 	results := []*model.Feed{}
 
 	//TODO: can be run in parallel
-	for idx, _ := range queries {
+	for idx := range queries {
 		query := queries[idx]
 		if query == nil {
 			// This is not expected since gqlgen guarantees it is not nil
@@ -43,7 +43,7 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 		if err := sanitizeFeedRefreshInput(query, &feed); err != nil {
 			return []*model.Feed{}, errors.Wrap(err, fmt.Sprint("feed query invalid ", query))
 		}
-		if err := getFeedPostsOrRePublish(r.DB, &feed, query); err != nil {
+		if err := getFeedPostsOrRePublish(r.DB, r.RedisStatusStore, &feed, query, userId); err != nil {
 			return []*model.Feed{}, errors.Wrap(err, fmt.Sprint("failure when get posts for feed id ", feed.Id))
 		}
 		results = append(results, &feed)
@@ -52,7 +52,7 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 	return results, nil
 }
 
-func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRefreshInput) error {
+func getFeedPostsOrRePublish(db *gorm.DB, r *utils.RedisStatusStore, feed *model.Feed, query *model.FeedRefreshInput, userId string) error {
 	var posts []*model.Post
 	// try to read published posts
 	if query.Direction == model.FeedRefreshDirectionNew {
@@ -77,6 +77,17 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Order("content_generated_at desc").
 			Limit(query.Limit).
 			Find(&posts)
+		postIds := []string{}
+		for _, post := range posts {
+			postIds = append(postIds, post.Id)
+		}
+		// status, err := r.GetPostsReadStatus(postIds, userId)
+		// if err != nil {
+		// 	return errors.Wrap(err, "failure when get posts read status")
+		// }
+		// for idx := range posts {
+		// 	posts[idx].IsRead = status[idx]
+		// }
 		feed.Posts = posts
 	} else {
 		db.Model(&model.Post{}).

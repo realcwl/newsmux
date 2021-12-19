@@ -12,7 +12,7 @@ const (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	DB          *gorm.DB
-	RedisClient *utils.RedisClient
-	SignalChans *SignalChannels
+	DB               *gorm.DB
+	RedisStatusStore *utils.RedisStatusStore
+	SignalChans      *SignalChannels
 }

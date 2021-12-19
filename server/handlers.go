@@ -30,9 +30,14 @@ func GraphqlHandler() gin.HandlerFunc {
 
 	utils.DatabaseSetupAndMigration(db)
 
+	redis := utils.GetRedisStatusStore()
+
+	utils.DatabaseSetupAndMigration(db)
+
 	h := handler.New(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
-		DB:          db,
-		SignalChans: resolver.NewSignalChannels(),
+		DB:               db,
+		RedisStatusStore: redis,
+		SignalChans:      resolver.NewSignalChannels(),
 	}}))
 
 	h.AddTransport(transport.Websocket{

@@ -136,14 +136,10 @@ input DeleteFeedInput {
   feedId: String!
 }
 
-input MarkPostsAsReadInput {
+input SetItemsReadStatusInput {
   userId: String!
-  postsId: [String!]!
-}
-
-input GetPostsReadStatusInput {
-  userId: String!
-  postsId: [String!]!
+  itemNodeIds: [String!]!
+  read: Boolean!
 }
 
 type Query {
@@ -152,7 +148,7 @@ type Query {
   posts: [Post!]
   users: [User!]
 
-  postsReadStatus(input: GetPostsReadStatusInput!): [Boolean!]!
+  # postsReadStatus(input: GetPostsReadStatusInput!): [Boolean!]!
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
@@ -233,7 +229,7 @@ type Mutation {
 
   syncUp(input: SeedStateInput): SeedState
 
-  markPostsAsRead(input: MarkPostsAsReadInput!): Boolean!
+  setItemsReadStatus(input: SetItemsReadStatusInput!): Boolean!
 }
 
 type Subscription {
