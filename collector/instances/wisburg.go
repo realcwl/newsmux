@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/collector"
+	clients "github.com/Luismorlan/newsmux/collector/clients"
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -18,7 +20,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	clients "github.com/Luismorlan/newsmux/collector/clients"
 )
 
 const (
@@ -159,6 +160,7 @@ func (p *UnifiedWisburgPost) GetOriginUrl() string {
 }
 
 func (p *UnifiedWisburgPost) GetImageUrls() []string {
+
 	return p.CoverSlideUris
 }
 
@@ -192,7 +194,8 @@ type WisburgResearchApiResponse struct {
 }
 
 type WisburgCrawler struct {
-	Sink sink.CollectedDataSink
+	Sink       sink.CollectedDataSink
+	ImageStore file_store.CollectedFileStore
 }
 
 func (w WisburgCrawler) GetStartUrl(channelType protocol.WisburgParams_ChannelType) string {
@@ -388,6 +391,17 @@ func (w WisburgCrawler) ProcessResearch(
 	return nil
 }
 
+func (w WisburgCrawler) UpdateImageUrls(workingContext *working_context.ApiCollectorWorkingContext, post *UnifiedWisburgPost) error {
+	imageUrls := post.GetImageUrls()
+	s3OrOriginalUrls, err := collector.UploadImagesToS3(w.ImageStore, imageUrls)
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "wisburg"}).
+			Errorln("fail to get wisburg image, err:", err, "urls", imageUrls)
+	}
+	workingContext.Result.Post.ImageUrls = s3OrOriginalUrls
+	return nil
+}
+
 // ======= The main logic for processing the post =======
 func (w WisburgCrawler) ProcessUnifiedWisburgPost(
 	channelType protocol.WisburgParams_ChannelType,
@@ -405,7 +419,7 @@ func (w WisburgCrawler) ProcessUnifiedWisburgPost(
 	workingContext.Result.Post.ContentGeneratedAt = post.GetGeneratedTime()
 	workingContext.Result.Post.Title = post.GetTitle(channelType)
 	workingContext.Result.Post.OriginUrl = post.GetOriginUrl()
-	workingContext.Result.Post.ImageUrls = post.GetImageUrls()
+	w.UpdateImageUrls(workingContext, post)
 	if channelType == protocol.WisburgParams_CHANNEL_TYPE_VIEWPOINT {
 		workingContext.Result.Post.SubSource.Name = "观点"
 	} else if channelType == protocol.WisburgParams_CHANNEL_TYPE_RESEARCH {

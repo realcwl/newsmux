@@ -279,3 +279,44 @@ func OffloadImageSourceFromHtml(sourceHtml string, imageStore file_store.Collect
 
 	return doc.Html()
 }
+
+func UploadImageToS3(imageStore file_store.CollectedFileStore, imageUrl string, fileName string) (string, error) {
+	if len(imageUrl) == 0 {
+		return "", errors.New("empty image url")
+	}
+	key, err := imageStore.FetchAndStore(imageUrl, fileName)
+	if err != nil {
+		return imageUrl, err
+	}
+	s3Url := imageStore.GetUrlFromKey(key)
+	return s3Url, nil
+}
+
+//
+// limitation: cannot specify filename
+func UploadImagesToS3(imageStore file_store.CollectedFileStore, imageUrls []string) ([]string, error) {
+	if len(imageUrls) == 0 {
+		return []string{}, errors.New("empty image url")
+	}
+
+	failedCnt := 0
+	res := []string{}
+
+	for _, imageUrl := range imageUrls {
+		s3Url, err := UploadImageToS3(imageStore, imageUrl, "")
+		if err != nil {
+			res = append(res, imageUrl)
+			failedCnt++
+		} else {
+			res = append(res, s3Url)
+		}
+	}
+	if failedCnt == len(imageUrls) {
+		return res, errors.New("all images failed to upload to S3")
+	}
+
+	if failedCnt > 0 {
+		return res, errors.New("some image(s) failed to upload to S3")
+	}
+	return res, nil
+}

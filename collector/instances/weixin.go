@@ -81,6 +81,21 @@ func (w WeixinArticleRssCollector) UpdateDedupId(workingContext *working_context
 	return nil
 }
 
+func (w WeixinArticleRssCollector) UpdateAvatarUrl(post *protocol.CrawlerMessage_CrawledPost, res *gofeed.Feed) error {
+	avatarUrl := res.Image.URL
+	if len(avatarUrl) == 0 {
+		return nil
+	}
+
+	s3OrOriginalUrl, err := collector.UploadImageToS3(w.ImageStore, avatarUrl, "")
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "weixin"}).
+			Errorln("fail to get weixin avatar image, err:", err, "url", avatarUrl)
+	}
+	post.SubSource.AvatarUrl = s3OrOriginalUrl
+	return nil
+}
+
 func (w WeixinArticleRssCollector) ConstructUrl(task *protocol.PanopticTask, subsource *protocol.PanopticSubSource) string {
 	return fmt.Sprintf("https://cdn.werss.weapp.design/api/v1/feeds/%s.xml",
 		subsource.ExternalId,
@@ -101,7 +116,8 @@ func (w WeixinArticleRssCollector) UpdateResultFromArticle(
 	post.ContentGeneratedAt = timestamppb.New(generatedTime)
 	// avatar url
 	post.SubSource.Name = workingContext.SubSource.Name
-	post.SubSource.AvatarUrl = res.Image.URL
+	// post.SubSource.AvatarUrl = res.Image.URL
+	w.UpdateAvatarUrl(post, res)
 	post.SubSource.ExternalId = workingContext.SubSource.ExternalId
 	post.OriginUrl = article.Link
 	post.Title = article.Title

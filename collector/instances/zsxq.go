@@ -9,14 +9,16 @@ import (
 	"time"
 
 	. "github.com/Luismorlan/newsmux/collector"
+	clients "github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	clients "github.com/Luismorlan/newsmux/collector/clients"
 )
 
 const (
@@ -206,16 +208,18 @@ func (collector ZsxqApiCollector) UpdateDedupId(post *protocol.CrawlerMessage_Cr
 	return nil
 }
 
-func (collector ZsxqApiCollector) UpdateImages(wc *working_context.ApiCollectorWorkingContext) error {
+func (c ZsxqApiCollector) UpdateImages(wc *working_context.ApiCollectorWorkingContext) error {
 	item := wc.ApiResponseItem.(ZsxqTopic)
 	wc.Result.Post.ImageUrls = []string{}
 	for _, pic := range item.Talk.Images {
-		key, err := collector.ImageStore.FetchAndStore(pic.Large.URL, fmt.Sprintf("%d.%s", pic.ImageID, pic.Type))
+		imageUrl := pic.Large.URL
+		fileName := fmt.Sprintf("%d.%s", pic.ImageID, pic.Type)
+		s3OrOriginalUrl, err := UploadImageToS3(c.ImageStore, imageUrl, fileName)
 		if err != nil {
-			return utils.ImmediatePrintError(err)
+			Logger.Log.WithFields(logrus.Fields{"source": "zsxq"}).
+				Errorln("fail to get zsxq image, err:", err, "url", imageUrl)
 		}
-		s3Url := collector.ImageStore.GetUrlFromKey(key)
-		wc.Result.Post.ImageUrls = append(wc.Result.Post.ImageUrls, s3Url)
+		wc.Result.Post.ImageUrls = append(wc.Result.Post.ImageUrls, s3OrOriginalUrl)
 	}
 	return nil
 }
