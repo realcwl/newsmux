@@ -70,17 +70,12 @@ func (caus CaUsNewsCrawler) UpdateImageUrls(wc *working_context.ApiCollectorWork
 	item := wc.ApiResponseItem.(CaUsNewsResponseItem)
 	if len(item.MatchPics) > 0 {
 		imageUrl := item.MatchPics[0]
-		// initialize with original image url as a fallback if any error with S3
-		wc.Result.Post.ImageUrls = []string{imageUrl}
-
-		key, err := caus.ImageStore.FetchAndStore(imageUrl, "")
+		s3OrOriginalUrl, err := collector.UploadImageToS3(caus.ImageStore, imageUrl, "")
 		if err != nil {
 			Logger.Log.WithFields(logrus.Fields{"source": "caus_news"}).
 				Errorln("fail to get caus_news image, err:", err, "url", imageUrl)
-			return utils.ImmediatePrintError(err)
 		}
-		s3Url := caus.ImageStore.GetUrlFromKey(key)
-		wc.Result.Post.ImageUrls = []string{s3Url}
+		wc.Result.Post.ImageUrls = []string{s3OrOriginalUrl}
 	}
 	return nil
 }

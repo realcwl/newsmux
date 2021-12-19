@@ -130,52 +130,32 @@ func (w WeiboApiCollector) GetFullText(url string) (string, error) {
 	return res.Data.LongTextContent, nil
 }
 
-func (collector WeiboApiCollector) StoreWeiboAvatar(profileImageUrl string, post *protocol.CrawlerMessage_CrawledPost) (string, error) {
-	key, err := collector.ImageStore.FetchAndStore(profileImageUrl, "")
-	if err != nil {
-		return "", utils.ImmediatePrintError(err)
-	}
-	return collector.ImageStore.GetUrlFromKey(key), nil
-}
-
-func (collector WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
-	post.ImageUrls = []string{}
-	// initialize with original image urls
+func (w WeiboApiCollector) UpdateImages(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
+	imageUrls := []string{}
 	for _, pic := range mBlog.Pics {
-		post.ImageUrls = append(post.ImageUrls, pic.URL) // fallback to original url
+		imageUrls = append(imageUrls, pic.URL) // fallback to original url
 	}
 
-	// replace each image url with S3 url
-	for idx, pic := range mBlog.Pics {
-		key, err := collector.ImageStore.FetchAndStore(pic.URL, "")
-		if err != nil {
-			Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
-				Errorln("fail to get weibo user image, err:", err, "url:", pic.URL)
-			return utils.ImmediatePrintError(err)
-		}
-		s3Url := collector.ImageStore.GetUrlFromKey(key)
-		// replace original with S3 url
-		post.ImageUrls[idx] = s3Url
+	s3OrOriginalUrls, err := collector.UploadImagesToS3(w.ImageStore, imageUrls)
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
+			Errorln("fail to get weibo image, err:", err)
 	}
+	post.ImageUrls = s3OrOriginalUrls
 	return nil
 }
 
-func (collector WeiboApiCollector) UpdateSubSourceAvatarUrl(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
+func (w WeiboApiCollector) UpdateSubSourceAvatarUrl(mBlog *MBlog, post *protocol.CrawlerMessage_CrawledPost) error {
 	if mBlog.User == nil || len(mBlog.User.ProfileImageURL) == 0 {
 		return nil
 	}
 	imageUrl := mBlog.User.ProfileImageURL
-	// initialize with original image url as a fallback if any error with S3
-	post.SubSource.AvatarUrl = imageUrl
-
-	key, err := collector.ImageStore.FetchAndStore(imageUrl, "")
+	s3OrOriginalUrl, err := collector.UploadImageToS3(w.ImageStore, imageUrl, "")
 	if err != nil {
 		Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
-			Errorln("fail to get weibo user avatar image, err:", err, "url", imageUrl)
-		return utils.ImmediatePrintError(err)
+			Errorln("fail to get weibo avatar image, err:", err, "url", imageUrl)
 	}
-	s3Url := collector.ImageStore.GetUrlFromKey(key)
-	post.SubSource.AvatarUrl = s3Url
+	post.SubSource.AvatarUrl = s3OrOriginalUrl
 	return nil
 }
 

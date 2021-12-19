@@ -86,17 +86,13 @@ func (w WeixinArticleRssCollector) UpdateAvatarUrl(post *protocol.CrawlerMessage
 	if len(avatarUrl) == 0 {
 		return nil
 	}
-	// initialize with original image url as a fallback if any error with S3
-	post.SubSource.AvatarUrl = avatarUrl
 
-	key, err := w.ImageStore.FetchAndStore(avatarUrl, "")
+	s3OrOriginalUrl, err := collector.UploadImageToS3(w.ImageStore, avatarUrl, "")
 	if err != nil {
 		Logger.Log.WithFields(logrus.Fields{"source": "weixin"}).
-			Errorln("fail to get weixin user avatar image, err:", err, "url", avatarUrl)
-		return utils.ImmediatePrintError(err)
+			Errorln("fail to get weixin avatar image, err:", err, "url", avatarUrl)
 	}
-	s3Url := w.ImageStore.GetUrlFromKey(key)
-	post.SubSource.AvatarUrl = s3Url
+	post.SubSource.AvatarUrl = s3OrOriginalUrl
 	return nil
 }
 
@@ -136,8 +132,6 @@ func (w WeixinArticleRssCollector) UpdateResultFromArticle(
 	if err != nil {
 		return utils.ImmediatePrintError(err)
 	}
-
-	fmt.Println("YZ test", collector.PrettyPrint(post))
 
 	return nil
 }

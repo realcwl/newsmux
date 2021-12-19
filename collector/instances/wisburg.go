@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Luismorlan/newsmux/collector"
+	clients "github.com/Luismorlan/newsmux/collector/clients"
 	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
@@ -19,7 +20,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	clients "github.com/Luismorlan/newsmux/collector/clients"
 )
 
 const (
@@ -392,21 +392,13 @@ func (w WisburgCrawler) ProcessResearch(
 }
 
 func (w WisburgCrawler) UpdateImageUrls(workingContext *working_context.ApiCollectorWorkingContext, post *UnifiedWisburgPost) error {
-	originalImageUrls := post.GetImageUrls()
-	// initialize with original image url as a fallback if any error with S3
-	workingContext.Result.Post.ImageUrls = originalImageUrls
-
-	// replace each original image url with S3 url
-	for idx, imageUrl := range originalImageUrls {
-		key, err := w.ImageStore.FetchAndStore(imageUrl, "")
-		if err != nil {
-			Logger.Log.WithFields(logrus.Fields{"source": "wisburg"}).
-				Errorln("fail to get wisburg image, err:", err, "url", imageUrl)
-			return utils.ImmediatePrintError(err)
-		}
-		s3Url := w.ImageStore.GetUrlFromKey(key)
-		workingContext.Result.Post.ImageUrls[idx] = s3Url
+	imageUrls := post.GetImageUrls()
+	s3OrOriginalUrls, err := collector.UploadImagesToS3(w.ImageStore, imageUrls)
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "wisburg"}).
+			Errorln("fail to get wisburg image, err:", err, "urls", imageUrls)
 	}
+	workingContext.Result.Post.ImageUrls = s3OrOriginalUrls
 	return nil
 }
 

@@ -23,10 +23,9 @@ type ClsNewsCrawler struct {
 }
 
 func (cls ClsNewsCrawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
-	workingContext.Result.Post.ImageUrls = []string{}
+	// prepare imageUrls
+	imageUrls := []string{}
 	selection := workingContext.Element.DOM.Find(".telegraph-images-box > img")
-
-	// initialize with original image url as a fallback if any error with S3
 	for i := 0; i < selection.Length(); i++ {
 		img := selection.Eq(i)
 		imageUrl := img.AttrOr("src", "")
@@ -37,20 +36,16 @@ func (cls ClsNewsCrawler) UpdateImageUrls(workingContext *working_context.Crawle
 				Errorln("image DOM exist but src not found at index ", i, " of selection")
 			continue
 		}
-		workingContext.Result.Post.ImageUrls = append(workingContext.Result.Post.ImageUrls, imageUrl)
+		imageUrls = append(imageUrls, imageUrl)
 	}
 
-	// replace each original image url with S3 url
-	for idx, url := range workingContext.Result.Post.ImageUrls {
-		key, err := cls.ImageStore.FetchAndStore(url, "")
-		if err != nil {
-			Logger.Log.WithFields(logrus.Fields{"source": "cls_news"}).
-				Errorln("fail to get cls_news image, err:", err, "url", url)
-			return utils.ImmediatePrintError(err)
-		}
-		s3Url := cls.ImageStore.GetUrlFromKey(key)
-		workingContext.Result.Post.ImageUrls[idx] = s3Url
+	// fetch and upload imageUrks to S3
+	s3OrOriginalUrls, err := collector.UploadImagesToS3(cls.ImageStore, imageUrls)
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "cls_news"}).
+			Errorln("fail to get caus_news image, err:", err)
 	}
+	workingContext.Result.Post.ImageUrls = s3OrOriginalUrls
 	return nil
 }
 
