@@ -7,13 +7,6 @@ import (
 
 	"github.com/99designs/gqlgen/client"
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/Luismorlan/newsmux/deduplicator"
-	"github.com/Luismorlan/newsmux/model"
-	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/Luismorlan/newsmux/server/graph/generated"
-	"github.com/Luismorlan/newsmux/server/resolver"
-	. "github.com/Luismorlan/newsmux/utils"
-	"github.com/Luismorlan/newsmux/utils/dotenv"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/jinzhu/copier"
@@ -23,6 +16,14 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/Luismorlan/newsmux/deduplicator"
+	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/protocol"
+	"github.com/Luismorlan/newsmux/server/graph/generated"
+	"github.com/Luismorlan/newsmux/server/resolver"
+	. "github.com/Luismorlan/newsmux/utils"
+	"github.com/Luismorlan/newsmux/utils/dotenv"
 )
 
 func TestMain(m *testing.M) {

@@ -61,6 +61,10 @@ type DeleteFeedInput struct {
 	FeedID string `json:"feedId"`
 }
 
+type DeleteSubSourceInput struct {
+	SubsourceID string `json:"subsourceId"`
+}
+
 type FeedRefreshInput struct {
 	FeedID          string               `json:"feedId"`
 	Limit           int                  `json:"limit"`
@@ -129,7 +133,8 @@ type SubscribeInput struct {
 }
 
 type SubsourcesInput struct {
-	IsFromSharedPost bool `json:"isFromSharedPost"`
+	IsFromSharedPost bool  `json:"isFromSharedPost"`
+	IsCustomized     *bool `json:"isCustomized"`
 }
 
 type UpsertFeedInput struct {
