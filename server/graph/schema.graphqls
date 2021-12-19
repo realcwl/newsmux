@@ -55,6 +55,33 @@ input NewSourceInput {
   userId: String!
   name: String!
   domain: String!
+  customizedCrawlerPanopticConfigForm: CustomizedCrawlerPanopticConfigForm
+}
+
+# This schema has all information needed to construct a PanopticConfig in panoptic_config.proto
+# data_collector_id is predefined to be COLLECTOR_USER_CUSTOMIZED_SOURCE
+input CustomizedCrawlerPanopticConfigForm {
+  name: String # name of the config if not specified, use source name
+
+  # for TaskSchedule:
+  startImmediately: Boolean # default to true
+  scheduleEveryMilliseconds: Int # default to 5 minutes
+
+  # for CustomizedCrawlerParams
+  customizedCrawlerParams: CustomizedCrawlerParams!
+}
+
+# This schema has all information needed to construct a CustomizedCrawlerParams in panoptic.proto
+input CustomizedCrawlerParams {
+  crawlUrl: String! # url to crawl, e.g. https://www.cls.cn/telegraph
+  baseSelector: String! # base selector should return a list of DOM elements where each one corresponds to a single post
+  titleRelativeSelector: String # relative selector to the base selector
+  contentRelativeSelector: String
+  externalIdRelativeSelector: String
+  timeRelativeSelector: String #if not specified, use the cralwed time as content generated time
+  imageRelativeSelector: String
+  subsourceRelativeSelector: String #how to deal with subsource spec
+  originUrlRelativeSelector: String #by default is the url
 }
 
 # This schema has all information needed to construct a PanopticConfig in panoptic_config.proto
