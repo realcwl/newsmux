@@ -525,3 +525,7 @@ func TestMessagePublishToManyFeeds(t *testing.T) {
 	require.Equal(t, 10, len(post.PublishedFeeds))
 	require.NotEqual(t, post.PublishedFeeds[1].Id, post.PublishedFeeds[0].Id)
 }
+
+func TestPublishThread(t *testing.T) {
+
+}
