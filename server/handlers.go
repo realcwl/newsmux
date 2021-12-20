@@ -30,7 +30,10 @@ func GraphqlHandler() gin.HandlerFunc {
 
 	utils.DatabaseSetupAndMigration(db)
 
-	redis := utils.GetRedisStatusStore()
+	redis, err := utils.GetRedisStatusStore()
+	if err != nil {
+		panic("failed to connect redis")
+	}
 
 	utils.DatabaseSetupAndMigration(db)
 

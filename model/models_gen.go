@@ -221,18 +221,18 @@ func (e FeedRefreshDirection) MarshalGQL(w io.Writer) {
 type SignalType string
 
 const (
-	SignalTypeSeedState         SignalType = "SEED_STATE"
-	SignalTypeSetItemReadStatus SignalType = "SET_ITEM_READ_STATUS"
+	SignalTypeSeedState          SignalType = "SEED_STATE"
+	SignalTypeSetItemsReadStatus SignalType = "SET_ITEMS_READ_STATUS"
 )
 
 var AllSignalType = []SignalType{
 	SignalTypeSeedState,
-	SignalTypeSetItemReadStatus,
+	SignalTypeSetItemsReadStatus,
 }
 
 func (e SignalType) IsValid() bool {
 	switch e {
-	case SignalTypeSeedState, SignalTypeSetItemReadStatus:
+	case SignalTypeSeedState, SignalTypeSetItemsReadStatus:
 		return true
 	}
 	return false

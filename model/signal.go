@@ -1,6 +1,6 @@
 package model
 
 type Signal struct {
-	SignalType SignalType `json:"signalType"`
-	Payload    string     `json:"payload"`
+	SignalType    SignalType `json:"signalType"`
+	SignalPayload string     `json:"signalPayload"`
 }

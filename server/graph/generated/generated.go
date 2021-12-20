@@ -42,7 +42,6 @@ type ResolverRoot interface {
 	Mutation() MutationResolver
 	Post() PostResolver
 	Query() QueryResolver
-	Signal() SignalResolver
 	Source() SourceResolver
 	SubSource() SubSourceResolver
 	Subscription() SubscriptionResolver
@@ -234,9 +233,6 @@ type QueryResolver interface {
 	SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error)
 	Sources(ctx context.Context, input *model.SourcesInput) ([]*model.Source, error)
 	TryCustomizedCrawler(ctx context.Context, input *model.CustomizedCrawlerParams) ([]*model.CustomizedCrawlerTestResponse, error)
-}
-type SignalResolver interface {
-	SignalPayload(ctx context.Context, obj *model.Signal) (*string, error)
 }
 type SourceResolver interface {
 	DeletedAt(ctx context.Context, obj *model.Source) (*time.Time, error)
@@ -1490,12 +1486,16 @@ enum SignalType {
   # Instruct client side to pull seed state. This is the first signal send to
   # client side application.
   SEED_STATE
-  SET_ITEM_READ_STATUS
+  SET_ITEMS_READ_STATUS
 }
 
 type Signal @goModel(model: "model.Signal") {
   signalType: SignalType!
+
+  # sigalPayload is a general payload, and each type of signal needs to parse its own payload
+  # the parser should be added to signal_payload.go
   signalPayload: String
+
   # Some signal also need params, adding all custom params below this line.
 }
 `, BuiltIn: false},
@@ -4422,14 +4422,14 @@ func (ec *executionContext) _Signal_signalPayload(ctx context.Context, field gra
 		Object:     "Signal",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Signal().SignalPayload(rctx, obj)
+		return obj.SignalPayload, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4438,9 +4438,9 @@ func (ec *executionContext) _Signal_signalPayload(ctx context.Context, field gra
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Source_id(ctx context.Context, field graphql.CollectedField, obj *model.Source) (ret graphql.Marshaler) {
@@ -8096,19 +8096,10 @@ func (ec *executionContext) _Signal(ctx context.Context, sel ast.SelectionSet, o
 		case "signalType":
 			out.Values[i] = ec._Signal_signalType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "signalPayload":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Signal_signalPayload(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._Signal_signalPayload(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
