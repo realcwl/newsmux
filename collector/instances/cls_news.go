@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -17,11 +18,13 @@ import (
 )
 
 type ClsNewsCrawler struct {
-	Sink sink.CollectedDataSink
+	Sink       sink.CollectedDataSink
+	ImageStore file_store.CollectedFileStore
 }
 
 func (cls ClsNewsCrawler) UpdateImageUrls(workingContext *working_context.CrawlerWorkingContext) error {
-	workingContext.Result.Post.ImageUrls = []string{}
+	// prepare imageUrls
+	imageUrls := []string{}
 	selection := workingContext.Element.DOM.Find(".telegraph-images-box > img")
 	for i := 0; i < selection.Length(); i++ {
 		img := selection.Eq(i)
@@ -29,10 +32,20 @@ func (cls ClsNewsCrawler) UpdateImageUrls(workingContext *working_context.Crawle
 		parts := strings.Split(imageUrl, "?")
 		imageUrl = parts[0]
 		if len(imageUrl) == 0 {
-			return errors.New("image DOM exist but src not found")
+			Logger.Log.WithFields(logrus.Fields{"source": "cls_news"}).
+				Errorln("image DOM exist but src not found at index ", i, " of selection")
+			continue
 		}
-		workingContext.Result.Post.ImageUrls = append(workingContext.Result.Post.ImageUrls, imageUrl)
+		imageUrls = append(imageUrls, imageUrl)
 	}
+
+	// fetch and upload imageUrks to S3
+	s3OrOriginalUrls, err := collector.UploadImagesToS3(cls.ImageStore, imageUrls)
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "cls_news"}).
+			Errorln("fail to get caus_news image, err:", err)
+	}
+	workingContext.Result.Post.ImageUrls = s3OrOriginalUrls
 	return nil
 }
 
