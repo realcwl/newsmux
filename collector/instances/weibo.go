@@ -149,7 +149,11 @@ func (w WeiboApiCollector) UpdateSubSourceAvatarUrl(mBlog *MBlog, post *protocol
 	if mBlog.User == nil || len(mBlog.User.ProfileImageURL) == 0 {
 		return nil
 	}
-	imageUrl := mBlog.User.ProfileImageURL
+	// weibo avatar image url has following params which will cause NoSuchKey in cloudfront link
+	// we could move this logic to FetchAndStore if it applies to all images
+	// ?KID=imgbed,tva&Expires=1640024679&ssig=TCbiakfFx2
+	// S3 link with param works though, probably Expires causes the problem
+	imageUrl := strings.Split(mBlog.User.ProfileImageURL, "?")[0]
 	s3OrOriginalUrl, err := collector.UploadImageToS3(w.ImageStore, imageUrl, "")
 	if err != nil {
 		Logger.Log.WithFields(logrus.Fields{"source": "weibo"}).
