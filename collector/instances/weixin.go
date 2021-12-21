@@ -24,7 +24,7 @@ import (
 func GetWeixinS3ImageStore(t *protocol.PanopticTask, isProd bool) (*file_store.S3FileStore, error) {
 	bucketName := file_store.TestS3Bucket
 	if isProd {
-		bucketName = file_store.ProdS3FileBucket
+		bucketName = file_store.ProdS3ImageBucket
 	}
 	zsxqFileStore, err := file_store.NewS3FileStore(bucketName)
 	if err != nil {
