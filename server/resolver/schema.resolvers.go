@@ -392,6 +392,8 @@ func (r *queryResolver) Post(ctx context.Context, input *model.PostInput) (*mode
 			return db.Order("posts.created_at ASC")
 		}).
 		Preload("ReplyThread.SubSource").
+		Preload("ReplyThread.SharedFromPost").
+		Preload("ReplyThread.SharedFromPost.SubSource").
 		Where("id=?", input.ID).First(&post)
 	return post, result.Error
 }

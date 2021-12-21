@@ -1267,7 +1267,7 @@ type CustomizedCrawlerParams struct {
 	TimeRelativeSelector       *string `protobuf:"bytes,6,opt,name=time_relative_selector,json=timeRelativeSelector,proto3,oneof" json:"time_relative_selector,omitempty"` // if not specified, use the cralwed time as content generated time
 	ImageRelativeSelector      *string `protobuf:"bytes,7,opt,name=image_relative_selector,json=imageRelativeSelector,proto3,oneof" json:"image_relative_selector,omitempty"`
 	SubsourceRelativeSelector  *string `protobuf:"bytes,8,opt,name=subsource_relative_selector,json=subsourceRelativeSelector,proto3,oneof" json:"subsource_relative_selector,omitempty"`   // how to deal with subsource spec
-	OriginUrlRelativeSelector  *string `protobuf:"bytes,9,opt,name=origin_url_relative_selector,json=originUrlRelativeSelector,proto3,oneof" json:"origin_url_relative_selector,omitempty"` // by default is the url
+	OriginUrlRelativeSelector  *string `protobuf:"bytes,9,opt,name=origin_url_relative_selector,json=originUrlRelativeSelector,proto3,oneof" json:"origin_url_relative_selector,omitempty"` // by default is the crawl_url
 	OriginUrlIsRelativePath    *bool   `protobuf:"varint,10,opt,name=origin_url_is_relative_path,json=originUrlIsRelativePath,proto3,oneof" json:"origin_url_is_relative_path,omitempty"`   // if the origin_url_relative_selector generates relative path to crawl_url
 }
 

@@ -1,7 +1,6 @@
 package panoptic
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -21,8 +20,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestMergeSubsourcesFromConfigAndDb(t *testing.T) {
-	db, name := utils.CreateTempDB(t)
-	fmt.Println("created db", name)
+	db, _ := utils.CreateTempDB(t)
 
 	user := model.User{
 		Id:   uuid.New().String(),
@@ -84,4 +82,66 @@ func TestMergeSubsourcesFromConfigAndDb(t *testing.T) {
 	require.Equal(t, configs.Config[0].TaskParams.SubSources[1].CustomizedCrawlerParamsForSubSource.BaseSelector, ".telegraph-list")
 	require.Equal(t, configs.Config[0].TaskParams.SubSources[1].CustomizedCrawlerParamsForSubSource.CrawlUrl, "https://www.cls.cn/telegraph")
 	require.Equal(t, *configs.Config[0].TaskParams.SubSources[1].CustomizedCrawlerParamsForSubSource.TitleRelativeSelector, ".telegraph-content-box span:not(.telegraph-time-box) > strong")
+}
+
+func TestMergeSubsourcesFromConfigAndDb_Twitter(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	user := model.User{
+		Id:   uuid.New().String(),
+		Name: "test_user",
+	}
+
+	twitterSourceId := uuid.New().String()
+	twitterSource := model.Source{
+		Id:        twitterSourceId,
+		Name:      "推特",
+		Domain:    "",
+		CreatedAt: time.Now(),
+		Creator:   user,
+	}
+	db.Create(&twitterSource)
+
+	twitterSubSourceInDB := model.SubSource{
+		Id:               uuid.New().String(),
+		Name:             "马斯克",
+		SourceID:         twitterSourceId,
+		CreatedAt:        time.Now(),
+		IsFromSharedPost: false,
+	}
+	db.Create(&twitterSubSourceInDB)
+
+	// Write this to DB, but because it already exists in config, don't overwrite the one in config
+	twitterSubSourceInConfig := model.SubSource{
+		Id:        uuid.New().String(),
+		Name:      "贝索斯",
+		SourceID:  twitterSourceId,
+		CreatedAt: time.Now(),
+	}
+	db.Create(&twitterSubSourceInConfig)
+
+	ids := GetCustomizedSubsourceSourceId(db)
+	require.Equal(t, len(ids), 1)
+	require.True(t, ids[twitterSourceId])
+
+	configs := protocol.PanopticConfigs{
+		Config: []*protocol.PanopticConfig{
+			{
+				Name:            "twitter_config",
+				DataCollectorId: protocol.PanopticTask_COLLECTOR_TWITTER,
+				TaskParams: &protocol.TaskParams{
+					SourceId: twitterSourceId,
+					SubSources: []*protocol.PanopticSubSource{
+						{
+							Name: "贝索斯",
+						},
+					},
+				},
+			},
+		},
+	}
+	MergeSubsourcesFromConfigAndDb(db, &configs)
+	require.Len(t, configs.Config[0].TaskParams.SubSources, 2)
+	require.Equal(t, configs.Config[0].TaskParams.SubSources[0].Name, "贝索斯")
+	require.Equal(t, configs.Config[0].TaskParams.SubSources[1].Name, "马斯克")
 }

@@ -65,6 +65,8 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 				return db.Order("posts.created_at ASC")
 			}).
 			Preload("ReplyThread.SubSource").
+			Preload("ReplyThread.SharedFromPost").
+			Preload("ReplyThread.SharedFromPost.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor > ?", feed.Id, query.Cursor).
@@ -86,6 +88,8 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 				return db.Order("posts.created_at ASC")
 			}).
 			Preload("ReplyThread.SubSource").
+			Preload("ReplyThread.SharedFromPost").
+			Preload("ReplyThread.SharedFromPost.SubSource").
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor < ?", feed.Id, query.Cursor).
@@ -246,6 +250,20 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 	}
 
 	if queryResult.RowsAffected == 0 {
+		var customizedCrawlerParams *string
+		if input.CustomizedCrawlerParams != nil {
+			config, err := ConstructCustomizedCrawlerParams(*input.CustomizedCrawlerParams)
+			if err != nil {
+				return nil, err
+			}
+			bytes, err := prototext.Marshal(config)
+			if err != nil {
+				return nil, err
+			}
+			str := string(bytes)
+			customizedCrawlerParams = &str
+		}
+
 		// Create new SubSource
 		subSource = model.SubSource{
 			Id:                      uuid.New().String(),

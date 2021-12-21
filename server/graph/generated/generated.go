@@ -15,9 +15,10 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/Luismorlan/newsmux/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
+
+	"github.com/Luismorlan/newsmux/model"
 )
 
 // region    ************************** generated!.gotpl **************************

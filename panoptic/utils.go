@@ -9,11 +9,13 @@ import (
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
+var MergebleSubSourceAllowList = []string{"推特", "微博"}
+
 // Get sources that needs DB to add more subsources
 // Returns a set of source ids
 func GetCustomizedSubsourceSourceId(db *gorm.DB) map[string]bool {
 	var sources []model.Source
-	db.Where("name IN ?", []string{"微博"}).Find(&sources)
+	db.Where("name IN ?", MergebleSubSourceAllowList).Find(&sources)
 	sourceIdsToReadSubsourceFromDB := make(map[string]bool)
 	for _, source := range sources {
 		sourceIdsToReadSubsourceFromDB[source.Id] = true

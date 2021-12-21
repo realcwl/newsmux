@@ -46,6 +46,7 @@ func TestAddSubSourceImp_Weibo(t *testing.T) {
 		// This code assumes that Elon Musk never delete his account :P
 		SubSourceUserName: "庄时利和",
 	})
+
 	assert.Nil(t, err)
 	assert.Equal(t, subSource.Name, "庄时利和")
 	assert.Equal(t, subSource.ExternalIdentifier, "1728715190")
