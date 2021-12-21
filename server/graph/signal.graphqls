@@ -3,15 +3,9 @@ enum SignalType {
   # Instruct client side to pull seed state. This is the first signal send to
   # client side application.
   SEED_STATE
-  SET_ITEMS_READ_STATUS
 }
 
 type Signal @goModel(model: "model.Signal") {
   signalType: SignalType!
-
-  # sigalPayload is a general payload, and each type of signal needs to parse its own payload
-  # the parser should be added to signal_payload.go
-  signalPayload: String
-
   # Some signal also need params, adding all custom params below this line.
 }

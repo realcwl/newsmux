@@ -97,5 +97,4 @@ type Post struct {
 	DeduplicateId   string `json:"deduplicate_id"`
 	SemanticHashing string `json:"semantic_hashing"`
 	Tag             string `json:"tag"`
-	IsRead          bool   `json:"is_read" gorm:"-" sql:"-"`
 }

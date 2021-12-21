@@ -36,7 +36,4 @@ type Post @goModel(model: "model.Post") {
 
   # tags indicating post content
   tags: [String!]!
-
-  # indicating if the post has been read
-  isRead: Boolean!
 }

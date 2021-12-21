@@ -125,13 +125,6 @@ type SeedStateInput struct {
 	FeedSeedState []*FeedSeedStateInput `json:"feedSeedState"`
 }
 
-type SetItemsReadStatusInput struct {
-	UserID      string   `json:"userId"`
-	ItemNodeIds []string `json:"itemNodeIds"`
-	Read        bool     `json:"read"`
-	Type        ItemType `json:"type"`
-}
-
 type SourcesInput struct {
 	SubSourceFromSharedPost bool `json:"subSourceFromSharedPost"`
 }
@@ -220,62 +213,19 @@ func (e FeedRefreshDirection) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-type ItemType string
-
-const (
-	ItemTypePost        ItemType = "POST"
-	ItemTypeDuplication ItemType = "DUPLICATION"
-)
-
-var AllItemType = []ItemType{
-	ItemTypePost,
-	ItemTypeDuplication,
-}
-
-func (e ItemType) IsValid() bool {
-	switch e {
-	case ItemTypePost, ItemTypeDuplication:
-		return true
-	}
-	return false
-}
-
-func (e ItemType) String() string {
-	return string(e)
-}
-
-func (e *ItemType) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = ItemType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid ItemType", str)
-	}
-	return nil
-}
-
-func (e ItemType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
 type SignalType string
 
 const (
-	SignalTypeSeedState          SignalType = "SEED_STATE"
-	SignalTypeSetItemsReadStatus SignalType = "SET_ITEMS_READ_STATUS"
+	SignalTypeSeedState SignalType = "SEED_STATE"
 )
 
 var AllSignalType = []SignalType{
 	SignalTypeSeedState,
-	SignalTypeSetItemsReadStatus,
 }
 
 func (e SignalType) IsValid() bool {
 	switch e {
-	case SignalTypeSeedState, SignalTypeSetItemsReadStatus:
+	case SignalTypeSeedState:
 		return true
 	}
 	return false

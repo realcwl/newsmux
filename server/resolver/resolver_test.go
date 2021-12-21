@@ -22,20 +22,18 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func PrepareTestForGraphQLAPIs(db *gorm.DB, redis *utils.RedisStatusStore) *client.Client {
+func PrepareTestForGraphQLAPIs(db *gorm.DB) *client.Client {
 	client := client.New(handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &Resolver{
-		DB:               db,
-		RedisStatusStore: redis,
-		SignalChans:      NewSignalChannels(),
+		DB:          db,
+		SignalChans: NewSignalChannels(),
 	}})))
 	return client
 }
 
 func TestCreateUser(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
-	redis, _ := utils.GetRedisStatusStore()
 
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test User Creation", func(t *testing.T) {
 		utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
@@ -63,9 +61,7 @@ func TestCreateUser(t *testing.T) {
 func TestCreateFeed(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test Feed Creation", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
@@ -77,9 +73,7 @@ func TestCreateFeed(t *testing.T) {
 func TestUpsertSubSource(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test Source Upsert", func(t *testing.T) {
 		// Insert
@@ -102,9 +96,7 @@ func TestUpsertSubSource(t *testing.T) {
 func TestQuerySubSource(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test Source Query", func(t *testing.T) {
 		// Insert
@@ -136,9 +128,7 @@ func TestQuerySubSource(t *testing.T) {
 func TestUserSubscribeFeed(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
 		userId := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
@@ -165,9 +155,7 @@ func TestUserSubscribeFeed(t *testing.T) {
 func TestSubscriberCount(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 
 	userId1 := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id_1", db, client)
 	userId2 := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id_2", db, client)
@@ -179,9 +167,7 @@ func TestSubscriberCount(t *testing.T) {
 
 func TestDeleteFeed(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
-	redis, _ := utils.GetRedisStatusStore()
-
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 	t.Run("Test User delete Feed", func(t *testing.T) {
 		utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
@@ -203,9 +189,7 @@ func TestDeleteFeed(t *testing.T) {
 func TestQueryFeeds(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "default_user_id", db, client)
 	feedIdOne, updatedTimeOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{"a":1}`, []string{}, model.VisibilityGlobal, db, client)
@@ -531,9 +515,7 @@ func checkFeedTopPostsUpdateTimeChanged(t *testing.T, userId string, feedId stri
 func TestUpSertFeedsAndRepublish(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "default_user_id", db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
@@ -670,9 +652,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 func TestUserState(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_user_api", "default_user_id", db, client)
 	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_user_api", `{"a":1}`, []string{}, model.VisibilityGlobal, db, client)
@@ -686,8 +666,7 @@ func TestUserState(t *testing.T) {
 func TestDeleteSubsource(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_delete_subsource_api", "default_user_id", db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_delete_subsource_api", "test_domain", db, client)
 	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, false, db, client)
@@ -703,8 +682,7 @@ func TestDeleteSubsource(t *testing.T) {
 func TestListSubsourceAfterDeletion(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	redis, _ := utils.GetRedisStatusStore()
-	client := PrepareTestForGraphQLAPIs(db, redis)
+	client := PrepareTestForGraphQLAPIs(db)
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_delete_subsource_api", "default_user_id", db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_delete_subsource_api", "test_domain", db, client)
 	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_delete_subsource_api", "test_externalid", sourceId, false, db, client)
