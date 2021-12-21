@@ -135,7 +135,37 @@ func (processor *CrawlerpublisherMessageProcessor) prepareSubSourceRecursive(pos
 			return nil, err
 		}
 	}
+
+	if post.ReplyTo != nil {
+		if _, err = processor.prepareSubSourceRecursive(post.ReplyTo, false); err != nil {
+			return nil, err
+		}
+	}
+
 	return subSource, nil
+}
+
+func (processor *CrawlerpublisherMessageProcessor) prepareReplyThreadFromMessage(
+	msg *CrawlerMessage, currentPost *CrawlerMessage_CrawledPost) (
+	[]*model.Post, error) {
+	res := []*model.Post{}
+	post, err := processor.preparePostChainFromMessage(msg, currentPost, false /*isRoot*/)
+	if err != nil {
+		return nil, err
+	}
+	res = append(res, post)
+
+	if currentPost.ReplyTo == nil {
+		return res, nil
+	}
+
+	parents, err := processor.prepareReplyThreadFromMessage(msg, currentPost.ReplyTo)
+	if err != nil {
+		return nil, err
+	}
+
+	res = append(res, parents...)
+	return res, nil
 }
 
 func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(msg *CrawlerMessage, currentPost *CrawlerMessage_CrawledPost, isRoot bool) (post *model.Post, e error) {
@@ -172,6 +202,16 @@ func (processor *CrawlerpublisherMessageProcessor) preparePostChainFromMessage(m
 		post.SharedFromPost = sharedFromPost
 		post.SharedFromPostID = &sharedFromPost.Id
 	}
+
+	// Only construct reply thread at root level
+	if isRoot && currentPost.ReplyTo != nil {
+		thread, err := processor.prepareReplyThreadFromMessage(msg, currentPost.ReplyTo)
+		if err != nil {
+			return nil, err
+		}
+		post.ReplyThread = thread
+	}
+
 	return post, nil
 }
 
