@@ -76,7 +76,9 @@ func isPostDuplicated(
 		}
 
 		if (math.Abs(post.ContentGeneratedAt.Sub(v.ContentGeneratedAt).Hours())) < SimilarityWindowHours {
-			return isHashingSemanticallyIdentical(post.SemanticHashing, v.SemanticHash)
+			if isHashingSemanticallyIdentical(post.SemanticHashing, v.SemanticHash) {
+				return true
+			}
 		}
 	}
 	return false
