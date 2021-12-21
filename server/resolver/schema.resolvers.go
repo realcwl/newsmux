@@ -367,30 +367,6 @@ func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInp
 	return ss, err
 }
 
-func (r *mutationResolver) SetItemsReadStatus(ctx context.Context, input model.SetItemsReadStatusInput) (bool, error) {
-	err := r.RedisStatusStore.SetItemsReadStatus(input.ItemNodeIds, input.UserID, input.Read)
-	if err != nil {
-		return false, err
-	}
-	go func() {
-		payload := ReadStatusPayload{
-			read:        input.Read,
-			itemNodeIds: input.ItemNodeIds,
-			delimiter:   "_",
-			itemType:    input.Type,
-		}
-		ser, _ := payload.Marshal()
-		err := r.SignalChans.PushSignalToUser(&model.Signal{
-			SignalType:    model.SignalTypeSetItemsReadStatus,
-			SignalPayload: ser,
-		}, input.UserID)
-		if err != nil {
-			Logger.Log.Errorf("failed to push read status signal to user %s: %v", input.UserID, err)
-		}
-	}()
-	return true, nil
-}
-
 func (r *queryResolver) AllVisibleFeeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
 
@@ -473,7 +449,7 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInp
 		}
 	}
 
-	return getRefreshPosts(r, feedRefreshInputs, input.UserID)
+	return getRefreshPosts(r, feedRefreshInputs)
 }
 
 func (r *queryResolver) SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error) {
