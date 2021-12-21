@@ -26,9 +26,43 @@ type AddWeiboSubSourceInput struct {
 	Name string `json:"name"`
 }
 
+type CustomizedCrawlerPanopticConfigForm struct {
+	Name                      *string                  `json:"name"`
+	StartImmediately          *bool                    `json:"startImmediately"`
+	ScheduleEveryMilliseconds *int                     `json:"scheduleEveryMilliseconds"`
+	CustomizedCrawlerParams   *CustomizedCrawlerParams `json:"customizedCrawlerParams"`
+}
+
+type CustomizedCrawlerParams struct {
+	CrawlURL                   string  `json:"crawlUrl"`
+	BaseSelector               string  `json:"baseSelector"`
+	TitleRelativeSelector      *string `json:"titleRelativeSelector"`
+	ContentRelativeSelector    *string `json:"contentRelativeSelector"`
+	ExternalIDRelativeSelector *string `json:"externalIdRelativeSelector"`
+	TimeRelativeSelector       *string `json:"timeRelativeSelector"`
+	ImageRelativeSelector      *string `json:"imageRelativeSelector"`
+	SubsourceRelativeSelector  *string `json:"subsourceRelativeSelector"`
+	OriginURLRelativeSelector  *string `json:"originUrlRelativeSelector"`
+}
+
+type CustomizedCrawlerTestResponse struct {
+	BaseHTML   *string  `json:"baseHtml"`
+	Title      *string  `json:"title"`
+	Content    *string  `json:"content"`
+	ExternalID *string  `json:"externalId"`
+	Time       *string  `json:"time"`
+	Images     []string `json:"images"`
+	Subsource  *string  `json:"subsource"`
+	OriginURL  *string  `json:"originUrl"`
+}
+
 type DeleteFeedInput struct {
 	UserID string `json:"userId"`
 	FeedID string `json:"feedId"`
+}
+
+type DeleteSubSourceInput struct {
+	SubsourceID string `json:"subsourceId"`
 }
 
 type FeedRefreshInput struct {
@@ -65,9 +99,10 @@ type NewPostInput struct {
 }
 
 type NewSourceInput struct {
-	UserID string `json:"userId"`
-	Name   string `json:"name"`
-	Domain string `json:"domain"`
+	UserID                              string                               `json:"userId"`
+	Name                                string                               `json:"name"`
+	Domain                              string                               `json:"domain"`
+	CustomizedCrawlerPanopticConfigForm *CustomizedCrawlerPanopticConfigForm `json:"customizedCrawlerPanopticConfigForm"`
 }
 
 type NewUserInput struct {
@@ -99,7 +134,8 @@ type SubscribeInput struct {
 }
 
 type SubsourcesInput struct {
-	IsFromSharedPost bool `json:"isFromSharedPost"`
+	IsFromSharedPost bool  `json:"isFromSharedPost"`
+	IsCustomized     *bool `json:"isCustomized"`
 }
 
 type UpsertFeedInput struct {
@@ -112,12 +148,13 @@ type UpsertFeedInput struct {
 }
 
 type UpsertSubSourceInput struct {
-	Name               string `json:"name"`
-	ExternalIdentifier string `json:"externalIdentifier"`
-	SourceID           string `json:"sourceId"`
-	AvatarURL          string `json:"avatarUrl"`
-	OriginURL          string `json:"originUrl"`
-	IsFromSharedPost   bool   `json:"isFromSharedPost"`
+	Name                    string                   `json:"name"`
+	ExternalIdentifier      string                   `json:"externalIdentifier"`
+	SourceID                string                   `json:"sourceId"`
+	AvatarURL               string                   `json:"avatarUrl"`
+	OriginURL               string                   `json:"originUrl"`
+	IsFromSharedPost        bool                     `json:"isFromSharedPost"`
+	CustomizedCrawlerParams *CustomizedCrawlerParams `json:"customizedCrawlerParams"`
 }
 
 type UserSeedState struct {

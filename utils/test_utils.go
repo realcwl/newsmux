@@ -9,9 +9,10 @@ import (
 	"time"
 
 	"github.com/99designs/gqlgen/client"
-	"github.com/Luismorlan/newsmux/model"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+
+	"github.com/Luismorlan/newsmux/model"
 )
 
 const (
@@ -213,7 +214,10 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	subSourceIdsStr, _ := json.MarshalIndent(subSourceIds, "", "  ")
 	compactedBuffer := new(bytes.Buffer)
 	// json needs to be compact into one line in order to comply with graphql
-	json.Compact(compactedBuffer, []byte(filterDataExpression))
+	err := json.Compact(compactedBuffer, []byte(filterDataExpression))
+	if err != nil {
+		fmt.Println("eeeeeeeeeee ", err)
+	}
 	compactEscapedjson := strings.ReplaceAll(compactedBuffer.String(), `"`, `\"`)
 
 	query := fmt.Sprintf(`mutation {
@@ -280,9 +284,12 @@ func TestUpdateFeed(t *testing.T, feed model.Feed, db *gorm.DB, client *client.C
 	}
 	subSourceIdsStr, _ := json.MarshalIndent(subSourceIds, "", "  ")
 
-	compactEscapedjson := ""
+	compactEscapedjson := "{}"
 	dataExpression, err := feed.FilterDataExpression.MarshalJSON()
-	if err == nil && string(dataExpression) != "null" {
+	if err != nil {
+		fmt.Println("============== failed ", err)
+	}
+	if err == nil && string(dataExpression) != "null" && len(dataExpression) > 0 {
 		compactedBuffer := new(bytes.Buffer)
 		// json needs to be compact into one line in order to comply with graphql
 		json.Compact(compactedBuffer, dataExpression)
@@ -588,15 +595,21 @@ func TestDeleteFeedAndValidate(t *testing.T, userId string, feedId string, owner
 	}
 }
 
-func TestQuerySubSources(t *testing.T, isFromSharedPost bool, db *gorm.DB, client *client.Client) []model.SubSource {
+func TestQuerySubSources(t *testing.T, isFromSharedPost bool, isCustomized *bool, db *gorm.DB, client *client.Client) []model.SubSource {
 	var resp struct {
 		SubSources []model.SubSource `json:"subSources"`
+	}
+
+	customizedFilterStr := ""
+	if isCustomized != nil {
+		customizedFilterStr = fmt.Sprintf("isCustomized: %s", StringifyBoolean(*isCustomized))
 	}
 	query := fmt.Sprintf(`
 	query {
 		subSources(
 		  input: {
 			isFromSharedPost: %s
+			%s
 		  }
 		) {
 		  id
@@ -607,7 +620,7 @@ func TestQuerySubSources(t *testing.T, isFromSharedPost bool, db *gorm.DB, clien
 		  isFromSharedPost
 		}
 	}
-	  `, StringifyBoolean(isFromSharedPost))
+	  `, StringifyBoolean(isFromSharedPost), customizedFilterStr)
 
 	client.MustPost(query, &resp)
 	return resp.SubSources
@@ -647,4 +660,32 @@ func TestQueryUserState(t *testing.T, userId string, feedIds []string, client *c
 	}
 
 	require.True(t, StringSlicesContainSameElements(feedIds, Ids))
+}
+
+// delete subsource with id
+func TestDeleteSubSourceAndValidate(t *testing.T, userId string, subsourceId string, db *gorm.DB, client *client.Client) {
+	var resp struct {
+		DeleteSubSource struct {
+			Id               string `json:"id"`
+			Name             string `json:"name"`
+			IsFromSharedPost bool   `json:"isFromSharedPost"`
+			CreatedAt        string `json:"createdAt"`
+			DeletedAt        string `json:"deletedAt"`
+		} `json:"deleteSubSource"`
+	}
+
+	client.MustPost(fmt.Sprintf(`mutation {
+		deleteSubSource(input:{subsourceId:"%s"}) {
+		  id
+		  name
+		  isFromSharedPost
+		  createdAt
+		  deletedAt
+		}
+	  }
+	  `, subsourceId), &resp)
+
+	fmt.Printf("\nResponse from resolver: %+v\n", resp)
+	require.Equal(t, subsourceId, resp.DeleteSubSource.Id)
+	require.True(t, resp.DeleteSubSource.IsFromSharedPost)
 }

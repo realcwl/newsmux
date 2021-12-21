@@ -6,8 +6,8 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 
 	Handler "github.com/Luismorlan/newsmux/collector/handler"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -90,7 +90,8 @@ func main() {
 
 	ValidatePanopticJob(job)
 
-	log.Println("====== Panoptic Job ======\n" + proto.MarshalTextString(job))
+	bytes, _ := proto.Marshal(job)
+	log.Println("====== Panoptic Job ======\n" + string(bytes))
 
 	handler := Handler.DataCollectJobHandler{}
 	if err := handler.Collect(job); err != nil {

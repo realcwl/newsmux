@@ -6,8 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/Luismorlan/newsmux/protocol"
-	"github.com/golang/protobuf/proto"
 )
 
 // SchedulerJob defines the jobs which scheduler manages. Scheduler periodically

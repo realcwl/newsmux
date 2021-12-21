@@ -6,9 +6,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/prototext"
 	"gorm.io/gorm"
 
 	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/protocol"
 	"github.com/Luismorlan/newsmux/utils"
 	. "github.com/Luismorlan/newsmux/utils/log"
 )
@@ -233,15 +235,30 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 		Where("name = ? AND source_id = ?", input.Name, input.SourceID).
 		First(&subSource)
 	if queryResult.RowsAffected == 0 {
+		var customizedCrawlerParams *string
+		if input.CustomizedCrawlerParams != nil {
+			config, err := ConstructCustomizedCrawlerParams(*input.CustomizedCrawlerParams)
+			if err != nil {
+				return nil, err
+			}
+			bytes, err := prototext.Marshal(config)
+			if err != nil {
+				return nil, err
+			}
+			str := string(bytes)
+			customizedCrawlerParams = &str
+		}
+
 		// Create new SubSource
 		subSource = model.SubSource{
-			Id:                 uuid.New().String(),
-			Name:               input.Name,
-			ExternalIdentifier: input.ExternalIdentifier,
-			SourceID:           input.SourceID,
-			AvatarUrl:          input.AvatarURL,
-			OriginUrl:          input.OriginURL,
-			IsFromSharedPost:   input.IsFromSharedPost,
+			Id:                      uuid.New().String(),
+			Name:                    input.Name,
+			ExternalIdentifier:      input.ExternalIdentifier,
+			SourceID:                input.SourceID,
+			AvatarUrl:               input.AvatarURL,
+			OriginUrl:               input.OriginURL,
+			IsFromSharedPost:        input.IsFromSharedPost,
+			CustomizedCrawlerParams: customizedCrawlerParams,
 		}
 		db.Create(&subSource)
 		return &subSource, nil
@@ -259,4 +276,21 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 	db.Save(&subSource)
 
 	return &subSource, nil
+}
+
+// For Customized SubSource
+// Transform user provided form into CustomizedCrawlerParams in panoptic.proto
+func ConstructCustomizedCrawlerParams(input model.CustomizedCrawlerParams) (*protocol.CustomizedCrawlerParams, error) {
+	customizedCrawlerParams := &protocol.CustomizedCrawlerParams{
+		CrawlUrl:                   input.CrawlURL,
+		BaseSelector:               input.BaseSelector,
+		TitleRelativeSelector:      input.TitleRelativeSelector,
+		ContentRelativeSelector:    input.ContentRelativeSelector,
+		ExternalIdRelativeSelector: input.ExternalIDRelativeSelector,
+		TimeRelativeSelector:       input.TimeRelativeSelector,
+		ImageRelativeSelector:      input.ImageRelativeSelector,
+		SubsourceRelativeSelector:  input.SubsourceRelativeSelector,
+		OriginUrlRelativeSelector:  input.OriginURLRelativeSelector,
+	}
+	return customizedCrawlerParams, nil
 }

@@ -16,6 +16,7 @@ input SourcesInput {
 
 input SubsourcesInput {
   isFromSharedPost: Boolean!
+  isCustomized: Boolean
 }
 
 input PostInput {
@@ -54,6 +55,33 @@ input NewSourceInput {
   userId: String!
   name: String!
   domain: String!
+  customizedCrawlerPanopticConfigForm: CustomizedCrawlerPanopticConfigForm
+}
+
+# This schema has all information needed to construct a PanopticConfig in panoptic_config.proto
+# data_collector_id is predefined to be COLLECTOR_USER_CUSTOMIZED_SOURCE
+input CustomizedCrawlerPanopticConfigForm {
+  name: String # name of the config if not specified, use source name
+
+  # for TaskSchedule:
+  startImmediately: Boolean # default to true
+  scheduleEveryMilliseconds: Int # default to 5 minutes
+
+  # for CustomizedCrawlerParams
+  customizedCrawlerParams: CustomizedCrawlerParams!
+}
+
+# This schema has all information needed to construct a CustomizedCrawlerParams in panoptic.proto
+input CustomizedCrawlerParams {
+  crawlUrl: String! # url to crawl, e.g. https://www.cls.cn/telegraph
+  baseSelector: String! # base selector should return a list of DOM elements where each one corresponds to a single post
+  titleRelativeSelector: String # relative selector to the base selector
+  contentRelativeSelector: String
+  externalIdRelativeSelector: String
+  timeRelativeSelector: String #if not specified, use the cralwed time as content generated time
+  imageRelativeSelector: String
+  subsourceRelativeSelector: String #how to deal with subsource spec
+  originUrlRelativeSelector: String #by default is the url
 }
 
 # isFromSharedPost = true means the subsource is not for cralwing
@@ -68,6 +96,14 @@ input UpsertSubSourceInput {
   avatarUrl: String!
   originUrl: String!
   isFromSharedPost: Boolean!
+
+  # use this to customize crawler behavior, the source should have 
+  # collector_id = COLLECTOR_USER_CUSTOMIZED_SUBSOURCE in config
+  customizedCrawlerParams: CustomizedCrawlerParams
+}
+
+input DeleteSubSourceInput {
+  subsourceId: String!
 }
 
 # Add weibo user to the database for panoptic to crawl
@@ -156,6 +192,8 @@ type Query {
   feeds(input: FeedsGetPostsInput): [Feed!]!
   subSources(input: SubsourcesInput): [SubSource!]!
   sources(input: SourcesInput): [Source!]
+
+  tryCustomizedCrawler(input: CustomizedCrawlerParams): [CustomizedCrawlerTestResponse!]
 }
 
 type Mutation {
@@ -180,6 +218,7 @@ type Mutation {
   # This mutation isn't intended to be used as a generic AddSubSource method for
   # now, but it can be extended to be a generic one.
   addSubSource(input: AddSubSourceInput!): SubSource!
+  deleteSubSource(input: DeleteSubSourceInput): SubSource!
 
   syncUp(input: SeedStateInput): SeedState
 }
@@ -187,7 +226,7 @@ type Mutation {
 type Subscription {
   # Subscribe to signals sending from server side. Client side should handle
   # signals properly. The first time this is called will always return
-  # SEED_STATE signal.
+  # SEEDSTATE signal.
   signal(userId: String!): Signal!
 }
 

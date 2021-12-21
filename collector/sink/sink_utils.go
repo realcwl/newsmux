@@ -11,33 +11,39 @@ import (
 // - On Success: Increment collected message counter on task.
 // - On Failure: Log error and increment failure message counter on task.
 func PushResultToSinkAndRecordInTaskMetadata(s CollectedDataSink, workingContext interface{}) {
-	var shared_context *working_context.SharedContext
-	switch workingContext := workingContext.(type) {
+	var sharedContext *working_context.SharedContext
+	switch wc := workingContext.(type) {
 	case *working_context.CrawlerWorkingContext:
-		shared_context = &workingContext.SharedContext
+		sharedContext = &wc.SharedContext
 	case *working_context.ApiCollectorWorkingContext:
-		shared_context = &workingContext.SharedContext
+		sharedContext = &wc.SharedContext
 	case *working_context.RssCollectorWorkingContext:
-		shared_context = &workingContext.SharedContext
+		sharedContext = &wc.SharedContext
 	}
 
-	if shared_context.IntentionallySkipped {
-		shared_context.Task.TaskMetadata.TotalMessageSkipped++
+	if sharedContext.IntentionallySkipped {
+		sharedContext.Task.TaskMetadata.TotalMessageSkipped++
 		return
 	}
 
-	if err := validation.ValidateSharedContext(shared_context); err != nil {
-		shared_context.Task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-		shared_context.Task.TaskMetadata.TotalMessageFailed++
-		Logger.Log.Errorf("crawled message failed validation, Error: %s", err)
+	if err := validation.ValidateSharedContext(sharedContext); err != nil {
+		sharedContext.Task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
+		sharedContext.Task.TaskMetadata.TotalMessageFailed++
+		switch wc := workingContext.(type) {
+		case *working_context.CrawlerWorkingContext:
+			html, _ := wc.Element.DOM.Html()
+			Logger.Log.Errorf("crawled message failed validation, Error: %s \n, Html %s", err, html)
+		default:
+			Logger.Log.Errorf("crawled message failed validation, Error: %s", err)
+		}
 		return
 	}
 
-	if err := s.Push(shared_context.Result); err != nil {
-		shared_context.Task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
-		shared_context.Task.TaskMetadata.TotalMessageFailed++
-		Logger.Log.Errorf("fail to publish message %s to Sink. Task: %s, Error: %s", shared_context.Result.String(), shared_context.Task.String(), err)
+	if err := s.Push(sharedContext.Result); err != nil {
+		sharedContext.Task.TaskMetadata.ResultState = protocol.TaskMetadata_STATE_FAILURE
+		sharedContext.Task.TaskMetadata.TotalMessageFailed++
+		Logger.Log.Errorf("fail to publish message %s to Sink. Task: %s, Error: %s", sharedContext.Result.String(), sharedContext.Task.String(), err)
 		return
 	}
-	shared_context.Task.TaskMetadata.TotalMessageCollected++
+	sharedContext.Task.TaskMetadata.TotalMessageCollected++
 }

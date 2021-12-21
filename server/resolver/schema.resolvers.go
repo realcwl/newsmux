@@ -9,13 +9,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Luismorlan/newsmux/model"
-	"github.com/Luismorlan/newsmux/server/graph/generated"
-	Logger "github.com/Luismorlan/newsmux/utils/log"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/model"
+	"github.com/Luismorlan/newsmux/server/graph/generated"
+	Logger "github.com/Luismorlan/newsmux/utils/log"
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUserInput) (*model.User, error) {
@@ -94,14 +96,14 @@ func (r *mutationResolver) UpsertFeed(ctx context.Context, input model.UpsertFee
 	// Upsert DB
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		// Update all columns, except primary keys and subscribers to new value, on conflict
-		queryResult = tx.Clauses(clause.OnConflict{
+		queryResult = tx.Debug().Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
 			UpdateAll: false,
 			DoUpdates: clause.AssignmentColumns([]string{"name", "updated_at", "creator_id", "filter_data_expression", "visibility"}),
 		}).Create(&feed)
 
 		if queryResult.RowsAffected != 1 {
-			return errors.New("can't upsert")
+			return fmt.Errorf("can't upsert %s", queryResult.Error)
 		}
 
 		// Update subsources
@@ -293,11 +295,15 @@ func (r *mutationResolver) Subscribe(ctx context.Context, input model.SubscribeI
 }
 
 func (r *mutationResolver) CreateSource(ctx context.Context, input model.NewSourceInput) (*model.Source, error) {
+	// get creator user
 	var user model.User
-	r.DB.Where("id = ?", input.UserID).First(&user)
-
+	queryResult := r.DB.Where("id = ?", input.UserID).First(&user)
+	if queryResult.RowsAffected != 1 {
+		return nil, errors.New("invalid user id")
+	}
+	newSourceId := uuid.New().String()
 	source := model.Source{
-		Id:        uuid.New().String(),
+		Id:        newSourceId,
 		Name:      input.Name,
 		Domain:    input.Domain,
 		CreatedAt: time.Now(),
@@ -329,6 +335,17 @@ func (r *mutationResolver) AddWeiboSubSource(ctx context.Context, input model.Ad
 
 func (r *mutationResolver) AddSubSource(ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error) {
 	return AddSubSourceImp(r.DB, ctx, input)
+}
+
+func (r *mutationResolver) DeleteSubSource(ctx context.Context, input *model.DeleteSubSourceInput) (*model.SubSource, error) {
+	var subSource model.SubSource
+	queryResult := r.DB.Where("id = ?", input.SubsourceID).First(&subSource)
+	if queryResult.RowsAffected == 0 {
+		return nil, fmt.Errorf("DeleteSubSource subsource with id %s not exist", input.SubsourceID)
+	}
+	subSource.IsFromSharedPost = true
+	r.DB.Save(&subSource)
+	return &subSource, nil
 }
 
 func (r *mutationResolver) SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error) {
@@ -438,7 +455,15 @@ func (r *queryResolver) Feeds(ctx context.Context, input *model.FeedsGetPostsInp
 
 func (r *queryResolver) SubSources(ctx context.Context, input *model.SubsourcesInput) ([]*model.SubSource, error) {
 	var subSources []*model.SubSource
-	result := r.DB.Preload(clause.Associations).Where("is_from_shared_post = ?", input.IsFromSharedPost).Order("created_at").Find(&subSources)
+	filterCustomizedClause := ""
+	if input.IsCustomized != nil {
+		if *input.IsCustomized {
+			filterCustomizedClause = "AND customized_crawler_params IS NOT NULL"
+		} else {
+			filterCustomizedClause = "AND customized_crawler_params IS NULL"
+		}
+	}
+	result := r.DB.Preload(clause.Associations).Where("is_from_shared_post = ?"+filterCustomizedClause, input.IsFromSharedPost).Order("created_at").Find(&subSources)
 	return subSources, result.Error
 }
 
@@ -446,6 +471,10 @@ func (r *queryResolver) Sources(ctx context.Context, input *model.SourcesInput) 
 	var sources []*model.Source
 	result := r.DB.Preload("SubSources", "is_from_shared_post = ?", input.SubSourceFromSharedPost).Find(&sources)
 	return sources, result.Error
+}
+
+func (r *queryResolver) TryCustomizedCrawler(ctx context.Context, input *model.CustomizedCrawlerParams) ([]*model.CustomizedCrawlerTestResponse, error) {
+	return collector.TryCustomizedCrawler(input)
 }
 
 func (r *subscriptionResolver) Signal(ctx context.Context, userID string) (<-chan *model.Signal, error) {

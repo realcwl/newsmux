@@ -29,12 +29,11 @@ func TestMergeSubsourcesFromConfigAndDb(t *testing.T) {
 
 	sourceId := uuid.New().String()
 	source := model.Source{
-		Id:             sourceId,
-		Name:           "博客",
-		Domain:         "",
-		CreatedAt:      time.Now(),
-		Creator:        user,
-		PanopticConfig: nil,
+		Id:        sourceId,
+		Name:      "博客",
+		Domain:    "",
+		CreatedAt: time.Now(),
+		Creator:   user,
 	}
 	db.Create(&source)
 

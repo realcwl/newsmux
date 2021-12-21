@@ -8,4 +8,5 @@ type SubSource @goModel(model: "model.SubSource") {
   avatarUrl: String!
   originUrl: String!
   isFromSharedPost: Boolean!
+  customizedCrawlerParams: String
 }

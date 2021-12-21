@@ -1,4 +1,4 @@
-config: {
+config: [{
   name: "Jinshi Kuaixun"
   data_collector_id: COLLECTOR_JINSHI
   task_params: {
@@ -14,9 +14,9 @@ config: {
       every_milliseconds: 60000
     }
   }
-}
-config: {
-  name: "blog"
+},
+{
+  name: "公司博客"
   data_collector_id: COLLECTOR_USER_CUSTOMIZED_SUBSOURCE
   task_params: {
     source_id: "28271e02-5caf-11ec-bf63-0242ac130002"
@@ -29,3 +29,4 @@ config: {
     }
   }
 }
+]

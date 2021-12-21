@@ -7,13 +7,14 @@ import (
 
 	"github.com/99designs/gqlgen/client"
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/stretchr/testify/require"
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
+
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/server/graph/generated"
 	"github.com/Luismorlan/newsmux/utils"
 	"github.com/Luismorlan/newsmux/utils/dotenv"
-	"github.com/stretchr/testify/require"
-	"gorm.io/datatypes"
-	"gorm.io/gorm"
 )
 
 func TestMain(m *testing.M) {
@@ -64,26 +65,8 @@ func TestCreateFeed(t *testing.T) {
 
 	t.Run("Test Feed Creation", func(t *testing.T) {
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_create_feeds_api", `{"a": 1}`, []string{}, model.VisibilityGlobal, db, client)
 		require.NotEmpty(t, feedId)
-	})
-}
-
-func TestCreateSource(t *testing.T) {
-	db, _ := utils.CreateTempDB(t)
-
-	client := PrepareTestForGraphQLAPIs(db)
-
-	t.Run("Test Source Creation", func(t *testing.T) {
-		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		sourceId := utils.TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
-		require.NotEmpty(t, sourceId)
-
-		var source model.Source
-		queryResult := db.Where("id = ?", sourceId).Preload("SubSources").First(&source)
-		require.Equal(t, int64(1), queryResult.RowsAffected)
-		require.Equal(t, 1, len(source.SubSources))
-		require.Equal(t, DefaultSubSourceName, source.SubSources[0].Name)
 	})
 }
 
@@ -124,7 +107,7 @@ func TestQuerySubSource(t *testing.T) {
 		subSourceId2 := utils.TestCreateSubSourceAndValidate(t, uid, "test_subsource_for_feeds_api_2", "test_external_id_2", sourceId, true, db, client)
 		require.NotEmpty(t, subSourceId2)
 
-		subSources := utils.TestQuerySubSources(t, false, db, client)
+		subSources := utils.TestQuerySubSources(t, false, nil, db, client)
 		// There are two subsources, one is the "default" for the source, the other is test 1
 		require.Equal(t, 2, len(subSources))
 		require.Equal(t, "default", subSources[0].Name)
@@ -133,7 +116,7 @@ func TestQuerySubSource(t *testing.T) {
 		require.Equal(t, "test_external_id_1", subSources[1].ExternalIdentifier)
 		require.Equal(t, false, subSources[1].IsFromSharedPost)
 
-		subSources = utils.TestQuerySubSources(t, true, db, client)
+		subSources = utils.TestQuerySubSources(t, true, nil, db, client)
 		// There are two subsources, one is the "default" for the source, the other is test 1
 		require.Equal(t, 1, len(subSources))
 		require.Equal(t, "test_subsource_for_feeds_api_2", subSources[0].Name)
@@ -149,7 +132,7 @@ func TestUserSubscribeFeed(t *testing.T) {
 
 	t.Run("Test User subscribe Feed", func(t *testing.T) {
 		userId := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId1, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+		feedId1, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_subscribe_api", `{"a":1}`, []string{}, model.VisibilityPrivate, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, userId, feedId1, db, client)
 		// Validate the first Feed's order
 		subscription1 := &model.UserFeedSubscription{}
@@ -158,7 +141,7 @@ func TestUserSubscribeFeed(t *testing.T) {
 			First(subscription1)
 		require.Equal(t, subscription1.OrderInPanel, 0)
 
-		feedId2, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+		feedId2, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_subscribe_api", `{"a":1}`, []string{}, model.VisibilityPrivate, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, userId, feedId2, db, client)
 		// Validate the second Feed's order
 		subscription2 := &model.UserFeedSubscription{}
@@ -176,7 +159,7 @@ func TestSubscriberCount(t *testing.T) {
 
 	userId1 := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id_1", db, client)
 	userId2 := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id_2", db, client)
-	feedId1, _ := utils.TestCreateFeedAndValidate(t, userId1, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
+	feedId1, _ := utils.TestCreateFeedAndValidate(t, userId1, "test_feed_for_subscriber_api", `{"a":1}`, []string{}, model.VisibilityGlobal, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, userId1, feedId1, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, userId2, feedId1, db, client)
 	utils.TestGetSubscriberCountAndValidate(t, feedId1, 2, db, client)
@@ -188,7 +171,7 @@ func TestDeleteFeed(t *testing.T) {
 	t.Run("Test User delete Feed", func(t *testing.T) {
 		utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
 		uid := utils.TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid, "test_feed_for_delete_feed_api", `{"a":1}`, []string{}, model.VisibilityGlobal, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid, feedId, db, client)
 		utils.TestDeleteFeedAndValidate(t, uid, feedId, true, db, client)
 	})
@@ -196,7 +179,7 @@ func TestDeleteFeed(t *testing.T) {
 	t.Run("Test non owner delete Feed", func(t *testing.T) {
 		uid1 := utils.TestCreateUserAndValidate(t, "test_user_name", "user_id_1", db, client)
 		uid2 := utils.TestCreateUserAndValidate(t, "test_user_name", "user_id_2", db, client)
-		feedId, _ := utils.TestCreateFeedAndValidate(t, uid1, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
+		feedId, _ := utils.TestCreateFeedAndValidate(t, uid1, "test_feed_for_delete_feed_api", `{"a":1}`, []string{}, model.VisibilityGlobal, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid1, feedId, db, client)
 		utils.TestUserSubscribeFeedAndValidate(t, uid2, feedId, db, client)
 		utils.TestDeleteFeedAndValidate(t, uid2, feedId, false, db, client)
@@ -209,8 +192,8 @@ func TestQueryFeeds(t *testing.T) {
 	client := PrepareTestForGraphQLAPIs(db)
 
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "default_user_id", db, client)
-	feedIdOne, updatedTimeOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
-	feedIdTwo, updatedTimeTwo := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+	feedIdOne, updatedTimeOne := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{"a":1}`, []string{}, model.VisibilityGlobal, db, client)
+	feedIdTwo, updatedTimeTwo := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{"a":1}`, []string{}, model.VisibilityPrivate, db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "123123213123", sourceId, false, db, client)
 	utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, false, db, client)
@@ -538,7 +521,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_feeds_api", "test_domain", db, client)
 	subSourceIdOne := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api", "1111", sourceId, false, db, client)
 	subSourceIdTwo := utils.TestCreateSubSourceAndValidate(t, userId, "test_source_for_feeds_api_2", "2222", sourceId, false, db, client)
-	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", ``, []string{}, model.VisibilityGlobal, db, client)
+	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{}`, []string{}, model.VisibilityGlobal, db, client)
 
 	postId1, _ := utils.TestCreatePostAndValidate(t, "test_title_1", "same_content_test", subSourceIdOne, feedIdOne, db, client)
 	postId2, _ := utils.TestCreatePostAndValidate(t, "test_title_2", "test_content_2", subSourceIdOne, feedIdOne, db, client)
@@ -611,7 +594,7 @@ func TestUpSertFeedsAndRepublish(t *testing.T) {
 		var feed model.Feed
 		queryResult := db.Preload("SubSources").Where("id = ?", feedIdOne).First(&feed)
 		require.Equal(t, int64(1), queryResult.RowsAffected)
-		feed.FilterDataExpression = datatypes.JSON(``)
+		feed.FilterDataExpression = datatypes.JSON(`{}`)
 
 		// publish more by querying {feeds} with NEW
 		updatedAt := utils.TestUpdateFeed(t, feed, db, client)
@@ -671,11 +654,52 @@ func TestUserState(t *testing.T) {
 
 	client := PrepareTestForGraphQLAPIs(db)
 
-	userId := utils.TestCreateUserAndValidate(t, "test_user_for_feeds_api", "default_user_id", db, client)
-	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityGlobal, db, client)
-	feedIdTwo, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_feeds_api", `{\"a\":1}`, []string{}, model.VisibilityPrivate, db, client)
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_user_api", "default_user_id", db, client)
+	feedIdOne, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_user_api", `{"a":1}`, []string{}, model.VisibilityGlobal, db, client)
+	feedIdTwo, _ := utils.TestCreateFeedAndValidate(t, userId, "test_feed_for_users_api", `{"a":1}`, []string{}, model.VisibilityPrivate, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, userId, feedIdOne, db, client)
 	utils.TestUserSubscribeFeedAndValidate(t, userId, feedIdTwo, db, client)
 
 	utils.TestQueryUserState(t, userId, []string{feedIdOne, feedIdTwo}, client)
+}
+
+func TestDeleteSubsource(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	client := PrepareTestForGraphQLAPIs(db)
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_delete_subsource_api", "default_user_id", db, client)
+	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_delete_subsource_api", "test_domain", db, client)
+	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, false, db, client)
+	require.NotEmpty(t, subSourceId)
+
+	utils.TestDeleteSubSourceAndValidate(t, userId, subSourceId, db, client)
+
+	var subsourceAfterDelete model.SubSource
+	db.Where("id = ?", subSourceId).First(&subsourceAfterDelete)
+	require.True(t, subsourceAfterDelete.IsFromSharedPost)
+}
+
+func TestListSubsourceAfterDeletion(t *testing.T) {
+	db, _ := utils.CreateTempDB(t)
+
+	client := PrepareTestForGraphQLAPIs(db)
+	userId := utils.TestCreateUserAndValidate(t, "test_user_for_delete_subsource_api", "default_user_id", db, client)
+	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_delete_subsource_api", "test_domain", db, client)
+	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_delete_subsource_api", "test_externalid", sourceId, false, db, client)
+	require.NotEmpty(t, subSourceId)
+
+	subSources := utils.TestQuerySubSources(t, false, nil, db, client)
+	fmt.Println(subSources[0])
+	fmt.Println(subSources[1])
+	// one is default, the other is the one added
+	require.Equal(t, 2, len(subSources))
+
+	utils.TestDeleteSubSourceAndValidate(t, userId, subSourceId, db, client)
+
+	var subsourceAfterDelete model.SubSource
+	db.Where("id = ?", subSourceId).First(&subsourceAfterDelete)
+	require.True(t, subsourceAfterDelete.IsFromSharedPost)
+
+	subSources = utils.TestQuerySubSources(t, false, nil, db, client)
+	require.Equal(t, 1, len(subSources))
 }
