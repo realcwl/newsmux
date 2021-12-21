@@ -3,6 +3,7 @@ package resolver
 import (
 	"fmt"
 	"math"
+	"sort"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -70,11 +71,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor > ?", feed.Id, query.Cursor).
-			// order this batch by content_generated_at instead of by cursor so that
-			// we guarantee this batch is chronologically descreasing. Frontend should
-			// process the entire batch to find max/min cursor instead of relying only
-			// on the first and the last returned item. Same for below.
-			Order("content_generated_at desc").
+			Order("posts.cursor desc").
 			Limit(query.Limit).
 			Find(&posts)
 		feed.Posts = posts
@@ -93,7 +90,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Joins("LEFT JOIN post_feed_publishes ON post_feed_publishes.post_id = posts.id").
 			Joins("LEFT JOIN feeds ON post_feed_publishes.feed_id = feeds.id").
 			Where("feed_id = ? AND posts.cursor < ?", feed.Id, query.Cursor).
-			Order("content_generated_at desc").
+			Order("posts.cursor desc").
 			Limit(query.Limit).
 			Find(&posts)
 		feed.Posts = posts
@@ -111,7 +108,20 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			Log.Info("republished ", len(posts)-before, " posts for feed", feed.Id)
 		}
 	}
+
+	sortPostsByCreationTime(feed.Posts)
 	return nil
+}
+
+// Sort a batch by content_generated_at (instead of by cursor) so that
+// we guarantee this batch is chronologically descreasing. Frontend should
+// process the entire batch to find max/min cursor instead of relying only
+// on the first and the last returned item. Same for below.
+func sortPostsByCreationTime(posts []*model.Post) {
+	// Maintain chronological order
+	sort.SliceStable(posts, func(i, j int) bool {
+		return posts[i].ContentGeneratedAt.After(posts[j].ContentGeneratedAt)
+	})
 }
 
 // Redo posts publish to feeds
@@ -146,7 +156,7 @@ func rePublishPostsFromCursor(db *gorm.DB, feed *model.Feed, limit int, fromCurs
 			Preload("ReplyThread.SubSource").
 			Joins("LEFT JOIN sub_sources ON posts.sub_source_id = sub_sources.id").
 			Where("sub_sources.id IN ? AND posts.cursor < ? AND (NOT posts.in_sharing_chain)", subsourceIds, fromCursor).
-			Order("content_generated_at desc").
+			Order("posts.cursor desc").
 			Limit(feedRefreshLimit).
 			Find(&postsCandidates)
 
