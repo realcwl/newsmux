@@ -373,30 +373,6 @@ func GetDefautlCrawlerHeader() []*protocol.KeyValuePair {
 			Key:   "user-agent",
 			Value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
 		},
-		{
-			Key:   "sec-ch-ua",
-			Value: "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"96\", \"Google Chrome\";v=\"96\"",
-		},
-		{
-			Key:   "sec-ch-ua-mobile",
-			Value: "?0",
-		},
-		{
-			Key:   "sec-ch-ua-platform",
-			Value: "\"macOS\"",
-		},
-		{
-			Key:   "sec-fetch-dest",
-			Value: "document",
-		},
-		{
-			Key:   "sec-fetch-mode",
-			Value: "navigate",
-		},
-		{
-			Key:   "sec-fetch-site",
-			Value: "cross-site",
-		},
 	}
 }
 
