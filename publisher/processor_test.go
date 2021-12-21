@@ -2,6 +2,7 @@ package publisher
 
 import (
 	b64 "encoding/base64"
+	"fmt"
 	"os"
 	"testing"
 
@@ -524,4 +525,150 @@ func TestMessagePublishToManyFeeds(t *testing.T) {
 	processor.DB.Preload(clause.Associations).Where("content=?", "老王做空以太坊").First(&post)
 	require.Equal(t, 10, len(post.PublishedFeeds))
 	require.NotEqual(t, post.PublishedFeeds[1].Id, post.PublishedFeeds[0].Id)
+}
+
+func TestPublishThread(t *testing.T) {
+	db, name := CreateTempDB(t)
+	fmt.Println(name)
+	client := PrepareTestDBClient(db)
+	uid := TestCreateUserAndValidate(t, "test_user_name", "default_user_id", db, client)
+	sourceId := TestCreateSourceAndValidate(t, uid, "test_source_for_feeds_api", "test_domain", db, client)
+
+	msgOne := protocol.CrawlerMessage{
+		Post: &protocol.CrawlerMessage_CrawledPost{
+			DeduplicateId: "last",
+			SubSource: &protocol.CrawledSubSource{
+				// New subsource to be created and mark as isFromSharedPost
+				Name:       "Last Post SS name",
+				SourceId:   sourceId,
+				ExternalId: "last",
+				AvatarUrl:  "last",
+				OriginUrl:  "last",
+			},
+			Title:              "last", // This matches data exp
+			Content:            "last",
+			ImageUrls:          []string{"last_1", "last_2"},
+			OriginUrl:          "last",
+			ContentGeneratedAt: &timestamppb.Timestamp{},
+			SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
+				DeduplicateId: "shared_by_last",
+				SubSource: &protocol.CrawledSubSource{
+					// New subsource to be created and mark as isFromSharedPost
+					Name:       "Shared by Last Post SS name",
+					SourceId:   sourceId,
+					ExternalId: "shared_by_last",
+					AvatarUrl:  "shared_by_last",
+					OriginUrl:  "shared_by_last",
+				},
+				Title:              "shared by last", // This matches data exp
+				Content:            "shared by last",
+				ImageUrls:          []string{"shared_by_last_1", "shared_by_last_2"},
+				OriginUrl:          "shared by last",
+				ContentGeneratedAt: &timestamppb.Timestamp{},
+			},
+			ReplyTo: &protocol.CrawlerMessage_CrawledPost{
+				DeduplicateId: "second",
+				SubSource: &protocol.CrawledSubSource{
+					// New subsource to be created and mark as isFromSharedPost
+					Name:       "second ss name",
+					SourceId:   sourceId,
+					ExternalId: "second",
+					AvatarUrl:  "second",
+					OriginUrl:  "second",
+				},
+				Title:              "second", // This matches data exp
+				Content:            "second",
+				ImageUrls:          []string{"second_1", "second_2"},
+				OriginUrl:          "second",
+				ContentGeneratedAt: timestamppb.Now(),
+				SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
+					DeduplicateId: "shared_by_second",
+					SubSource: &protocol.CrawledSubSource{
+						// New subsource to be created and mark as isFromSharedPost
+						Name:       "shared by second ss name",
+						SourceId:   sourceId,
+						ExternalId: "shared by second",
+						AvatarUrl:  "shared by second",
+						OriginUrl:  "shared by second",
+					},
+					Title:              "shared by second", // This matches data exp
+					Content:            "shared by second",
+					ImageUrls:          []string{"shared_by_second_1", "shared_by_second_2"},
+					OriginUrl:          "shared by second",
+					ContentGeneratedAt: &timestamppb.Timestamp{},
+				},
+				ReplyTo: &protocol.CrawlerMessage_CrawledPost{
+					DeduplicateId: "first",
+					SubSource: &protocol.CrawledSubSource{
+						// New subsource to be created and mark as isFromSharedPost
+						Name:       "first ss name",
+						SourceId:   sourceId,
+						ExternalId: "first",
+						AvatarUrl:  "first",
+						OriginUrl:  "first",
+					},
+					Title:              "first", // This matches data exp
+					Content:            "first",
+					ImageUrls:          []string{"first_1", "first_2"},
+					OriginUrl:          "first",
+					ContentGeneratedAt: &timestamppb.Timestamp{},
+					SharedFromCrawledPost: &protocol.CrawlerMessage_CrawledPost{
+						DeduplicateId: "shared_by_first",
+						SubSource: &protocol.CrawledSubSource{
+							// New subsource to be created and mark as isFromSharedPost
+							Name:       "shared by first ss name",
+							SourceId:   sourceId,
+							ExternalId: "shared by first",
+							AvatarUrl:  "shared by first",
+							OriginUrl:  "shared by first",
+						},
+						Title:              "shared by first", // This matches data exp
+						Content:            "shared by first",
+						ImageUrls:          []string{"shared_by_first_1", "shared_by_first_2"},
+						OriginUrl:          "shared by first",
+						ContentGeneratedAt: &timestamppb.Timestamp{},
+					},
+				},
+			},
+		},
+		CrawledAt:      &timestamppb.Timestamp{},
+		CrawlerIp:      "123",
+		CrawlerVersion: "vde",
+		IsTest:         false,
+	}
+	reader := NewTestMessageQueueReader([]*protocol.CrawlerMessage{
+		&msgOne,
+	})
+	msgs, _ := reader.ReceiveMessages(1)
+	processor := NewPublisherMessageProcessor(reader, db, deduplicator.FakeDeduplicatorClient{})
+	_, err := processor.ProcessOneCralwerMessage(msgs[0])
+	require.Nil(t, err)
+	var post model.Post
+	processor.DB.
+		Preload(clause.Associations).
+		Preload("SharedFromPost.SubSource").
+		// Maintain a chronological order of reply thread.
+		Preload("ReplyThread", func(db *gorm.DB) *gorm.DB {
+			return db.Order("posts.created_at ASC")
+		}).
+		Preload("ReplyThread.SubSource").
+		Preload("ReplyThread.SharedFromPost").
+		Preload("ReplyThread.SharedFromPost.SubSource").
+		Where("deduplicate_id=?", "last").
+		First(&post)
+
+	require.Equal(t, len(post.ReplyThread), 2)
+	require.Equal(t, post.Content, "last")
+	require.Equal(t, post.SharedFromPost.Content, "shared by last")
+	require.Equal(t, post.ReplyThread[0].Content, "second")
+	require.Equal(t, post.ReplyThread[0].SharedFromPost.Content, "shared by second")
+	require.Equal(t, len(post.ReplyThread[0].ReplyThread), 0)
+	require.Equal(t, post.ReplyThread[1].Content, "first")
+	require.Equal(t, post.ReplyThread[1].SharedFromPost.Content, "shared by first")
+	require.Equal(t, len(post.ReplyThread[1].ReplyThread), 0)
+
+	var subSources []model.SubSource
+	result := processor.DB.Find(&subSources)
+	// 6 created by processing message, with a default created by CreateSource API
+	require.Equal(t, result.RowsAffected, int64(7))
 }
