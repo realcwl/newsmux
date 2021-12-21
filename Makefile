@@ -57,6 +57,10 @@ run_panoptic:
 	$(info ******************** running dev panoptic ********************)
 	NEWSMUX_ENV=dev go run ./cmd/panoptic/main.go -service=panoptic
 
+prod_config:
+	$(info ******************** printing prod config ********************)
+	NEWSMUX_ENV=prod go run scripts/panoptic_config/main.go
+
 fmt:
 	$(info ******************** checking formatting ********************)
 	@test -z $(shell gofmt -l $(SRC)) || (gofmt -d $(SRC); exit 1)
