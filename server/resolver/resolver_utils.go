@@ -104,7 +104,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, r *utils.RedisStatusStore, feed *model
 			if len(posts) > 0 {
 				lastCursor = int(posts[len(posts)-1].Cursor)
 			}
-			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor,
+			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by OLD in {feeds} API from curosr ", lastCursor,
 				" try to republish ", query.Limit-len(posts), " more posts")
 			before := len(posts)
 			rePublishPostsFromCursor(db, feed, query.Limit-len(posts), lastCursor)
@@ -114,17 +114,16 @@ func getFeedPostsOrRePublish(db *gorm.DB, r *utils.RedisStatusStore, feed *model
 
 	// update feed read status from redis
 	postIds := []string{}
-	for _, post := range posts {
+	for _, post := range feed.Posts {
 		postIds = append(postIds, post.Id)
 	}
 	status, err := r.GetItemsReadStatus(postIds, userId)
 	if err != nil {
 		return errors.Wrap(err, "failure when get posts read status")
 	}
-	for idx := range posts {
-		posts[idx].IsRead = status[idx]
+	for idx := range feed.Posts {
+		feed.Posts[idx].IsRead = status[idx]
 	}
-	feed.Posts = posts
 	return nil
 }
 
