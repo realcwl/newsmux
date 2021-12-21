@@ -10,6 +10,11 @@ enum Visibility {
   PRIVATE
 }
 
+enum ItemType {
+  POST
+  DUPLICATION
+}
+
 input SourcesInput {
   subSourceFromSharedPost: Boolean!
 }
@@ -137,12 +142,20 @@ input DeleteFeedInput {
   feedId: String!
 }
 
+input SetItemsReadStatusInput {
+  userId: String!
+  itemNodeIds: [String!]!
+  read: Boolean!
+  type: ItemType!
+}
+
 type Query {
   allVisibleFeeds: [Feed!]
   post(input: PostInput): Post!
   posts: [Post!]
   users: [User!]
 
+  # postsReadStatus(input: GetPostsReadStatusInput!): [Boolean!]!
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
@@ -222,6 +235,8 @@ type Mutation {
   deleteSubSource(input: DeleteSubSourceInput): SubSource!
 
   syncUp(input: SeedStateInput): SeedState
+
+  setItemsReadStatus(input: SetItemsReadStatusInput!): Boolean!
 }
 
 type Subscription {
