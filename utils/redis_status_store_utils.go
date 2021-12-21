@@ -34,7 +34,7 @@ func GetRedisStatusStore() (*RedisStatusStore, error) {
 	}
 	return &RedisStatusStore{
 		inner:     redisClient,
-		keyParser: RedisKeyParser{delimiter: "_"},
+		keyParser: RedisKeyParser{delimiter: "__"},
 	}, nil
 }
 
