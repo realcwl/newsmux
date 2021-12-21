@@ -216,7 +216,7 @@ func TestCreateFeedAndValidate(t *testing.T, userId string, name string, filterD
 	// json needs to be compact into one line in order to comply with graphql
 	err := json.Compact(compactedBuffer, []byte(filterDataExpression))
 	if err != nil {
-		fmt.Println("eeeeeeeeeee ", err)
+		fmt.Println(err)
 	}
 	compactEscapedjson := strings.ReplaceAll(compactedBuffer.String(), `"`, `\"`)
 
@@ -287,7 +287,7 @@ func TestUpdateFeed(t *testing.T, feed model.Feed, db *gorm.DB, client *client.C
 	compactEscapedjson := "{}"
 	dataExpression, err := feed.FilterDataExpression.MarshalJSON()
 	if err != nil {
-		fmt.Println("============== failed ", err)
+		fmt.Println(err)
 	}
 	if err == nil && string(dataExpression) != "null" && len(dataExpression) > 0 {
 		compactedBuffer := new(bytes.Buffer)

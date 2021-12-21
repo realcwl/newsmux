@@ -4,10 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/Luismorlan/newsmux/collector"
 	"github.com/Luismorlan/newsmux/model"
 	"github.com/Luismorlan/newsmux/utils"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAddSubSourceImp_Twitter(t *testing.T) {

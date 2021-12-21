@@ -323,7 +323,7 @@ func TryCustomizedCrawler(input *model.CustomizedCrawlerParams) ([]*model.Custom
 		externalId := CustomizedCrawlerExtractPlainText(input.ExternalIDRelativeSelector, elem, "")
 		time := CustomizedCrawlerExtractPlainText(input.TimeRelativeSelector, elem, "")
 		subSource := CustomizedCrawlerExtractPlainText(input.SubsourceRelativeSelector, elem, "")
-		originUrl := CustomizedCrawlerExtractPlainText(input.OriginURLRelativeSelector, elem, "")
+		originUrl := CustomizedCrawlerExtractAttribute(input.OriginURLRelativeSelector, elem, "", "href")
 
 		images := CustomizedCrawlerExtractMultiAttribute(input.ImageRelativeSelector, elem, "src")
 
@@ -333,7 +333,13 @@ func TryCustomizedCrawler(input *model.CustomizedCrawlerParams) ([]*model.Custom
 		post.Time = &time
 		post.Images = images
 		post.Subsource = &subSource
-		post.OriginURL = &originUrl
+
+		if input.OriginURLIsRelativePath != nil && *input.OriginURLIsRelativePath {
+			str := ConcateUrlBaseAndRelativePath(input.CrawlURL, originUrl)
+			post.OriginURL = &str
+		} else {
+			post.OriginURL = &originUrl
+		}
 
 		rawHtml, _ := elem.DOM.Html()
 		post.BaseHTML = &rawHtml
@@ -347,11 +353,8 @@ func TryCustomizedCrawler(input *model.CustomizedCrawlerParams) ([]*model.Custom
 	})
 
 	c.OnRequest(func(r *colly.Request) {
-		basicHeaders := make(map[string]string)
-		basicHeaders["content-type"] = "application/json;charset=UTF-8"
-		basicHeaders["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
-		for k, v := range basicHeaders {
-			r.Headers.Set(k, v)
+		for _, kv := range GetDefautlCrawlerHeader() {
+			r.Headers.Set(kv.Key, kv.Value)
 		}
 	})
 
@@ -368,7 +371,31 @@ func GetDefautlCrawlerHeader() []*protocol.KeyValuePair {
 		},
 		{
 			Key:   "user-agent",
-			Value: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36",
+			Value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
+		},
+		{
+			Key:   "sec-ch-ua",
+			Value: "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"96\", \"Google Chrome\";v=\"96\"",
+		},
+		{
+			Key:   "sec-ch-ua-mobile",
+			Value: "?0",
+		},
+		{
+			Key:   "sec-ch-ua-platform",
+			Value: "\"macOS\"",
+		},
+		{
+			Key:   "sec-fetch-dest",
+			Value: "document",
+		},
+		{
+			Key:   "sec-fetch-mode",
+			Value: "navigate",
+		},
+		{
+			Key:   "sec-fetch-site",
+			Value: "cross-site",
 		},
 	}
 }
@@ -412,4 +439,14 @@ func UploadImagesToS3(imageStore file_store.CollectedFileStore, imageUrls []stri
 		return res, errors.New("some image(s) failed to upload to S3")
 	}
 	return res, nil
+}
+
+func ConcateUrlBaseAndRelativePath(base string, path string) string {
+	for strings.HasSuffix(base, "/") {
+		base = base[:len(base)-1]
+	}
+	for strings.HasPrefix(path, "/") {
+		path = path[1:]
+	}
+	return base + "/" + path
 }
