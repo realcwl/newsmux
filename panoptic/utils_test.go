@@ -94,12 +94,11 @@ func TestMergeSubsourcesFromConfigAndDb_Twitter(t *testing.T) {
 
 	twitterSourceId := uuid.New().String()
 	twitterSource := model.Source{
-		Id:             twitterSourceId,
-		Name:           "推特",
-		Domain:         "",
-		CreatedAt:      time.Now(),
-		Creator:        user,
-		PanopticConfig: nil,
+		Id:        twitterSourceId,
+		Name:      "推特",
+		Domain:    "",
+		CreatedAt: time.Now(),
+		Creator:   user,
 	}
 	db.Create(&twitterSource)
 
