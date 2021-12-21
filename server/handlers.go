@@ -35,8 +35,6 @@ func GraphqlHandler() gin.HandlerFunc {
 		panic("failed to connect redis")
 	}
 
-	utils.DatabaseSetupAndMigration(db)
-
 	h := handler.New(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
 		DB:               db,
 		RedisStatusStore: redis,
