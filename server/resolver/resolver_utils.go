@@ -77,6 +77,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, r *utils.RedisStatusStore, feed *model
 			Order("content_generated_at desc").
 			Limit(query.Limit).
 			Find(&posts)
+		feed.Posts = posts
 	} else {
 		db.Model(&model.Post{}).
 			Preload("SubSource").

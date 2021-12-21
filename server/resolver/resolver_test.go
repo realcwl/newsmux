@@ -686,7 +686,8 @@ func TestUserState(t *testing.T) {
 func TestDeleteSubsource(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	client := PrepareTestForGraphQLAPIs(db)
+	redis, _ := utils.GetRedisStatusStore()
+	client := PrepareTestForGraphQLAPIs(db, redis)
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_delete_subsource_api", "default_user_id", db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_delete_subsource_api", "test_domain", db, client)
 	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_feeds_api", "test_externalid", sourceId, false, db, client)
@@ -702,7 +703,8 @@ func TestDeleteSubsource(t *testing.T) {
 func TestListSubsourceAfterDeletion(t *testing.T) {
 	db, _ := utils.CreateTempDB(t)
 
-	client := PrepareTestForGraphQLAPIs(db)
+	redis, _ := utils.GetRedisStatusStore()
+	client := PrepareTestForGraphQLAPIs(db, redis)
 	userId := utils.TestCreateUserAndValidate(t, "test_user_for_delete_subsource_api", "default_user_id", db, client)
 	sourceId := utils.TestCreateSourceAndValidate(t, userId, "test_source_for_delete_subsource_api", "test_domain", db, client)
 	subSourceId := utils.TestCreateSubSourceAndValidate(t, userId, "test_subsource_for_delete_subsource_api", "test_externalid", sourceId, false, db, client)
