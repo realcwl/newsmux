@@ -10,6 +10,11 @@ enum Visibility {
   PRIVATE
 }
 
+enum ItemType {
+  POST
+  DUPLICATION
+}
+
 input SourcesInput {
   subSourceFromSharedPost: Boolean!
 }
@@ -140,6 +145,7 @@ input SetItemsReadStatusInput {
   userId: String!
   itemNodeIds: [String!]!
   read: Boolean!
+  type: ItemType!
 }
 
 type Query {

@@ -377,13 +377,14 @@ func (r *mutationResolver) SetItemsReadStatus(ctx context.Context, input model.S
 			read:        input.Read,
 			itemNodeIds: input.ItemNodeIds,
 			delimiter:   "_",
+			itemType:    input.Type,
 		}
 		ser, _ := payload.Marshal()
 		err := r.SignalChans.PushSignalToUser(&model.Signal{
 			SignalType:    model.SignalTypeSetItemsReadStatus,
 			SignalPayload: ser,
 		}, input.UserID)
-		fmt.Println("I failed", err)
+		Logger.Log.Debugf("failed to push read status signal to user %s: %v", input.UserID, err)
 	}()
 	return true, nil
 }

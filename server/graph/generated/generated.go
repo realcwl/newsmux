@@ -1240,6 +1240,11 @@ enum Visibility {
   PRIVATE
 }
 
+enum ItemType {
+  POST
+  DUPLICATION
+}
+
 input SourcesInput {
   subSourceFromSharedPost: Boolean!
 }
@@ -1370,6 +1375,7 @@ input SetItemsReadStatusInput {
   userId: String!
   itemNodeIds: [String!]!
   read: Boolean!
+  type: ItemType!
 }
 
 type Query {
@@ -7152,6 +7158,14 @@ func (ec *executionContext) unmarshalInputSetItemsReadStatusInput(ctx context.Co
 			if err != nil {
 				return it, err
 			}
+		case "type":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			it.Type, err = ec.unmarshalNItemType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐItemType(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -8890,6 +8904,16 @@ func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNItemType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐItemType(ctx context.Context, v interface{}) (model.ItemType, error) {
+	var res model.ItemType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNItemType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐItemType(ctx context.Context, sel ast.SelectionSet, v model.ItemType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNNewPostInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewPostInput(ctx context.Context, v interface{}) (model.NewPostInput, error) {
