@@ -384,7 +384,9 @@ func (r *mutationResolver) SetItemsReadStatus(ctx context.Context, input model.S
 			SignalType:    model.SignalTypeSetItemsReadStatus,
 			SignalPayload: ser,
 		}, input.UserID)
-		Logger.Log.Debugf("failed to push read status signal to user %s: %v", input.UserID, err)
+		if err != nil {
+			Logger.Log.Errorf("failed to push read status signal to user %s: %v", input.UserID, err)
+		}
 	}()
 	return true, nil
 }
