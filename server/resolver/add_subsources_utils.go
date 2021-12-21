@@ -154,7 +154,7 @@ func GetWeiboExternalIdFromName(name string) (string, error) {
 		return "", fmt.Errorf("response not success: %v", res)
 	}
 	if len(res.Data.Cards) == 0 || len(res.Data.Cards[0].CardGroup) == 0 {
-		return "", fmt.Errorf("response empty: %v", res)
+		return "", fmt.Errorf("response empty: %v", collector.PrettyPrint(res))
 	}
 
 	if res.Data.Cards[0].CardGroup[0].User.ScreenName == name {
