@@ -240,5 +240,6 @@ message CustomizedCrawlerParams {
   optional string time_relative_selector = 6; // if not specified, use the cralwed time as content generated time
   optional string image_relative_selector = 7;
   optional string subsource_relative_selector = 8; // how to deal with subsource spec
-  optional string origin_url_relative_selector = 9; // by default is the url 
+  optional string origin_url_relative_selector = 9; // by default is the crawl_url 
+  optional bool origin_url_is_relative_path = 10; // if the origin_url_relative_selector generates relative path to crawl_url
 }

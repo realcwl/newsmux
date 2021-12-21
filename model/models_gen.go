@@ -43,6 +43,7 @@ type CustomizedCrawlerParams struct {
 	ImageRelativeSelector      *string `json:"imageRelativeSelector"`
 	SubsourceRelativeSelector  *string `json:"subsourceRelativeSelector"`
 	OriginURLRelativeSelector  *string `json:"originUrlRelativeSelector"`
+	OriginURLIsRelativePath    *bool   `json:"originUrlIsRelativePath"`
 }
 
 type CustomizedCrawlerTestResponse struct {

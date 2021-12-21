@@ -73,6 +73,17 @@ func (crawler CustomizedSubSourceCrawler) UpdateImageUrls(workingContext *workin
 	return nil
 }
 
+func (crawler CustomizedSubSourceCrawler) UpdateOriginUrl(workingContext *working_context.CrawlerWorkingContext) error {
+	params := workingContext.SubSource.CustomizedCrawlerParamsForSubSource
+	workingContext.Result.Post.OriginUrl = collector.CustomizedCrawlerExtractAttribute(params.OriginUrlRelativeSelector, workingContext.Element, params.CrawlUrl, "href")
+	if params.OriginUrlIsRelativePath != nil && *params.OriginUrlIsRelativePath {
+		base := params.CrawlUrl
+		path := workingContext.Result.Post.OriginUrl
+		workingContext.Result.Post.OriginUrl = collector.ConcateUrlBaseAndRelativePath(base, path)
+	}
+	return nil
+}
+
 func (crawler CustomizedSubSourceCrawler) GetMessage(workingContext *working_context.CrawlerWorkingContext) error {
 	collector.InitializeCrawlerResult(workingContext)
 
@@ -84,6 +95,7 @@ func (crawler CustomizedSubSourceCrawler) GetMessage(workingContext *working_con
 		crawler.UpdateSubsource,
 		crawler.UpdateImageUrls,
 		crawler.UpdateDedupId,
+		crawler.UpdateOriginUrl,
 	}
 	for _, updater := range updaters {
 		err := updater(workingContext)

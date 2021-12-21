@@ -82,6 +82,7 @@ input CustomizedCrawlerParams {
   imageRelativeSelector: String
   subsourceRelativeSelector: String #how to deal with subsource spec
   originUrlRelativeSelector: String #by default is the url
+  originUrlIsRelativePath: Boolean #if the originUrlRelativeSelector generates relative path to crawlUrl
 }
 
 # isFromSharedPost = true means the subsource is not for cralwing

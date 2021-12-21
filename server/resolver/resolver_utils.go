@@ -234,6 +234,21 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 	queryResult := db.Preload("Feeds").Preload("Feeds.SubscribedChannels").
 		Where("name = ? AND source_id = ?", input.Name, input.SourceID).
 		First(&subSource)
+
+	var customizedCrawlerParams *string
+	if input.CustomizedCrawlerParams != nil {
+		config, err := ConstructCustomizedCrawlerParams(*input.CustomizedCrawlerParams)
+		if err != nil {
+			return nil, err
+		}
+		bytes, err := prototext.Marshal(config)
+		if err != nil {
+			return nil, err
+		}
+		str := string(bytes)
+		customizedCrawlerParams = &str
+	}
+
 	if queryResult.RowsAffected == 0 {
 		var customizedCrawlerParams *string
 		if input.CustomizedCrawlerParams != nil {
@@ -267,6 +282,7 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 	subSource.ExternalIdentifier = input.ExternalIdentifier
 	subSource.AvatarUrl = input.AvatarURL
 	subSource.OriginUrl = input.OriginURL
+	subSource.CustomizedCrawlerParams = customizedCrawlerParams
 	if !input.IsFromSharedPost {
 		// can only update IsFromSharedPost from true to false
 		// meaning from hidden to display
@@ -291,6 +307,7 @@ func ConstructCustomizedCrawlerParams(input model.CustomizedCrawlerParams) (*pro
 		ImageRelativeSelector:      input.ImageRelativeSelector,
 		SubsourceRelativeSelector:  input.SubsourceRelativeSelector,
 		OriginUrlRelativeSelector:  input.OriginURLRelativeSelector,
+		OriginUrlIsRelativePath:    input.OriginURLIsRelativePath,
 	}
 	return customizedCrawlerParams, nil
 }

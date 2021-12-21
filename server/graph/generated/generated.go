@@ -15,9 +15,10 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/Luismorlan/newsmux/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
+
+	"github.com/Luismorlan/newsmux/model"
 )
 
 // region    ************************** generated!.gotpl **************************
@@ -1279,6 +1280,7 @@ input CustomizedCrawlerParams {
   imageRelativeSelector: String
   subsourceRelativeSelector: String #how to deal with subsource spec
   originUrlRelativeSelector: String #by default is the url
+  originUrlIsRelativePath: Boolean #if the originUrlRelativeSelector generates relative path to crawlUrl
 }
 
 # isFromSharedPost = true means the subsource is not for cralwing
@@ -6580,6 +6582,14 @@ func (ec *executionContext) unmarshalInputCustomizedCrawlerParams(ctx context.Co
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originUrlRelativeSelector"))
 			it.OriginURLRelativeSelector, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "originUrlIsRelativePath":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originUrlIsRelativePath"))
+			it.OriginURLIsRelativePath, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
