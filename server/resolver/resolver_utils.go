@@ -25,11 +25,11 @@ const (
 
 // Given a list of FeedRefreshInput, get posts for the requested feeds
 // Do it by iterating through feeds
-func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*model.Feed, error) {
+func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput, userId string) ([]*model.Feed, error) {
 	results := []*model.Feed{}
 
 	//TODO: can be run in parallel
-	for idx, _ := range queries {
+	for idx := range queries {
 		query := queries[idx]
 		if query == nil {
 			// This is not expected since gqlgen guarantees it is not nil
@@ -44,7 +44,7 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 		if err := sanitizeFeedRefreshInput(query, &feed); err != nil {
 			return []*model.Feed{}, errors.Wrap(err, fmt.Sprint("feed query invalid ", query))
 		}
-		if err := getFeedPostsOrRePublish(r.DB, &feed, query); err != nil {
+		if err := getFeedPostsOrRePublish(r.DB, r.RedisStatusStore, &feed, query, userId); err != nil {
 			return []*model.Feed{}, errors.Wrap(err, fmt.Sprint("failure when get posts for feed id ", feed.Id))
 		}
 		results = append(results, &feed)
@@ -53,7 +53,7 @@ func getRefreshPosts(r *queryResolver, queries []*model.FeedRefreshInput) ([]*mo
 	return results, nil
 }
 
-func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRefreshInput) error {
+func getFeedPostsOrRePublish(db *gorm.DB, r *utils.RedisStatusStore, feed *model.Feed, query *model.FeedRefreshInput, userId string) error {
 	var posts []*model.Post
 	// try to read published posts
 	if query.Direction == model.FeedRefreshDirectionNew {
@@ -101,7 +101,7 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 			if len(posts) > 0 {
 				lastCursor = int(posts[len(posts)-1].Cursor)
 			}
-			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by NEW in {feeds} API from curosr ", lastCursor,
+			Log.Info("run ondemand publish posts to feed: ", feed.Id, " triggered by OLD in {feeds} API from curosr ", lastCursor,
 				" try to republish ", query.Limit-len(posts), " more posts")
 			before := len(posts)
 			rePublishPostsFromCursor(db, feed, query.Limit-len(posts), lastCursor)
@@ -110,6 +110,18 @@ func getFeedPostsOrRePublish(db *gorm.DB, feed *model.Feed, query *model.FeedRef
 	}
 
 	sortPostsByCreationTime(feed.Posts)
+	// update feed read status from redis
+	postIds := []string{}
+	for _, post := range feed.Posts {
+		postIds = append(postIds, post.Id)
+	}
+	status, err := r.GetItemsReadStatus(postIds, userId)
+	if err != nil {
+		return errors.Wrap(err, "failure when get posts read status")
+	}
+	for idx := range feed.Posts {
+		feed.Posts[idx].IsRead = status[idx]
+	}
 	return nil
 }
 
