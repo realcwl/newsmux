@@ -1,4 +1,4 @@
-FROM golang:1.16
+FROM 213288384225.dkr.ecr.us-west-1.amazonaws.com/golang:1.16
 
 WORKDIR /go/src/app
 
