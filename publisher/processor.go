@@ -76,9 +76,15 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(sqsRea
 	for _, msg := range msgs {
 		if _, err := processor.ProcessOneCralwerMessage(msg); err != nil {
 			Log.Errorf("fail process one crawler message. err: %s , message: %s", err, *msg.Message)
-			continue
+		} else {
+			successCount++
 		}
-		successCount++
+		// TODO: It would be better to move message to DLQ in case of error, instead
+		// of just delete it for all cases.
+		if processor.Reader.DeleteMessage(msg) != nil {
+			Log.Errorf("fail to delete message from SQS: %s", *msg.Message)
+		}
+
 	}
 	return successCount
 }
@@ -291,16 +297,15 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	// TODO: bump counter in ddog for number of message processed
 	decodedMsg, err := processor.decodeCrawlerMessage(msg)
 	if err != nil {
-		processor.Reader.DeleteMessage(msg)
 		return nil, err
 	}
 
-	// Once get a message, check if there is exact same Post (same sources, same content), if not store into DB as Post
+	// Once get a message, check if there is exact same Post (same sources, same
+	// content), if not store into DB as Post.
 	if processor.isPostExist(decodedMsg) {
 		// Log.Infof("[duplicated message] message has already been processed, existing deduplicate_id: %s, existing post_id: %s ", decodedMsg.Post.DeduplicateId, existingPost.Id)
 		// TODO: bump counter for deduplicated messages
-		err := processor.Reader.DeleteMessage(msg)
-		return decodedMsg, err
+		return decodedMsg, nil
 	}
 
 	// Prepare Post relations to Subsources (Sources can be inferred)
@@ -360,7 +365,7 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 	}
 
 	// Delete message from queue
-	return decodedMsg, processor.Reader.DeleteMessage(msg)
+	return decodedMsg, nil
 }
 
 // Parse message into meaningful structure CrawlerMessage
