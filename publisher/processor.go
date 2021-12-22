@@ -73,9 +73,10 @@ func (processor *CrawlerpublisherMessageProcessor) ReadAndProcessMessages(sqsRea
 }
 
 func (processor *CrawlerpublisherMessageProcessor) calculateSemanticHashing(decodedMsg *CrawlerMessage) (string, error) {
-	// We don't calculate semantic hashing for Wechat message because their
-	// contents are all same.
-	if decodedMsg.Post.SubSource.SourceId == collector.WeixinSourceId {
+	// We don't calculate semantic hashing for Wechat/Twitter message because their
+	// contents might be empty or not meaningful.
+	if decodedMsg.Post.SubSource.SourceId == collector.WeixinSourceId ||
+		decodedMsg.Post.SubSource.SourceId == collector.TwitterSourceId {
 		return "", nil
 	}
 

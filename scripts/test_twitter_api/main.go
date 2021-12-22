@@ -8,14 +8,14 @@ import (
 )
 
 func getAllTweets(name string) {
-	tweets, _, _ := twitterscraper.New().FetchTweets(name, 20, "")
-	fmt.Println(collector.PrettyPrint(tweets[2]))
-	// for _, t := range tweets {
-	// 	fmt.Println(collector.PrettyPrint(t))
-	// }
+	tweets, _, _ := twitterscraper.New().FetchTweets(name, 50, "")
+	// fmt.Println(collector.PrettyPrint(tweets[2]))
+	for _, t := range tweets {
+		fmt.Println(collector.PrettyPrint(t))
+	}
 }
 
 func main() {
-	name := "RnrCapital"
+	name := "elonmusk"
 	getAllTweets(name)
 }
