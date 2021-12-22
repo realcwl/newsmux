@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/protocol"
 	twitterscraper "github.com/n0madic/twitter-scraper"
 	"github.com/stretchr/testify/assert"
@@ -423,11 +424,12 @@ func TestRemoveTwitterLink(t *testing.T) {
 }
 
 func TestConvertTweetTreeToCrawledPost_ReplyChain(t *testing.T) {
+	fs := &file_store.FakeFileStore{}
 	scraper := twitterscraper.New()
 	tweet := &twitterscraper.Tweet{}
 	err := json.Unmarshal([]byte(replyChain), tweet)
 	assert.Nil(t, err)
-	res, err := ConvertTweetTreeToCrawledPost(tweet, scraper, &protocol.PanopticTask{TaskParams: &protocol.TaskParams{SourceId: "source_i"}})
+	res, err := ConvertTweetTreeToCrawledPost(tweet, scraper, &protocol.PanopticTask{TaskParams: &protocol.TaskParams{SourceId: "source_i"}}, fs)
 	assert.Nil(t, err)
 	assert.Equal(t, res.Content, "3")
 	assert.Equal(t, res.ContentGeneratedAt.Seconds, int64(1638646600+2*TimeOffsetSecond))
@@ -439,11 +441,12 @@ func TestConvertTweetTreeToCrawledPost_ReplyChain(t *testing.T) {
 }
 
 func TestConvertTweetTreeToCrawledPost_ReplyChainWithQuote(t *testing.T) {
+	fs := &file_store.FakeFileStore{}
 	scraper := twitterscraper.New()
 	tweet := &twitterscraper.Tweet{}
 	err := json.Unmarshal([]byte(replyWithAndQuote), tweet)
 	assert.Nil(t, err)
-	res, err := ConvertTweetTreeToCrawledPost(tweet, scraper, &protocol.PanopticTask{TaskParams: &protocol.TaskParams{SourceId: "source_i"}})
+	res, err := ConvertTweetTreeToCrawledPost(tweet, scraper, &protocol.PanopticTask{TaskParams: &protocol.TaskParams{SourceId: "source_i"}}, fs)
 	assert.Nil(t, err)
 	assert.Equal(t, res.Content, "test")
 	assert.Equal(t, res.ReplyTo.Content, "2")

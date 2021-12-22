@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/collector/sink"
 	"github.com/Luismorlan/newsmux/collector/working_context"
 	"github.com/Luismorlan/newsmux/protocol"
@@ -18,6 +19,8 @@ type TwitterApiCrawler struct {
 	Sink sink.CollectedDataSink
 
 	Scraper *twitterscraper.Scraper
+
+	ImageStore file_store.CollectedFileStore
 }
 
 // Crawl and publish for a single Twitter user.
@@ -53,7 +56,7 @@ func (t TwitterApiCrawler) ProcessSingleTweet(tweet *twitterscraper.Tweet,
 func (t TwitterApiCrawler) GetMessage(workingContext *working_context.ApiCollectorWorkingContext) error {
 	collector.InitializeApiCollectorResult(workingContext)
 	tweet := workingContext.ApiResponseItem.(*twitterscraper.Tweet)
-	post, err := ConvertTweetTreeToCrawledPost(tweet, t.Scraper, workingContext.Task)
+	post, err := ConvertTweetTreeToCrawledPost(tweet, t.Scraper, workingContext.Task, t.ImageStore)
 	if err != nil {
 		return err
 	}
