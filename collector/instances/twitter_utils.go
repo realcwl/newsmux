@@ -92,23 +92,22 @@ func GetTwitterImageUrls(tweet *twitterscraper.Tweet, imageStore file_store.Coll
 		return tweet.Photos
 	}
 
-	s3Urls, err := collector.UploadImagesToS3(imageStore, tweet.Photos)
+	s3OrOriginalUrls, err := collector.UploadImagesToS3(imageStore, tweet.Photos)
 	if err != nil {
 		Logger.Log.WithFields(logrus.Fields{"source": "twitter"}).
 			Errorln("fail to get Twitter image, err:", err)
-		return tweet.Photos
 	}
-	return s3Urls
+	return s3OrOriginalUrls
 }
 
 func GetTwitterProfileImageUrl(profile *twitterscraper.Profile, imageStore file_store.CollectedFileStore) string {
-	s3Urls, err := collector.UploadImagesToS3(imageStore, []string{profile.Avatar})
-	if err != nil || len(s3Urls) != 1 {
+	s3OrOriginalUrls, err := collector.UploadImagesToS3(imageStore, []string{profile.Avatar})
+	if err != nil || len(s3OrOriginalUrls) != 1 {
 		Logger.Log.WithFields(logrus.Fields{"source": "twitter"}).
 			Errorln("fail to get Twitter profile avatar URL, err:", err)
 		return profile.Avatar
 	}
-	return s3Urls[0]
+	return s3OrOriginalUrls[0]
 }
 
 // Convert a tweet to crawled message together with the tweet it is refering to
