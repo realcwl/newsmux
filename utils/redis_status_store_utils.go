@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -100,11 +101,23 @@ func (r *RedisStatusStore) GetItemsReadStatus(itemNodeIds []string, userId strin
 func (r RedisStatusStore) SetItemsReadStatus(itemNodeIds []string, userId string, read bool) error {
 	if read {
 		keyValues := []interface{}{}
+		keys := []string{}
 		for _, pid := range itemNodeIds {
-			keyValues = append(keyValues, r.keyParser.MustEncodePostKey(userId, pid))
+			key := r.keyParser.MustEncodePostKey(userId, pid)
+			keys = append(keys, key)
+			keyValues = append(keyValues, key)
 			keyValues = append(keyValues, RedisTrue)
 		}
-		return r.inner.MSetNX(ctx, keyValues...).Err()
+		err := r.inner.MSetNX(ctx, keyValues...).Err()
+		if err != nil {
+			return err
+		}
+		for _, key := range keys {
+			if err := r.inner.Expire(ctx, key, time.Hour*24*7).Err(); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
 	keyValues := []string{}

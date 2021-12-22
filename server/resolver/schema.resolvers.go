@@ -376,7 +376,7 @@ func (r *mutationResolver) SetItemsReadStatus(ctx context.Context, input model.S
 		payload := ReadStatusPayload{
 			read:        input.Read,
 			itemNodeIds: input.ItemNodeIds,
-			delimiter:   "_",
+			delimiter:   "__",
 			itemType:    input.Type,
 		}
 		ser, _ := payload.Marshal()
