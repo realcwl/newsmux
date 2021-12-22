@@ -84,17 +84,18 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddSubSource      func(childComplexity int, input model.AddSubSourceInput) int
-		AddWeiboSubSource func(childComplexity int, input model.AddWeiboSubSourceInput) int
-		CreatePost        func(childComplexity int, input model.NewPostInput) int
-		CreateSource      func(childComplexity int, input model.NewSourceInput) int
-		CreateUser        func(childComplexity int, input model.NewUserInput) int
-		DeleteFeed        func(childComplexity int, input model.DeleteFeedInput) int
-		DeleteSubSource   func(childComplexity int, input *model.DeleteSubSourceInput) int
-		Subscribe         func(childComplexity int, input model.SubscribeInput) int
-		SyncUp            func(childComplexity int, input *model.SeedStateInput) int
-		UpsertFeed        func(childComplexity int, input model.UpsertFeedInput) int
-		UpsertSubSource   func(childComplexity int, input model.UpsertSubSourceInput) int
+		AddSubSource       func(childComplexity int, input model.AddSubSourceInput) int
+		AddWeiboSubSource  func(childComplexity int, input model.AddWeiboSubSourceInput) int
+		CreatePost         func(childComplexity int, input model.NewPostInput) int
+		CreateSource       func(childComplexity int, input model.NewSourceInput) int
+		CreateUser         func(childComplexity int, input model.NewUserInput) int
+		DeleteFeed         func(childComplexity int, input model.DeleteFeedInput) int
+		DeleteSubSource    func(childComplexity int, input *model.DeleteSubSourceInput) int
+		SetItemsReadStatus func(childComplexity int, input model.SetItemsReadStatusInput) int
+		Subscribe          func(childComplexity int, input model.SubscribeInput) int
+		SyncUp             func(childComplexity int, input *model.SeedStateInput) int
+		UpsertFeed         func(childComplexity int, input model.UpsertFeedInput) int
+		UpsertSubSource    func(childComplexity int, input model.UpsertSubSourceInput) int
 	}
 
 	Post struct {
@@ -109,6 +110,7 @@ type ComplexityRoot struct {
 		Id                 func(childComplexity int) int
 		ImageUrls          func(childComplexity int) int
 		InSharingChain     func(childComplexity int) int
+		IsRead             func(childComplexity int) int
 		OriginUrl          func(childComplexity int) int
 		PublishedFeeds     func(childComplexity int) int
 		ReplyThread        func(childComplexity int) int
@@ -143,7 +145,8 @@ type ComplexityRoot struct {
 	}
 
 	Signal struct {
-		SignalType func(childComplexity int) int
+		SignalPayload func(childComplexity int) int
+		SignalType    func(childComplexity int) int
 	}
 
 	Source struct {
@@ -211,6 +214,7 @@ type MutationResolver interface {
 	AddSubSource(ctx context.Context, input model.AddSubSourceInput) (*model.SubSource, error)
 	DeleteSubSource(ctx context.Context, input *model.DeleteSubSourceInput) (*model.SubSource, error)
 	SyncUp(ctx context.Context, input *model.SeedStateInput) (*model.SeedState, error)
+	SetItemsReadStatus(ctx context.Context, input model.SetItemsReadStatusInput) (bool, error)
 }
 type PostResolver interface {
 	DeletedAt(ctx context.Context, obj *model.Post) (*time.Time, error)
@@ -492,6 +496,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteSubSource(childComplexity, args["input"].(*model.DeleteSubSourceInput)), true
 
+	case "Mutation.setItemsReadStatus":
+		if e.complexity.Mutation.SetItemsReadStatus == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setItemsReadStatus_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetItemsReadStatus(childComplexity, args["input"].(model.SetItemsReadStatusInput)), true
+
 	case "Mutation.subscribe":
 		if e.complexity.Mutation.Subscribe == nil {
 			break
@@ -616,6 +632,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.InSharingChain(childComplexity), true
+
+	case "Post.isRead":
+		if e.complexity.Post.IsRead == nil {
+			break
+		}
+
+		return e.complexity.Post.IsRead(childComplexity), true
 
 	case "Post.originUrl":
 		if e.complexity.Post.OriginUrl == nil {
@@ -800,6 +823,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SeedState.UserSeedState(childComplexity), true
+
+	case "Signal.signalPayload":
+		if e.complexity.Signal.SignalPayload == nil {
+			break
+		}
+
+		return e.complexity.Signal.SignalPayload(childComplexity), true
 
 	case "Signal.signalType":
 		if e.complexity.Signal.SignalType == nil {
@@ -1194,6 +1224,9 @@ type PostInFeedOutput {
 
   # tags indicating post content
   tags: [String!]!
+
+  # indicating if the post has been read
+  isRead: Boolean!
 }
 `, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `# GraphQL schema
@@ -1206,6 +1239,11 @@ enum FeedRefreshDirection {
 enum Visibility {
   GLOBAL
   PRIVATE
+}
+
+enum ItemType {
+  POST
+  DUPLICATION
 }
 
 input SourcesInput {
@@ -1335,12 +1373,20 @@ input DeleteFeedInput {
   feedId: String!
 }
 
+input SetItemsReadStatusInput {
+  userId: String!
+  itemNodeIds: [String!]!
+  read: Boolean!
+  type: ItemType!
+}
+
 type Query {
   allVisibleFeeds: [Feed!]
   post(input: PostInput): Post!
   posts: [Post!]
   users: [User!]
 
+  # postsReadStatus(input: GetPostsReadStatusInput!): [Boolean!]!
   # State is the main API to "bootstrap" application, where it fetches required
   # states for the given input. After receiving the StateOutput, client will
   # then make subsequent calls to request all data.
@@ -1420,6 +1466,8 @@ type Mutation {
   deleteSubSource(input: DeleteSubSourceInput): SubSource!
 
   syncUp(input: SeedStateInput): SeedState
+
+  setItemsReadStatus(input: SetItemsReadStatusInput!): Boolean!
 }
 
 type Subscription {
@@ -1446,10 +1494,16 @@ enum SignalType {
   # Instruct client side to pull seed state. This is the first signal send to
   # client side application.
   SEED_STATE
+  SET_ITEMS_READ_STATUS
 }
 
 type Signal @goModel(model: "model.Signal") {
   signalType: SignalType!
+
+  # sigalPayload is a general payload, and each type of signal needs to parse its own payload
+  # the parser should be added to signal_payload.go
+  signalPayload: String
+
   # Some signal also need params, adding all custom params below this line.
 }
 `, BuiltIn: false},
@@ -1616,6 +1670,21 @@ func (ec *executionContext) field_Mutation_deleteSubSource_args(ctx context.Cont
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalODeleteSubSourceInput2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐDeleteSubSourceInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setItemsReadStatus_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.SetItemsReadStatusInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNSetItemsReadStatusInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSetItemsReadStatusInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3006,6 +3075,48 @@ func (ec *executionContext) _Mutation_syncUp(ctx context.Context, field graphql.
 	return ec.marshalOSeedState2ᚖgithubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSeedState(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_setItemsReadStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_setItemsReadStatus_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SetItemsReadStatus(rctx, args["input"].(model.SetItemsReadStatusInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Post_id(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3685,6 +3796,41 @@ func (ec *executionContext) _Post_tags(ctx context.Context, field graphql.Collec
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_isRead(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsRead, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PostInFeedOutput_post(ctx context.Context, field graphql.CollectedField, obj *model.PostInFeedOutput) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4271,6 +4417,38 @@ func (ec *executionContext) _Signal_signalType(ctx context.Context, field graphq
 	res := resTmp.(model.SignalType)
 	fc.Result = res
 	return ec.marshalNSignalType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignalType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Signal_signalPayload(ctx context.Context, field graphql.CollectedField, obj *model.Signal) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Signal",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SignalPayload, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Source_id(ctx context.Context, field graphql.CollectedField, obj *model.Source) (ret graphql.Marshaler) {
@@ -6957,6 +7135,53 @@ func (ec *executionContext) unmarshalInputSeedStateInput(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSetItemsReadStatusInput(ctx context.Context, obj interface{}) (model.SetItemsReadStatusInput, error) {
+	var it model.SetItemsReadStatusInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "userId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "itemNodeIds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("itemNodeIds"))
+			it.ItemNodeIds, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "read":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("read"))
+			it.Read, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "type":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			it.Type, err = ec.unmarshalNItemType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐItemType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSourcesInput(ctx context.Context, obj interface{}) (model.SourcesInput, error) {
 	var it model.SourcesInput
 	asMap := map[string]interface{}{}
@@ -7518,6 +7743,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "syncUp":
 			out.Values[i] = ec._Mutation_syncUp(ctx, field)
+		case "setItemsReadStatus":
+			out.Values[i] = ec._Mutation_setItemsReadStatus(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7655,6 +7885,11 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				}
 				return res
 			})
+		case "isRead":
+			out.Values[i] = ec._Post_isRead(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7887,6 +8122,8 @@ func (ec *executionContext) _Signal(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "signalPayload":
+			out.Values[i] = ec._Signal_signalPayload(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8679,6 +8916,16 @@ func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNItemType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐItemType(ctx context.Context, v interface{}) (model.ItemType, error) {
+	var res model.ItemType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNItemType2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐItemType(ctx context.Context, sel ast.SelectionSet, v model.ItemType) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNNewPostInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐNewPostInput(ctx context.Context, v interface{}) (model.NewPostInput, error) {
 	res, err := ec.unmarshalInputNewPostInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -8750,6 +8997,11 @@ func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋLuismorlanᚋnewsmux�
 		return graphql.Null
 	}
 	return ec._Post(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSetItemsReadStatusInput2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSetItemsReadStatusInput(ctx context.Context, v interface{}) (model.SetItemsReadStatusInput, error) {
+	res, err := ec.unmarshalInputSetItemsReadStatusInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNSignal2githubᚗcomᚋLuismorlanᚋnewsmuxᚋmodelᚐSignal(ctx context.Context, sel ast.SelectionSet, v model.Signal) graphql.Marshaler {

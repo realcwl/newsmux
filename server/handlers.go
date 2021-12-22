@@ -30,9 +30,15 @@ func GraphqlHandler() gin.HandlerFunc {
 
 	utils.DatabaseSetupAndMigration(db)
 
+	redis, err := utils.GetRedisStatusStore()
+	if err != nil {
+		panic("failed to connect redis")
+	}
+
 	h := handler.New(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{
-		DB:          db,
-		SignalChans: resolver.NewSignalChannels(),
+		DB:               db,
+		RedisStatusStore: redis,
+		SignalChans:      resolver.NewSignalChannels(),
 	}}))
 
 	h.AddTransport(transport.Websocket{
