@@ -370,7 +370,6 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 		return decodedMsg, err
 	}
 
-	// Delete message from queue
 	return decodedMsg, nil
 }
 
