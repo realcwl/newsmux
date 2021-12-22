@@ -148,7 +148,7 @@ func (hanlder DataCollectJobHandler) processTask(t *protocol.PanopticTask, sink 
 	case protocol.PanopticTask_COLLECTOR_USER_CUSTOMIZED_SUBSOURCE:
 		collector = builder.NewCustomizedSubSourceCollector(sink)
 	case protocol.PanopticTask_COLLECTOR_TWITTER:
-		collector = builder.NewTwitterCollector(sink)
+		collector = builder.NewTwitterCollector(sink, imageStore)
 	default:
 		return errors.New("unknown task data collector id")
 	}

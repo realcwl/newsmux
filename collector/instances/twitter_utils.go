@@ -5,9 +5,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Luismorlan/newsmux/collector"
+	"github.com/Luismorlan/newsmux/collector/file_store"
 	"github.com/Luismorlan/newsmux/protocol"
 	Logger "github.com/Luismorlan/newsmux/utils/log"
 	twitterscraper "github.com/n0madic/twitter-scraper"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -84,27 +87,48 @@ func GetTwitterCreationTime(tweet *twitterscraper.Tweet, depth int) *timestamppb
 	return timestamppb.New(time.Unix(tweet.Timestamp+int64(depth*TimeOffsetSecond), 0))
 }
 
-func GetTwitterImageUrls(tweet *twitterscraper.Tweet) []string {
-	return tweet.Photos
+func GetTwitterImageUrls(tweet *twitterscraper.Tweet, imageStore file_store.CollectedFileStore) []string {
+	if tweet.Photos == nil || len(tweet.Photos) == 0 {
+		return tweet.Photos
+	}
+
+	s3Urls, err := collector.UploadImagesToS3(imageStore, tweet.Photos)
+	if err != nil {
+		Logger.Log.WithFields(logrus.Fields{"source": "twitter"}).
+			Errorln("fail to get Twitter image, err:", err)
+		return tweet.Photos
+	}
+	return s3Urls
+}
+
+func GetTwitterProfileImageUrl(profile *twitterscraper.Profile, imageStore file_store.CollectedFileStore) string {
+	s3Urls, err := collector.UploadImagesToS3(imageStore, []string{profile.Avatar})
+	if err != nil || len(s3Urls) != 1 {
+		Logger.Log.WithFields(logrus.Fields{"source": "twitter"}).
+			Errorln("fail to get Twitter profile avatar URL, err:", err)
+		return profile.Avatar
+	}
+	return s3Urls[0]
 }
 
 // Convert a tweet to crawled message together with the tweet it is refering to
 // (quote/retweet), stored as the SharedFromCrawledPost field. This function
 // will not convert reply thread, which will be dealt with in another function.
-func ConvertTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper, depth *int, task *protocol.PanopticTask) (*protocol.CrawlerMessage_CrawledPost, error) {
-	post, err := ConvertSingleTweetToCrawledPost(tweet, scraper, false, depth, task)
+func ConvertTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper, depth *int, task *protocol.PanopticTask, imageStore file_store.CollectedFileStore) (
+	*protocol.CrawlerMessage_CrawledPost, error) {
+	post, err := ConvertSingleTweetToCrawledPost(tweet, scraper, false, depth, task, imageStore)
 	if err != nil {
 		return nil, err
 	}
 
 	var sharedPost *protocol.CrawlerMessage_CrawledPost
 	if tweet.IsRetweet {
-		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.RetweetedStatus, scraper, false, depth, task)
+		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.RetweetedStatus, scraper, false, depth, task, imageStore)
 		if err != nil {
 			return nil, err
 		}
 	} else if tweet.IsQuoted {
-		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.QuotedStatus, scraper, true, depth, task)
+		sharedPost, err = ConvertSingleTweetToCrawledPost(tweet.QuotedStatus, scraper, true, depth, task, imageStore)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +140,7 @@ func ConvertTweetToCrawledPost(tweet *twitterscraper.Tweet, scraper *twitterscra
 // Convert from Tweet object to CralwedMessage without constructing the inner
 // shared post.
 func ConvertSingleTweetToCrawledPost(
-	tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper, isQuoted bool, depth *int, task *protocol.PanopticTask) (
+	tweet *twitterscraper.Tweet, scraper *twitterscraper.Scraper, isQuoted bool, depth *int, task *protocol.PanopticTask, imageStore file_store.CollectedFileStore) (
 	*protocol.CrawlerMessage_CrawledPost, error) {
 	profile, err := GetUserProfile(tweet.Username, scraper)
 	if err != nil {
@@ -127,11 +151,11 @@ func ConvertSingleTweetToCrawledPost(
 	post := &protocol.CrawlerMessage_CrawledPost{
 		Content:            GetTwitterContent(tweet, isQuoted),
 		DeduplicateId:      GetTwitterDedupId(tweet),
-		ImageUrls:          GetTwitterImageUrls(tweet),
+		ImageUrls:          GetTwitterImageUrls(tweet, imageStore),
 		ContentGeneratedAt: GetTwitterCreationTime(tweet, *depth),
 		SubSource: &protocol.CrawledSubSource{
 			Name:       profile.Name,
-			AvatarUrl:  profile.Avatar,
+			AvatarUrl:  GetTwitterProfileImageUrl(profile, imageStore),
 			SourceId:   task.TaskParams.SourceId,
 			ExternalId: profile.Username,
 			OriginUrl:  profile.URL,
@@ -146,25 +170,25 @@ func ConvertSingleTweetToCrawledPost(
 // message, together with the reply chain, and quote/retweet in each layer.
 // This is the entry point for most of the tweet
 func ConvertTweetTreeToCrawledPost(
-	root *twitterscraper.Tweet, scraper *twitterscraper.Scraper, task *protocol.PanopticTask) (*protocol.CrawlerMessage_CrawledPost, error) {
+	root *twitterscraper.Tweet, scraper *twitterscraper.Scraper, task *protocol.PanopticTask, imageStore file_store.CollectedFileStore) (*protocol.CrawlerMessage_CrawledPost, error) {
 	depth := 0
-	return ConvertTweetTreeToCrawledPostInternal(root, scraper, &depth, task)
+	return ConvertTweetTreeToCrawledPostInternal(root, scraper, &depth, task, imageStore)
 }
 
 func ConvertTweetTreeToCrawledPostInternal(
-	root *twitterscraper.Tweet, scraper *twitterscraper.Scraper, depth *int, task *protocol.PanopticTask) (*protocol.CrawlerMessage_CrawledPost, error) {
+	root *twitterscraper.Tweet, scraper *twitterscraper.Scraper, depth *int, task *protocol.PanopticTask, imageStore file_store.CollectedFileStore) (*protocol.CrawlerMessage_CrawledPost, error) {
 	var replyTweet *protocol.CrawlerMessage_CrawledPost
 	var err error
 
 	// Fast return if the post is a leaf in the reply chain.
 	if root.IsReply && root.InReplyToStatus != nil {
-		replyTweet, err = ConvertTweetTreeToCrawledPostInternal(root.InReplyToStatus, scraper, depth, task)
+		replyTweet, err = ConvertTweetTreeToCrawledPostInternal(root.InReplyToStatus, scraper, depth, task, imageStore)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	post, err := ConvertTweetToCrawledPost(root, scraper, depth, task)
+	post, err := ConvertTweetToCrawledPost(root, scraper, depth, task, imageStore)
 	if err != nil {
 		return nil, err
 	}

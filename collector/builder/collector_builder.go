@@ -79,6 +79,6 @@ func (CollectorBuilder) NewCustomizedSubSourceCollector(s sink.CollectedDataSink
 	return &CustomizedSubSourceCrawler{Sink: s}
 }
 
-func (CollectorBuilder) NewTwitterCollector(s sink.CollectedDataSink) DataCollector {
-	return &TwitterApiCrawler{Sink: s, Scraper: twitterscraper.New()}
+func (CollectorBuilder) NewTwitterCollector(s sink.CollectedDataSink, imageStore file_store.CollectedFileStore) DataCollector {
+	return &TwitterApiCrawler{Sink: s, Scraper: twitterscraper.New(), ImageStore: imageStore}
 }
