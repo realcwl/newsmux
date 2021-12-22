@@ -14,7 +14,7 @@ phases:
       - REPOSITORY_COLLECTOR_URL=213288384225.dkr.ecr.us-west-1.amazonaws.com/data_collector
       - REPOSITORY_DEDUPLICATOR_URL=213288384225.dkr.ecr.us-west-1.amazonaws.com/deduplicator
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=latest
+      - IMAGE_TAG=BACKEND-${COMMIT_HASH}
   build:
     commands:
       - echo Build started on `date`
