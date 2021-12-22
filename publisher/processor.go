@@ -356,9 +356,15 @@ func (processor *CrawlerpublisherMessageProcessor) ProcessOneCralwerMessage(msg 
 
 	// Write to DB, post creation and publish is in a transaction
 	err = processor.DB.Transaction(func(tx *gorm.DB) error {
-		tx.Create(&post)
-		err := tx.Model(&post).Association("PublishedFeeds").Append(feedsToPublish)
-		return err
+		if err := tx.Create(&post).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&post).Association("PublishedFeeds").Append(feedsToPublish); err != nil {
+			return err
+		}
+
+		return nil
 	})
 	if err != nil {
 		return decodedMsg, err
