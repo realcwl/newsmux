@@ -285,7 +285,8 @@ func CustomizedCrawlerExtractPlainText(selector *string, elem *colly.HTMLElement
 	if selector == nil {
 		return defaultValue
 	}
-	return elem.DOM.Find(*selector).Text()
+	str := elem.DOM.Find(*selector).Text()
+	return strings.TrimSpace(str)
 }
 
 func CustomizedCrawlerExtractAttribute(selector *string, elem *colly.HTMLElement, defaultValue string, attribute string) string {
