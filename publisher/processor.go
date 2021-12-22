@@ -117,6 +117,7 @@ func (processor *CrawlerpublisherMessageProcessor) isPostExist(decodedMsg *Crawl
 	// First check whether the cache contains the dedup id.
 	processor.m.RLock()
 	if _, ok := processor.ExistingDedupIdMap[decodedMsg.Post.DeduplicateId]; ok {
+		processor.m.RUnlock()
 		return true
 	}
 	processor.m.RUnlock()
