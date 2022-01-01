@@ -304,7 +304,11 @@ func UpsertSubsourceImpl(db *gorm.DB, input model.UpsertSubSourceInput) (*model.
 	subSource.ExternalIdentifier = input.ExternalIdentifier
 	subSource.AvatarUrl = input.AvatarURL
 	subSource.OriginUrl = input.OriginURL
-	subSource.CustomizedCrawlerParams = customizedCrawlerParams
+
+	// Do not set it back to nil
+	if customizedCrawlerParams != nil {
+		subSource.CustomizedCrawlerParams = customizedCrawlerParams
+	}
 	if !input.IsFromSharedPost {
 		// can only update IsFromSharedPost from true to false
 		// meaning from hidden to display
