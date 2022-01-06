@@ -24,7 +24,12 @@ const (
 	SimilarityWindowHours = 1
 )
 
-var PostsSent sync.Map
+var PostsSent map[string][]postMeta
+var Mutex sync.Mutex
+
+func init() {
+	PostsSent = map[string][]postMeta{}
+}
 
 type postMeta struct {
 	Id                 string `json:"id"`
@@ -59,27 +64,29 @@ func isPostDuplicated(
 	post model.Post,
 	channelId string,
 ) bool {
-	_posts, ok := PostsSent.Load(channelId)
+	Mutex.Lock()
+	defer Mutex.Unlock()
+
+	_, ok := PostsSent[channelId]
 	if !ok {
 		return false
 	}
 
-	posts := _posts.([]postMeta)
-	postLength := len(posts)
-	for i := postLength - 1; i >= 0; i-- {
+	for i := len(PostsSent[channelId]) - 1; i >= 0; i-- {
+		p := PostsSent[channelId][i]
 		// the collector has some interval(up to 12 hours for zsxq) to collect the data
-		// we will keep the cache for one day
-		if math.Abs(time.Since(posts[i].ContentGeneratedAt).Hours()) > 24 {
-			PostsSent.Store(channelId, append(posts[:i], posts[i+1:]...))
+		// we will keep the cache for two days
+		if math.Abs(time.Since(p.ContentGeneratedAt).Hours()) > 48 {
+			PostsSent[channelId] = append(PostsSent[channelId][:i], PostsSent[channelId][i+1:]...)
 		}
 
 		if post.SemanticHashing == "" ||
-			posts[i].SemanticHash == "" {
+			p.SemanticHash == "" {
 			return false
 		}
 
-		if (math.Abs(post.ContentGeneratedAt.Sub(posts[i].ContentGeneratedAt).Hours())) < SimilarityWindowHours {
-			if isHashingSemanticallyIdentical(post.SemanticHashing, posts[i].SemanticHash) {
+		if (math.Abs(post.ContentGeneratedAt.Sub(p.ContentGeneratedAt).Hours())) < SimilarityWindowHours {
+			if isHashingSemanticallyIdentical(post.SemanticHashing, p.SemanticHash) {
 				return true
 			}
 		}
@@ -105,7 +112,6 @@ func parsePostSharePayload(body io.ReadCloser) (*SharePostPayload, error) {
 
 func PostShareHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		payload, err := parsePostSharePayload(c.Request.Body)
 		if err != nil {
 			bodybytes, _ := ioutil.ReadAll(c.Request.Body)
@@ -123,21 +129,24 @@ func PostShareHandler(db *gorm.DB) gin.HandlerFunc {
 			Logger.Log.Error("Fail to post via webhook", err)
 		}
 
-		if posts, ok := PostsSent.Load(payload.WebhookUrl); ok {
-			PostsSent.Store(payload.WebhookUrl, append(posts.([]postMeta),
+		Mutex.Lock()
+		defer Mutex.Unlock()
+
+		if posts, ok := PostsSent[payload.WebhookUrl]; ok {
+			PostsSent[payload.WebhookUrl] = append(posts,
 				postMeta{
 					Id:                 payload.Post.Id,
 					SemanticHash:       payload.Post.SemanticHashing,
 					ContentGeneratedAt: payload.Post.ContentGeneratedAt,
-				}))
+				})
 		} else {
-			PostsSent.Store(payload.WebhookUrl, []postMeta{
+			PostsSent[payload.WebhookUrl] = []postMeta{
 				{
 					Id:                 payload.Post.Id,
 					SemanticHash:       payload.Post.SemanticHashing,
 					ContentGeneratedAt: payload.Post.ContentGeneratedAt,
 				},
-			})
+			}
 		}
 
 		c.Data(200, "application/json; charset=utf-8", []byte("Post sent"))
