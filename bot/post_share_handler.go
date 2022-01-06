@@ -59,28 +59,32 @@ func isPostDuplicated(
 	post model.Post,
 	channelId string,
 ) bool {
-	posts, ok := PostsSent.Load(channelId)
+	_posts, ok := PostsSent.Load(channelId)
 	if !ok {
 		return false
 	}
-	for k, v := range posts.([]postMeta) {
+
+	posts := _posts.([]postMeta)
+	postLength := len(posts)
+	for i := postLength - 1; i >= 0; i-- {
 		// the collector has some interval(up to 12 hours for zsxq) to collect the data
 		// we will keep the cache for one day
-		if math.Abs(time.Since(v.ContentGeneratedAt).Hours()) > 24 {
-			PostsSent.Store(channelId, append(posts.([]postMeta)[:k], posts.([]postMeta)[k+1:]...))
+		if math.Abs(time.Since(posts[i].ContentGeneratedAt).Hours()) > 24 {
+			PostsSent.Store(channelId, append(posts[:i], posts[i+1:]...))
 		}
 
 		if post.SemanticHashing == "" ||
-			v.SemanticHash == "" {
+			posts[i].SemanticHash == "" {
 			return false
 		}
 
-		if (math.Abs(post.ContentGeneratedAt.Sub(v.ContentGeneratedAt).Hours())) < SimilarityWindowHours {
-			if isHashingSemanticallyIdentical(post.SemanticHashing, v.SemanticHash) {
+		if (math.Abs(post.ContentGeneratedAt.Sub(posts[i].ContentGeneratedAt).Hours())) < SimilarityWindowHours {
+			if isHashingSemanticallyIdentical(post.SemanticHashing, posts[i].SemanticHash) {
 				return true
 			}
 		}
 	}
+
 	return false
 }
 
@@ -111,7 +115,7 @@ func PostShareHandler(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if isPostDuplicated(payload.Post, payload.WebhookUrl) {
-			c.Data(200, "application/json; charset=utf-8", []byte("Post duplicated"))
+			c.Data(202, "application/json; charset=utf-8", []byte("Post duplicated"))
 			return
 		}
 
