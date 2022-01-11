@@ -3,14 +3,17 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/antchfx/xmlquery"
 	"github.com/gocolly/colly"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/html"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/Luismorlan/newsmux/collector/file_store"
@@ -289,6 +292,28 @@ func CustomizedCrawlerExtractPlainText(selector *string, elem *colly.HTMLElement
 	return strings.TrimSpace(str)
 }
 
+// Some rss will put html in the inner text in a xml node
+// try parse the html first to eliminate the html marks
+func TryParseInnerHtml(s string) string {
+	reader := strings.NewReader(s)
+	doc, err := goquery.NewDocumentFromReader(reader)
+	if err != nil {
+		return s
+	}
+	return doc.Text()
+}
+
+func CustomizedCrawlerExtractPlainTextXml(selector *string, node *xmlquery.Node, defaultValue string) string {
+	if selector == nil {
+		return defaultValue
+	}
+	node, err := xmlquery.Query(node, *selector)
+	if err != nil {
+		return defaultValue
+	}
+	return strings.TrimSpace(TryParseInnerHtml(node.InnerText()))
+}
+
 func CustomizedCrawlerExtractAttribute(selector *string, elem *colly.HTMLElement, defaultValue string, attribute string) string {
 	if selector == nil {
 		return defaultValue
@@ -359,6 +384,38 @@ func TryCustomizedCrawler(input *model.CustomizedCrawlerParams) ([]*model.Custom
 		}
 	})
 
+	c.OnXML(input.BaseSelector, func(e *colly.XMLElement) {
+		switch e.DOM.(type) {
+		// html will be processed twice as xml, skip in this case
+		case *html.Node:
+			return
+		}
+		node := e.DOM.(*xmlquery.Node)
+		var post model.CustomizedCrawlerTestResponse
+		title := CustomizedCrawlerExtractPlainTextXml(input.TitleRelativeSelector, node, "")
+		content := CustomizedCrawlerExtractPlainTextXml(input.ContentRelativeSelector, node, "")
+		externalId := CustomizedCrawlerExtractPlainTextXml(input.ExternalIDRelativeSelector, node, "")
+		time := CustomizedCrawlerExtractPlainTextXml(input.TimeRelativeSelector, node, "")
+		subSource := CustomizedCrawlerExtractPlainTextXml(input.SubsourceRelativeSelector, node, "")
+		originUrl := CustomizedCrawlerExtractPlainTextXml(input.OriginURLRelativeSelector, node, "")
+
+		post.Title = &title
+		post.Content = &content
+		post.ExternalID = &externalId
+		post.Time = &time
+		post.Images = []string{} //there is no images in xml
+		post.Subsource = &subSource
+
+		if input.OriginURLIsRelativePath != nil && *input.OriginURLIsRelativePath {
+			str := ConcateUrlBaseAndRelativePath(input.CrawlURL, originUrl)
+			post.OriginURL = &str
+		} else {
+			post.OriginURL = &originUrl
+		}
+		post.BaseHTML = &e.Text
+		res = append(res, &post)
+	})
+
 	c.Visit(input.CrawlURL)
 
 	return res, err
@@ -419,11 +476,9 @@ func UploadImagesToS3(imageStore file_store.CollectedFileStore, imageUrls []stri
 }
 
 func ConcateUrlBaseAndRelativePath(base string, path string) string {
-	for strings.HasSuffix(base, "/") {
-		base = base[:len(base)-1]
-	}
 	for strings.HasPrefix(path, "/") {
 		path = path[1:]
 	}
-	return base + "/" + path
+	u, _ := url.Parse(base)
+	return u.Host + "/" + path
 }
